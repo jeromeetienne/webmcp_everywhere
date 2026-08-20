@@ -1,23 +1,59 @@
 # WebMCP Everywhere
 
-A browser extension that carries community-maintained WebMCP adapters — small scripts that register tools into sites that never shipped their own. One install, and an agent gains a usable tool surface on the sites you already use.
+A browser extension that carries community-maintained WebMCP adapters — small scripts that register tools into sites that never shipped their own. Install it, point any agent at one local endpoint, and that agent gains real tools on the sites you already have open.
 
-The idea and its reasoning are in [issue #1](https://github.com/jeromeetienne/webmcp_everywhere/issues/1). This repository currently holds the first vertical slice, planned in [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2): one adapter, for the Playwright TodoMVC demonstration, proven end to end with a real agent.
+The idea and its reasoning are in [issue #1](https://github.com/jeromeetienne/webmcp_everywhere/issues/1). The first vertical slice is planned in [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).
 
 ## What works today
 
-Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. On a fresh install only the read-only tools register; the acting tools stay withheld until you opt in for that origin. Codex drives the site through them, with no screenshots and no Document Object Model guesswork.
+Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the site through them, with no screenshots and no Document Object Model guesswork.
+
+## How an agent reaches the browser
+
+```
+any agent ──HTTP MCP──> native host ──native messaging──> extension ──> document.modelContext
+                        (Chrome starts it on demand)
+```
+
+The native host exists because **a Chrome extension cannot listen on a port**. Measured on Chrome 151: `chrome.sockets` and `chrome.sockets.tcpServer` are undefined, and Manifest Version 3 exposes no server interface at all — only outbound `fetch` and `WebSocket`. Something native has to hold the socket, and Chrome starts that program itself when the extension connects, so nothing needs launching by hand.
+
+Every request travels through the extension, which is the only place that knows which tabs have adapters and what you have allowed. The host itself decides nothing about permissions.
 
 ## Try it
 
-You need Google Chrome 149 or later. The WebMCP origin trial runs from Chrome 149 to Chrome 156.
+You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156.
 
 ```bash
 npm install
-npm run build      # checks every adapter, then bundles the extension
-npm run chrome     # launches a throwaway Chrome with the extension installed
-npm run verify     # 14 checks against the live site
+npm run build           # checks every adapter, then bundles the extension
+npm run install:host    # registers the native host with Chrome
+npm run chrome          # launches a throwaway Chrome with the extension installed
+npm run verify:host     # 8 checks over the real delivery path
 ```
+
+The host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
+
+Point Codex at it:
+
+```bash
+export WEBMCP_TOKEN=$(python3 -c "import json;print(json.load(open('$HOME/.webmcp_everywhere/endpoint.json'))['token'])")
+codex exec -c 'mcp_servers.webmcp_everywhere={url="http://127.0.0.1:8765/mcp", bearer_token_env_var="WEBMCP_TOKEN"}' "Add a todo called buy milk, mark it done, and tell me how many are left."
+```
+
+Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`.
+
+## The other two paths
+
+Both exist for testing and neither is the product.
+
+```bash
+npm run verify          # 14 checks driving the page over the Chrome DevTools Protocol
+npm run verify:bridge   # 4 checks through the stdio Model Context Protocol bridge
+```
+
+The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native host exists.
+
+## Launching Chrome
 
 `npm run chrome` uses a throwaway profile and never touches your everyday Chrome. It handles four steps that are each silent when they go wrong:
 
@@ -28,31 +64,17 @@ npm run verify     # 14 checks against the live site
 
 **Do not reach for `--load-extension`.** Chrome 151 ignores it, leaving zero extensions installed and nothing in the log.
 
-## Letting an agent drive it
-
-No agent speaks WebMCP yet, so `src/bridge` re-exposes the page's tools over Model Context Protocol.
-
-```bash
-npm run grant           # stands in for ticking the box in the popup
-npm run verify:bridge   # 4 checks through a real Model Context Protocol client
-```
-
-Then point any Model Context Protocol client at `src/bridge/webmcp_bridge.mjs`. With Codex:
-
-```bash
-codex exec -c 'mcp_servers.webmcp_everywhere={command="node", args=["'"$PWD"'/src/bridge/webmcp_bridge.mjs"]}' "Add a todo called buy milk, mark it done, and tell me how many are left."
-```
-
 ## Layout
 
 - `src/adapter_format/` — what an adapter is, and the checks it must pass before a build will bundle it.
 - `src/adapters/` — one folder per target site.
 - `src/extension/` — the Manifest Version 3 extension.
-- `src/bridge/` — the Model Context Protocol bridge.
-- `tools/` — build, launch, and verification.
+- `src/host/` — the native messaging host and its HTTP endpoint.
+- `src/bridge/` — the stdio bridge, used for testing.
+- `tools/` — build, launch, install, and verification.
 
 Each folder has its own `CONTEXT.md`.
 
 ## What this is not
 
-There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Those are what make a catalogue viable at scale, and none of them can be designed honestly until one adapter has been written and has broken at least once.
+There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Prompt injection is untouched: tool outputs are page content handed straight into an agent's context, unbounded and unlabelled. None of that can be designed honestly until one adapter has been written and has broken at least once.

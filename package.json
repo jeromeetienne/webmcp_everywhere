@@ -11,7 +11,9 @@
 		"bridge": "node src/bridge/webmcp_bridge.mjs",
 		"typecheck": "tsc --noEmit",
 		"verify:bridge": "node tools/verify_bridge.mjs",
-		"grant": "node tools/grant_acting.mjs"
+		"grant": "node tools/grant_acting.mjs",
+		"verify:host": "node tools/verify_native_host.mjs",
+		"install:host": "node tools/install_native_host.mjs"
 	},
 	"dependencies": {
 		"zod": "3.25.76"

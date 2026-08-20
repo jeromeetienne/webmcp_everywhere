@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "/usr/local/bin/node" "/Users/jetienne/webwork/webmcp_everywhere/src/host/webmcp_native_host.mjs" "$@"

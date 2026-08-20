@@ -1,3 +1,4 @@
 node_modules/
 src/extension/dist/
 *.log
+extension_private_key.pem

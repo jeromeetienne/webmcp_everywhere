@@ -3,8 +3,14 @@
 	"name": "WebMCP Everywhere",
 	"version": "0.1.0",
 	"description": "Community-maintained WebMCP adapters that give an agent real tools on sites that never shipped their own.",
-	"permissions": ["storage"],
-	"host_permissions": ["https://demo.playwright.dev/*"],
+	"permissions": [
+		"storage",
+		"nativeMessaging",
+		"tabs"
+	],
+	"host_permissions": [
+		"https://demo.playwright.dev/*"
+	],
 	"background": {
 		"service_worker": "dist/background_service_worker.js"
 	},
@@ -14,18 +20,27 @@
 	},
 	"content_scripts": [
 		{
-			"matches": ["https://demo.playwright.dev/*"],
-			"js": ["dist/content_main.js"],
+			"matches": [
+				"https://demo.playwright.dev/*"
+			],
+			"js": [
+				"dist/content_main.js"
+			],
 			"world": "MAIN",
 			"run_at": "document_start",
 			"all_frames": false
 		},
 		{
-			"matches": ["https://demo.playwright.dev/*"],
-			"js": ["dist/content_isolated.js"],
+			"matches": [
+				"https://demo.playwright.dev/*"
+			],
+			"js": [
+				"dist/content_isolated.js"
+			],
 			"world": "ISOLATED",
 			"run_at": "document_start",
 			"all_frames": false
 		}
-	]
+	],
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1UR5DeF5biYk1I/K7BdBs519I0XxxHFHAuJjMIs/GshmwKE8+YKHp20RwE9D0ygXtXplRXekcU3Z+xc98ucwUoEzGtCJkLEI6Fb1DPC+4TA3mz0Kb2jejBIrWxCqLlAYbLkrBjrSn7zUnTljHliXRqfBCFAHGoNlWFcscTjxyA+FQ5CMrMnj9JVy/WrmOtWlL9pfH2rYsK5gzNxsp0C3+V5g1573OcKa0kS2RoF9M645kzHZab+iKAdAk6LYDYPGY1rgYxodSS4r4f+moJR51pF2+d5KOestucVcZIQsv8JjH9CN35A2mEpjeoa2Bqy0bic5J+wSLAS7zBdB/G/EUQIDAQAB"
 }

@@ -10,6 +10,8 @@ The Manifest Version 3 extension: it matches a page against the bundled adapters
 - `adapter_runtime.ts`: `AdapterRuntime` — decides what may register, then registers it.
 - `adapter_registry.ts`: `AdapterRegistry` — the adapters this build carries, and match pattern testing.
 - `extension_storage.ts`: `ExtensionStorage` — the grants and the kill switch.
+- `native_bridge.ts`: `NativeBridge` — answers the native host, aggregating tools across every adapted tab.
+- `page_query.ts`: `PageQuery` — the request and reply shapes that cross between the isolated and main worlds.
 - `background_service_worker.ts`, `popup.ts`, `popup.html`: The background script and the user interface. Named `Background` because `ServiceWorker` is already a Document Object Model interface.
 - Command to build this folder: `npm run build`
 
@@ -19,6 +21,8 @@ The Manifest Version 3 extension: it matches a page against the bundled adapters
 - Re-register only when the matching adapter actually changes. Re-registering on every fragment change made a tool abort its own call part way through.
 - After aborting a registration, wait until `getTools` stops listing those names before registering again.
 - The kill switch travels as its own field on the grant. Collapsing it into `actingAllowed` silently left read-only tools registered.
+- Check the grant again in `content_isolated.ts` before running a tool, not only when registering it, so enforcement sits on the path the agent's request actually travels.
+- A tool offered from two tabs gains a tab suffix in both, never in just one, so the ambiguity is visible rather than resolved to whichever tab came first.
 
 ## Background
 - Main-world injection is required and was proven to work in [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2); the isolated world cannot see `document.modelContext` at all.

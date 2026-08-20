@@ -6,7 +6,12 @@ Development tooling: builds the extension, brings up a Chrome that speaks WebMCP
 ## Key Exports & Entry Points
 - `build_extension.mjs`: `BuildExtension` — runs the adapter review checks, then bundles. `npm run build`
 - `launch_chrome.mjs`: `LaunchChrome` — the four-step recipe for a Chrome that works. `npm run chrome`
-- `verify_milestones.mjs`: `VerifyMilestones` — the end-to-end checks. `npm run verify`
+- `verify_milestones.mjs`: `VerifyMilestones` — checks over the Chrome DevTools Protocol path. `npm run verify`
+- `verify_native_host.mjs`: `VerifyNativeHost` — checks over the real delivery path. `npm run verify:host`
+- `verify_bridge.mjs`: `VerifyBridge` — checks the stdio bridge. `npm run verify:bridge`
+- `install_native_host.mjs`: `InstallNativeHost` — registers the host with Chrome. `npm run install:host`
+- `generate_extension_key.mjs`: `GenerateExtensionKey` — pins the extension identifier.
+- `grant_acting.mjs`: `GrantActing` — stands in for the popup. `npm run grant`
 
 ## Rules
 - Never use `--load-extension`. Chrome 151 ignores it silently, leaving zero extensions installed and nothing in the log. Install with the Chrome DevTools Protocol method `Extensions.loadUnpacked`.
