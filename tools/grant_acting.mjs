@@ -32,7 +32,7 @@ export class GrantActing {
 
 		const targets = await CdpClient.listTargets(port);
 		const worker = targets.find(
-			(target) => target.type === 'service_worker' && target.url.includes('dist/service_worker.js'),
+			(target) => target.type === 'service_worker' && target.url.includes('dist/background_service_worker.js'),
 		);
 		if (worker === undefined) {
 			throw new Error('the WebMCP Everywhere service worker is not running');

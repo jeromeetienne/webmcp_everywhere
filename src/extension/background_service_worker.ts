@@ -1,18 +1,21 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	ServiceWorker — keeps the last report per tab and makes invocations visible
+//	BackgroundServiceWorker — keeps the last report per tab and makes invocations visible
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
  * The extension's background script.
  *
+ * Named `BackgroundServiceWorker` rather than `ServiceWorker` because the latter is already a Document
+ * Object Model interface, and shadowing it makes every reference in this file ambiguous.
+ *
  * It exists for two reasons: the popup needs somewhere to read the current page's report from, and an
  * acting tool invocation has to be visible somewhere the user will notice. Issue #1 puts visible
  * invocation among the mitigations that matter, on the grounds that silence is what turns a small
  * compromise into a large one.
  */
-class ServiceWorker {
+class BackgroundServiceWorker {
 	/** The most recent report from each tab, keyed by tab identifier. */
 	static _reportByTab = new Map<number, unknown>();
 
@@ -26,18 +29,18 @@ class ServiceWorker {
 			const tabId = sender.tab?.id;
 
 			if (message?.kind === 'report' && tabId !== undefined) {
-				ServiceWorker._reportByTab.set(tabId, message.report);
-				void ServiceWorker._showRegisteredCount(tabId, message.report);
+				BackgroundServiceWorker._reportByTab.set(tabId, message.report);
+				void BackgroundServiceWorker._showRegisteredCount(tabId, message.report);
 				return undefined;
 			}
 
 			if (message?.kind === 'invocation' && tabId !== undefined) {
-				void ServiceWorker._flashInvocation(tabId, message.invocation);
+				void BackgroundServiceWorker._flashInvocation(tabId, message.invocation);
 				return undefined;
 			}
 
 			if (message?.kind === 'getReportForTab') {
-				sendResponse(ServiceWorker._reportByTab.get(message.tabId) ?? null);
+				sendResponse(BackgroundServiceWorker._reportByTab.get(message.tabId) ?? null);
 				return true;
 			}
 
@@ -45,7 +48,7 @@ class ServiceWorker {
 		});
 
 		chrome.tabs.onRemoved.addListener((tabId) => {
-			ServiceWorker._reportByTab.delete(tabId);
+			BackgroundServiceWorker._reportByTab.delete(tabId);
 		});
 	}
 
@@ -88,10 +91,10 @@ class ServiceWorker {
 		await chrome.action.setBadgeBackgroundColor({ tabId: tabId, color: '#d8663b' });
 		await chrome.action.setBadgeText({ tabId: tabId, text: '!' });
 		setTimeout(() => {
-			const report = ServiceWorker._reportByTab.get(tabId) as { registered?: string[] } | undefined;
-			void ServiceWorker._showRegisteredCount(tabId, report ?? {});
+			const report = BackgroundServiceWorker._reportByTab.get(tabId) as { registered?: string[] } | undefined;
+			void BackgroundServiceWorker._showRegisteredCount(tabId, report ?? {});
 		}, 1500);
 	}
 }
 
-ServiceWorker.start();
+BackgroundServiceWorker.start();

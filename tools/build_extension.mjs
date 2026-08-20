@@ -25,7 +25,7 @@ class BuildExtension {
 	static ENTRY_POINTS = [
 		'content_main.ts',
 		'content_isolated.ts',
-		'service_worker.ts',
+		'background_service_worker.ts',
 		'popup.ts',
 	];
 

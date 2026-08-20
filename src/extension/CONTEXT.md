@@ -10,7 +10,7 @@ The Manifest Version 3 extension: it matches a page against the bundled adapters
 - `adapter_runtime.ts`: `AdapterRuntime` — decides what may register, then registers it.
 - `adapter_registry.ts`: `AdapterRegistry` — the adapters this build carries, and match pattern testing.
 - `extension_storage.ts`: `ExtensionStorage` — the grants and the kill switch.
-- `service_worker.ts`, `popup.ts`, `popup.html`: The background script and the user interface.
+- `background_service_worker.ts`, `popup.ts`, `popup.html`: The background script and the user interface. Named `Background` because `ServiceWorker` is already a Document Object Model interface.
 - Command to build this folder: `npm run build`
 
 ## Rules

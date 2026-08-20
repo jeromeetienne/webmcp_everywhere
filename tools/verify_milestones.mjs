@@ -260,7 +260,7 @@ export class VerifyMilestones {
 		for (let attempt = 0; attempt < 40; attempt++) {
 			const targets = await CdpClient.listTargets(port);
 			const worker = targets.find(
-				(target) => target.type === 'service_worker' && target.url.includes('dist/service_worker.js'),
+				(target) => target.type === 'service_worker' && target.url.includes('dist/background_service_worker.js'),
 			);
 			if (worker !== undefined) {
 				return new URL(worker.url).host;
@@ -281,7 +281,7 @@ export class VerifyMilestones {
 	 */
 	static async _setGrant(port, extensionId, actingAllowed, globallyEnabled) {
 		const targets = await CdpClient.listTargets(port);
-		const worker = targets.find((target) => target.url.includes(`${extensionId}/dist/service_worker.js`));
+		const worker = targets.find((target) => target.url.includes(`${extensionId}/dist/background_service_worker.js`));
 		if (worker === undefined) {
 			throw new Error('the extension service worker is not running');
 		}
