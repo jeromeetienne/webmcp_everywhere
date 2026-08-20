@@ -9,7 +9,9 @@
 		"chrome": "node tools/launch_chrome.mjs",
 		"verify": "node tools/verify_milestones.mjs",
 		"bridge": "node src/bridge/webmcp_bridge.mjs",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"verify:bridge": "node tools/verify_bridge.mjs",
+		"grant": "node tools/grant_acting.mjs"
 	},
 	"dependencies": {
 		"zod": "3.25.76"
