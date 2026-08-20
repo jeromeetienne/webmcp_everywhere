@@ -1,0 +1,31 @@
+{
+	"manifest_version": 3,
+	"name": "WebMCP Everywhere",
+	"version": "0.1.0",
+	"description": "Community-maintained WebMCP adapters that give an agent real tools on sites that never shipped their own.",
+	"permissions": ["storage"],
+	"host_permissions": ["https://demo.playwright.dev/*"],
+	"background": {
+		"service_worker": "dist/service_worker.js"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "WebMCP Everywhere"
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://demo.playwright.dev/*"],
+			"js": ["dist/content_main.js"],
+			"world": "MAIN",
+			"run_at": "document_start",
+			"all_frames": false
+		},
+		{
+			"matches": ["https://demo.playwright.dev/*"],
+			"js": ["dist/content_isolated.js"],
+			"world": "ISOLATED",
+			"run_at": "document_start",
+			"all_frames": false
+		}
+	]
+}
