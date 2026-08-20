@@ -5,6 +5,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import { ExtensionStorage } from './extension_storage.js';
+import { InjectionWatch } from './injection_watch.js';
+import type { InjectionSighting } from './injection_watch.js';
 
 /** The shape the runtime publishes and the service worker holds on to. */
 type RuntimeReportShape = {
@@ -52,7 +54,8 @@ class Popup {
 
 		const origin = new URL(tab.url).origin;
 		const settings = await ExtensionStorage.read();
-		Popup._render(body, report, origin, settings.globallyEnabled);
+		const sightings = await InjectionWatch.sightings();
+		Popup._render(body, report, origin, settings.globallyEnabled, sightings);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -68,6 +71,7 @@ class Popup {
 	 * @param report - The runtime's report for this tab, or `null` when no adapter ran.
 	 * @param origin - The current page's origin.
 	 * @param globallyEnabled - Whether the kill switch is off.
+	 * @param sightings - Pages that returned content shaped like instructions to an agent.
 	 * @returns Nothing.
 	 */
 	static _render(
@@ -75,8 +79,13 @@ class Popup {
 		report: RuntimeReportShape | null,
 		origin: string,
 		globallyEnabled: boolean,
+		sightings: InjectionSighting[],
 	): void {
 		body.textContent = '';
+
+		if (sightings.length > 0) {
+			body.append(Popup._injectionNotice(sightings));
+		}
 
 		if (report === null || report.siteSlug === null) {
 			body.append(Popup._paragraph('No adapter covers this page.', 'none'));
@@ -118,6 +127,49 @@ class Popup {
 
 		body.append(Popup._actingRow(origin));
 		body.append(Popup._killSwitchRow(globallyEnabled));
+	}
+
+	/**
+	 * Builds the warning shown when a page has tried to give an agent instructions.
+	 *
+	 * Acting tools are refused while this is showing. The user is the one who decides it is safe to
+	 * carry on, which is why clearing it is a deliberate click and not a timeout.
+	 *
+	 * @param sightings - What has been seen, newest first.
+	 * @returns The warning element.
+	 */
+	static _injectionNotice(sightings: InjectionSighting[]): HTMLElement {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'alarm';
+
+		const heading = document.createElement('strong');
+		heading.textContent = 'A page tried to give your agent instructions';
+		wrapper.append(heading);
+
+		const explanation = document.createElement('div');
+		explanation.textContent = 'Acting tools are refused until you clear this.';
+		wrapper.append(explanation);
+
+		const list = document.createElement('ul');
+		for (const sighting of sightings.slice(0, 4)) {
+			const item = document.createElement('li');
+			item.textContent = `${sighting.origin} via ${sighting.tool}: ${sighting.details.join('; ')}`;
+			list.append(item);
+		}
+		wrapper.append(list);
+
+		const clear = document.createElement('button');
+		clear.textContent = 'I have read this, allow acting again';
+		clear.addEventListener('click', () => {
+			void InjectionWatch.clear()
+				.then(() => chrome.action.setBadgeText({ text: '' }))
+				.then(() => {
+					window.close();
+				});
+		});
+		wrapper.append(clear);
+
+		return wrapper;
 	}
 
 	/**

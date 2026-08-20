@@ -9,6 +9,7 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from '../src/bridge/cdp_client.mjs';
+import { InstallNativeHost } from './install_native_host.mjs';
 
 const __dirname = import.meta.dirname;
 
@@ -33,10 +34,16 @@ export class LaunchChrome {
 	/**
 	 * Prepares a throwaway profile, launches Chrome, installs the extension, and opens the target page.
 	 *
+	 * The profile is deleted and rebuilt on every launch unless `keepProfile` is set. Chrome does not
+	 * re-read an unpacked extension it has already installed in a profile, so reusing the profile
+	 * silently keeps running the previous build. That turned a working fix into an apparent failure and
+	 * cost a full debugging cycle, because every check still ran, and ran against old code.
+	 *
 	 * @param {object} options - How to launch.
 	 * @param {string} [options.profileDir] - Where to keep the throwaway profile.
 	 * @param {number} [options.port] - The remote debugging port.
 	 * @param {string} [options.url] - The page to open.
+	 * @param {boolean} [options.keepProfile] - Keep the existing profile, and with it the previous build.
 	 * @returns {Promise<{port: number, extensionId: string, profileDir: string}>} How to reach it.
 	 */
 	static async run(options = {}) {
@@ -50,7 +57,16 @@ export class LaunchChrome {
 		}
 
 		LaunchChrome._stopExisting(profileDir);
+		if (options.keepProfile !== true) {
+			Fs.rmSync(profileDir, {
+				recursive: true,
+				force: true,
+			});
+		}
 		LaunchChrome._prepareProfile(profileDir);
+		InstallNativeHost.run({
+			userDataDirs: [profileDir],
+		});
 
 		const child = ChildProcess.spawn(
 			LaunchChrome.CHROME_PATH,

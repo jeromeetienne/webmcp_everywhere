@@ -6,6 +6,7 @@
 
 import type { Adapter, AdapterToolDefinition, OriginGrant } from '../adapter_format/adapter_types.js';
 import { ToolNaming } from '../adapter_format/tool_naming.js';
+import { UntrustedContent } from '../adapter_format/untrusted_content.js';
 
 /** What the runtime did on one page, kept for the user interface and for the verification checks. */
 export type RuntimeReport = {
@@ -219,7 +220,11 @@ export class AdapterRuntime {
 	}
 
 	/**
-	 * Wraps a handler so every invocation is announced, and sensitive ones are confirmed first.
+	 * Wraps a handler so every invocation is announced, sensitive ones are confirmed first, and whatever
+	 * comes back is framed as untrusted content.
+	 *
+	 * The framing is applied here rather than in each adapter so that no adapter author can forget it,
+	 * and so that a hostile adapter cannot skip it.
 	 *
 	 * @param adapter - The adapter the tool belongs to.
 	 * @param tool - The tool being wrapped.
@@ -240,7 +245,8 @@ export class AdapterRuntime {
 				}
 			}
 			AdapterRuntime._announce(adapter, tool);
-			return await tool.execute(input ?? {});
+			const result = await tool.execute(input ?? {});
+			return UntrustedContent.frame(window.location.origin, tool.name, result);
 		};
 	}
 

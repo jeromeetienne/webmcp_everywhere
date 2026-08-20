@@ -6,7 +6,9 @@
 
 import { AdapterRegistry } from './adapter_registry.js';
 import { ExtensionStorage } from './extension_storage.js';
+import { InjectionWatch } from './injection_watch.js';
 import type { PageToolSummary } from './page_query.js';
+import type { ContentWarning } from '../adapter_format/untrusted_content.js';
 
 /** One tab that has an adapter running in it. */
 export type AdaptedPage = {
@@ -159,16 +161,24 @@ export class NativeBridge {
 	/**
 	 * Runs a tool in whichever tab owns it.
 	 *
+	 * An acting tool is refused outright while any page has recently returned content shaped like an
+	 * attempt to give the agent orders. Reading stays available, so the agent can still report what it
+	 * found, which is what it should be doing instead of acting on it.
+	 *
 	 * @param exposedName - The name the agent used.
 	 * @param args - The tool's arguments.
 	 * @returns Whatever the tool returned.
-	 * @throws When no tab offers that tool, or the tab refuses.
+	 * @throws When no tab offers that tool, the tab refuses, or a page has tried to issue instructions.
 	 */
 	static async callTool(exposedName: string, args: Record<string, unknown>): Promise<unknown> {
 		const exposed = await NativeBridge.listTools();
 		const tool = exposed.find((candidate) => candidate.exposedName === exposedName);
 		if (tool === undefined) {
 			throw new Error(`no tool named ${exposedName} is available on any open page`);
+		}
+
+		if (tool.readOnly === false && (await InjectionWatch.isActingBlocked()) === true) {
+			throw new Error(await InjectionWatch.refusalMessage());
 		}
 
 		const reply = await NativeBridge._askTab(tool.tabId, {
@@ -182,6 +192,8 @@ export class NativeBridge {
 		if (reply.ok === false) {
 			throw new Error(reply.error ?? 'the tool failed');
 		}
+
+		await NativeBridge._noticeWarnings(tool, reply.result);
 		return reply.result;
 	}
 
@@ -268,6 +280,60 @@ export class NativeBridge {
 		}
 
 		throw new Error(`unknown request kind ${message.kind}`);
+	}
+
+	/**
+	 * Notices anything the content check flagged in a result, and makes it visible.
+	 *
+	 * @param tool - The tool that produced the result.
+	 * @param result - The framed result the page returned.
+	 * @returns Nothing.
+	 */
+	static async _noticeWarnings(tool: ExposedTool, result: unknown): Promise<void> {
+		const framed = NativeBridge._asFramed(result);
+		const warnings = framed?.webmcpEverywhere?.warnings ?? [];
+		if (warnings.length === 0) {
+			return;
+		}
+		const blocked = await InjectionWatch.record(
+			framed?.webmcpEverywhere?.origin ?? 'an unknown origin',
+			framed?.webmcpEverywhere?.tool ?? tool.pageName,
+			warnings,
+		);
+		if (blocked === true) {
+			await chrome.action.setBadgeBackgroundColor({
+				color: '#c0392b',
+			});
+			await chrome.action.setBadgeText({
+				text: '!',
+			});
+		}
+	}
+
+	/**
+	 * Reads the framing off a result, whichever form it arrived in.
+	 *
+	 * `executeTool` hands back a JSON string rather than an object, so a result that has crossed WebMCP
+	 * arrives as text. Reading `.webmcpEverywhere` straight off it silently found nothing, which left
+	 * the injection watch permanently unarmed while every check around it still passed.
+	 *
+	 * @param result - The result as it arrived.
+	 * @returns The framed result, or null when it carries no framing.
+	 */
+	static _asFramed(
+		result: unknown,
+	): { webmcpEverywhere?: { origin?: string; tool?: string; warnings?: ContentWarning[] } } | null {
+		if (typeof result === 'string') {
+			try {
+				return JSON.parse(result);
+			} catch {
+				return null;
+			}
+		}
+		if (result !== null && typeof result === 'object') {
+			return result as { webmcpEverywhere?: { origin?: string; warnings?: ContentWarning[] } };
+		}
+		return null;
 	}
 
 	/**

@@ -67,8 +67,17 @@ export class VerifyBridge {
 				name: name,
 				arguments: args,
 			});
+			const text = result.content.map((part) => part.text).join('');
+			let data = null;
+			try {
+				const framed = JSON.parse(text);
+				data = framed?.webmcpEverywhere === undefined ? framed : framed.data;
+			} catch {
+				data = null;
+			}
 			return {
-				text: result.content.map((part) => part.text).join(''),
+				text: text,
+				data: data,
 				isError: result.isError === true,
 			};
 		};
@@ -92,9 +101,9 @@ export class VerifyBridge {
 		await test('a tool call reaches the page and changes it', async () => {
 			await call('demo_playwright_dev__set_all_completed', { completed: true });
 			await call('demo_playwright_dev__clear_completed', {});
-			const before = JSON.parse((await call('demo_playwright_dev__count_todos', {})).text);
+			const before = (await call('demo_playwright_dev__count_todos', {})).data;
 			await call('demo_playwright_dev__add_todo', { title: 'added over the bridge' });
-			const after = JSON.parse((await call('demo_playwright_dev__count_todos', {})).text);
+			const after = (await call('demo_playwright_dev__count_todos', {})).data;
 			if (after.total !== before.total + 1) {
 				throw new Error(`total went from ${before.total} to ${after.total}`);
 			}
@@ -102,7 +111,7 @@ export class VerifyBridge {
 		});
 
 		await test('arguments survive the crossing', async () => {
-			const listed = JSON.parse((await call('demo_playwright_dev__list_todos', {})).text);
+			const listed = (await call('demo_playwright_dev__list_todos', {})).data;
 			const target = listed.todos.find((todo) => todo.title === 'added over the bridge');
 			if (target === undefined) {
 				throw new Error('the todo added over the bridge is not there');
@@ -111,7 +120,7 @@ export class VerifyBridge {
 				id: target.id,
 				title: 'renamed over the bridge',
 			});
-			const after = JSON.parse((await call('demo_playwright_dev__list_todos', {})).text);
+			const after = (await call('demo_playwright_dev__list_todos', {})).data;
 			const renamed = after.todos.find((todo) => todo.id === target.id);
 			if (renamed.title !== 'renamed over the bridge') {
 				throw new Error(`title is "${renamed.title}"`);

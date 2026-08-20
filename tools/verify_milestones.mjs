@@ -367,7 +367,11 @@ export class VerifyMilestones {
 			})()
 		`;
 		const raw = await page.evaluate(expression);
-		return JSON.parse(raw);
+		const framed = JSON.parse(raw);
+		if (framed?.webmcpEverywhere === undefined) {
+			throw new Error(`${shortName} returned an unframed result, so the untrusted content check was skipped`);
+		}
+		return framed.data;
 	}
 
 	/**
