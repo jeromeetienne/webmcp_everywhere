@@ -105,3 +105,11 @@ Each folder has its own `CONTEXT.md`.
 ## What this is not
 
 There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Prompt injection is untouched: tool outputs are page content handed straight into an agent's context, unbounded and unlabelled. None of that can be designed honestly until one adapter has been written and has broken at least once.
+
+## Useful links
+
+- `chrome://extensions` — the Chrome extensions page, where the unpacked extension shows up, and where you reload it and read its errors.
+- `chrome://extensions/shortcuts` — the keyboard shortcuts of the installed extensions.
+- [Chrome Extensions documentation](https://developer.chrome.com/docs/extensions) — the official documentation for Chrome extensions.
+- [Manifest Version 3 reference](https://developer.chrome.com/docs/extensions/reference/manifest) — every field the extension manifest accepts.
+- [Native messaging documentation](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging) — how the Chrome extension talks to the native messaging host.
