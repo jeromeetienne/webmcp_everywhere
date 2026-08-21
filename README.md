@@ -75,6 +75,8 @@ npm run verify:caniuse  # 14 checks driving https://caniuse.com/ the same way
 npm run verify:bridge   # 4 checks through the stdio Model Context Protocol bridge
 ```
 
+Every check is written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs all 50 of them, one runner at a time, in about a minute and a half. Each runner launches its own throwaway Chrome, so none of them needs a browser to be up first.
+
 The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
 
 ## Launching Chrome
