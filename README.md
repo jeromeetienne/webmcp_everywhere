@@ -41,9 +41,9 @@ The host writes where it is listening, and the token an agent must present, to `
 Point Codex at it:
 
 ```bash
-export WEBMCP_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
-export WEBMCP_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
-codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_URL\", bearer_token_env_var=\"WEBMCP_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
+export WEBMCP_EVERYWHERE_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
+export WEBMCP_EVERYWHERE_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
+codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
 
 Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`.
