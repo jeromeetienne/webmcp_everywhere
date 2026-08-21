@@ -44,7 +44,7 @@ export class GenerateExtensionKey {
 	 * @returns {{identifier: string, privateKeyPath: string}} What was generated and where the private half went.
 	 */
 	static run() {
-		const manifestPath = Path.join(__dirname, '..', 'src', 'extension', 'manifest.json');
+		const manifestPath = Path.join(__dirname, '..', 'src', 'chrome_ext', 'manifest.json');
 		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8'));
 
 		if (manifest.key !== undefined) {
@@ -90,7 +90,7 @@ export class GenerateExtensionKey {
 	 * @throws When the manifest carries no key.
 	 */
 	static currentIdentifier() {
-		const manifestPath = Path.join(__dirname, '..', 'src', 'extension', 'manifest.json');
+		const manifestPath = Path.join(__dirname, '..', 'src', 'chrome_ext', 'manifest.json');
 		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8'));
 		if (manifest.key === undefined) {
 			throw new Error('the manifest has no key; run "node tools/generate_extension_key.mjs" first');

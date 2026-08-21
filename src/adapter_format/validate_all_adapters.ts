@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { AdapterRegistry } from '../extension/adapter_registry.js';
+import { AdapterRegistry } from '../chrome_ext/adapter_registry.js';
 import { AdapterValidator } from './adapter_schema.js';
 import { PermissionAudit } from './permission_audit.js';
 import { ToolNaming } from './tool_naming.js';

@@ -50,7 +50,7 @@ export class LaunchChrome {
 		const port = options.port ?? LaunchChrome.PORT;
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
-		const extensionDir = Path.join(__dirname, '..', 'src', 'extension');
+		const extensionDir = Path.join(__dirname, '..', 'src', 'chrome_ext');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
