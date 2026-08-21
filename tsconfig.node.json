@@ -1,4 +1,5 @@
 {
+	"extends": "./tsconfig.base.json",
 	"compilerOptions": {
 		"target": "ES2023",
 		"lib": ["ES2023"],
@@ -8,16 +9,16 @@
 		"rewriteRelativeImportExtensions": true,
 		"verbatimModuleSyntax": true,
 		"erasableSyntaxOnly": true,
-		"strict": true,
-		"noEmit": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
 		"types": ["node"]
 	},
 	"include": [
-		"tools/**/*.ts",
+		"src/adapter_format/**/*.ts",
+		"src/native_messaging_host/**/*.ts",
 		"tests/**/*.ts",
-		"src/native_messaging_host/**/*.ts"
+		"tools/**/*.ts"
 	],
-	"exclude": ["tools/adapter_validation/**/*.ts"]
+	"exclude": [
+		"src/adapter_format/webmcp_globals.d.ts",
+		"tools/adapter_validation/**/*.ts"
+	]
 }

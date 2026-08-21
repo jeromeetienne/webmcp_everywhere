@@ -2,3 +2,6 @@ node_modules/
 build/
 *.log
 extension_private_key.pem
+
+# TypeScript incremental build state
+*.tsbuildinfo

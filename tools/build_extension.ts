@@ -12,6 +12,7 @@ import ChildProcess from 'node:child_process';
 const __dirname = import.meta.dirname;
 
 const sourceDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
+const browserTsconfigPath = Path.join(__dirname, '..', 'tsconfig.browser.json');
 const outDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
 const bundleDir = Path.join(outDir, 'dist');
 
@@ -72,6 +73,7 @@ class BuildExtension {
 			format: 'iife',
 			target: 'chrome120',
 			platform: 'browser',
+			tsconfig: browserTsconfigPath,
 			logLevel: 'info',
 			metafile: true,
 		});
@@ -102,6 +104,7 @@ class BuildExtension {
 			format: 'esm',
 			platform: 'node',
 			target: 'node20',
+			tsconfig: browserTsconfigPath,
 			logLevel: 'warning',
 		});
 		const validation = ChildProcess.spawnSync(process.execPath, [bundlePath], {

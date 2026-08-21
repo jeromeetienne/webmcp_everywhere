@@ -1,20 +1,7 @@
 {
-	"compilerOptions": {
-		"target": "ES2020",
-		"lib": ["ES2020", "DOM", "DOM.Iterable"],
-		"module": "ESNext",
-		"moduleResolution": "bundler",
-		"strict": true,
-		"noEmit": true,
-		"skipLibCheck": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"types": ["node", "chrome"]
-	},
-	"include": [
-		"src/adapter_format/**/*.ts",
-		"src/site_adapters/**/*.ts",
-		"src/chrome_extension/**/*.ts",
-		"tools/adapter_validation/**/*.ts"
+	"files": [],
+	"references": [
+		{ "path": "./tsconfig.browser.json" },
+		{ "path": "./tsconfig.node.json" }
 	]
 }

@@ -12,7 +12,7 @@
 		"chrome": "node tools/launch_chrome.ts",
 		"verify": "node tests/verify_milestones.ts",
 		"bridge": "node tests/devtools_protocol_bridge/webmcp_bridge.ts",
-		"typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+		"typecheck": "tsc --build tsconfig.json",
 		"verify:bridge": "node tests/verify_bridge.ts",
 		"verify:caniuse": "node tests/verify_caniuse.ts",
 		"grant": "node tools/grant_acting.ts",
