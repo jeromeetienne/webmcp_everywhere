@@ -1,0 +1,9 @@
+{
+	"name": "{{hostName}}",
+	"description": "WebMCP Everywhere — serves the extension tools over Model Context Protocol",
+	"path": "{{launcherPath}}",
+	"type": "stdio",
+	"allowed_origins": [
+		"chrome-extension://{{extensionIdentifier}}/"
+	]
+}

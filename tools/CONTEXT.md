@@ -13,6 +13,7 @@ Everything that builds, installs, or launches the product. The code that checks 
 - `chrome_devtools_protocol/`: The connection to a locally running Chrome — see its own CONTEXT.md.
 
 ## Rules
+- `install_native_host.ts` never writes the native messaging host manifest out of string literals. It fills in `data/native_messaging_template/com.webmcp_everywhere.host.json` — see that folder's own CONTEXT.md.
 - Nothing in `src/` imports from here. `npm run verify:boundary` refuses any relative import that leaves `src/`.
 - The build writes to `build/chrome_extension/` and copies `manifest.json` and `user_interface/popup.html` in beside the bundles, because Chrome loads an unpacked extension from the folder that holds `manifest.json`. Nothing is ever written into `src/`.
 - Every file here is TypeScript that Node.js runs directly, so it must stay within erasable syntax: no `enum`, no `namespace` holding runtime code, no parameter properties, and no decorators. `npm run typecheck` checks this folder through the single `tsconfig.json` at the repository root.

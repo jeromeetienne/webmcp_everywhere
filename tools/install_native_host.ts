@@ -53,15 +53,9 @@ export class InstallNativeHost {
 	 */
 	static run(options: InstallNativeHostOptions = {}): InstalledNativeHost {
 		const identifier = GenerateExtensionKey.currentIdentifier();
-		const launcher = InstallNativeHost._writeLauncher();
+		const launcher = InstallNativeHost._resolveLauncher();
 
-		const manifest = {
-			name: InstallNativeHost.HOST_NAME,
-			description: 'WebMCP Everywhere — serves the extension tools over Model Context Protocol',
-			path: launcher,
-			type: 'stdio',
-			allowed_origins: [`chrome-extension://${identifier}/`],
-		};
+		const manifest = InstallNativeHost._renderManifest(launcher, identifier);
 
 		const directories = InstallNativeHost._manifestDirectories(options.userDataDirs ?? []);
 		const written: string[] = [];
@@ -70,7 +64,7 @@ export class InstallNativeHost {
 				recursive: true,
 			});
 			const manifestPath = Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
-			Fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, '\t') + '\n');
+			Fs.writeFileSync(manifestPath, manifest);
 			written.push(manifestPath);
 		}
 
@@ -88,25 +82,67 @@ export class InstallNativeHost {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Writes the executable Chrome actually launches.
+	 * Fills the host manifest template in with this installation's values.
+	 *
+	 * The manifest lives in `data/native_messaging_template/com.webmcp_everywhere.host.json` rather than in
+	 * this file, so that the shape Chrome reads can be looked at and edited as the JSON document it is. It
+	 * is read every time instead of being cached, because an installation runs once and then exits. Every
+	 * placeholder has to be replaced, so an unreplaced one is an error rather than something written out
+	 * to Chrome, which would refuse the manifest with no useful message.
+	 *
+	 * @param launcher - The absolute path to the executable file Chrome starts.
+	 * @param identifier - The extension identifier the manifest allows to connect.
+	 * @returns The manifest text to write, ending in a newline.
+	 */
+	static _renderManifest(launcher: string, identifier: string): string {
+		const templatePath = Path.join(
+			__dirname,
+			'..',
+			'data',
+			'native_messaging_template',
+			`${InstallNativeHost.HOST_NAME}.json`,
+		);
+		if (Fs.existsSync(templatePath) === false) {
+			throw new Error(`host manifest template is missing: ${templatePath}`);
+		}
+		const template = Fs.readFileSync(templatePath, 'utf8');
+
+		const values: Record<string, string> = {
+			hostName: InstallNativeHost.HOST_NAME,
+			launcherPath: launcher,
+			extensionIdentifier: identifier,
+		};
+		let rendered = template;
+		for (const [placeholder, value] of Object.entries(values)) {
+			rendered = rendered.split(`{{${placeholder}}}`).join(value);
+		}
+
+		const leftover = rendered.match(/\{\{[^}]*\}\}/);
+		if (leftover !== null) {
+			throw new Error(`host manifest template has an unknown placeholder: ${leftover[0]}`);
+		}
+
+		JSON.parse(rendered);
+
+		return rendered.endsWith('\n') === true ? rendered : rendered + '\n';
+	}
+
+	/**
+	 * Locates the executable Chrome actually launches.
 	 *
 	 * Chrome runs the path in the manifest directly, so it has to be an executable file rather than a
-	 * script it would have to know how to interpret. A one-line shell wrapper around Node.js is the
-	 * simplest thing that satisfies that.
+	 * script it would have to know how to interpret. `bin/webmcp_native_host.sh` is that file, it is
+	 * kept in the repository, and it works out the rest of the paths on its own, so this only has to
+	 * check that it is there and that it is executable.
 	 *
 	 * @returns The absolute path to the launcher.
 	 */
-	static _writeLauncher(): string {
+	static _resolveLauncher(): string {
 		const repoRoot = Path.join(__dirname, '..');
 		const launcher = Path.join(repoRoot, 'bin', 'webmcp_native_host.sh');
-		const hostScript = Path.join(repoRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts');
-		Fs.mkdirSync(Path.dirname(launcher), {
-			recursive: true,
-		});
-		Fs.writeFileSync(
-			launcher,
-			['#!/bin/sh', `exec ${JSON.stringify(process.execPath)} ${JSON.stringify(hostScript)} "$@"`, ''].join('\n'),
-		);
+		if (Fs.existsSync(launcher) === false) {
+			throw new Error(`launcher is missing: ${launcher}`);
+		}
 		Fs.chmodSync(launcher, 0o755);
 		return launcher;
 	}
