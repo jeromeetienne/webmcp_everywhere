@@ -1,10 +1,10 @@
+import type { Adapter, AdapterToolDefinition, PermissionClass } from './adapter_types.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	PermissionAudit — verifies a declared permission class instead of trusting it
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import type { Adapter, AdapterToolDefinition, PermissionClass } from './adapter_types.js';
 
 /**
  * One disagreement between what an adapter tool declared and what its handler actually does.
@@ -32,28 +32,82 @@ export type PermissionFinding = {
 export class PermissionAudit {
 	/** Source patterns that mean the handler changes the page or the user's data on the site. */
 	static readonly MUTATING_PATTERNS: Array<{ pattern: RegExp; why: string }> = [
-		{ pattern: /\.click\s*\(/, why: 'clicks an element' },
-		{ pattern: /\.submit\s*\(/, why: 'submits a form' },
-		{ pattern: /\.dispatchEvent\s*\(/, why: 'dispatches a synthetic event' },
-		{ pattern: /\.remove\s*\(\s*\)/, why: 'removes an element' },
-		{ pattern: /\.value\s*=[^=]/, why: 'assigns to a form field value' },
-		{ pattern: /\.checked\s*=[^=]/, why: 'assigns to a checkbox state' },
-		{ pattern: /\.innerHTML\s*=[^=]/, why: 'rewrites markup' },
-		{ pattern: /\.textContent\s*=[^=]/, why: 'rewrites text' },
-		{ pattern: /location\s*\.\s*(href|assign|replace|reload)/, why: 'navigates the page' },
-		{ pattern: /history\s*\.\s*(pushState|replaceState|back|forward|go)/, why: 'changes session history' },
-		{ pattern: /localStorage\s*\.\s*(setItem|removeItem|clear)/, why: 'writes to local storage' },
-		{ pattern: /sessionStorage\s*\.\s*(setItem|removeItem|clear)/, why: 'writes to session storage' },
+		{
+			pattern: /\.click\s*\(/,
+			why: 'clicks an element',
+		},
+		{
+			pattern: /\.submit\s*\(/,
+			why: 'submits a form',
+		},
+		{
+			pattern: /\.dispatchEvent\s*\(/,
+			why: 'dispatches a synthetic event',
+		},
+		{
+			pattern: /\.remove\s*\(\s*\)/,
+			why: 'removes an element',
+		},
+		{
+			pattern: /\.value\s*=[^=]/,
+			why: 'assigns to a form field value',
+		},
+		{
+			pattern: /\.checked\s*=[^=]/,
+			why: 'assigns to a checkbox state',
+		},
+		{
+			pattern: /\.innerHTML\s*=[^=]/,
+			why: 'rewrites markup',
+		},
+		{
+			pattern: /\.textContent\s*=[^=]/,
+			why: 'rewrites text',
+		},
+		{
+			pattern: /location\s*\.\s*(href|assign|replace|reload)/,
+			why: 'navigates the page',
+		},
+		{
+			pattern: /history\s*\.\s*(pushState|replaceState|back|forward|go)/,
+			why: 'changes session history',
+		},
+		{
+			pattern: /localStorage\s*\.\s*(setItem|removeItem|clear)/,
+			why: 'writes to local storage',
+		},
+		{
+			pattern: /sessionStorage\s*\.\s*(setItem|removeItem|clear)/,
+			why: 'writes to session storage',
+		},
 	];
 
 	/** Source patterns that mean the handler tries to reach the network, which adapters may never do. */
 	static readonly EGRESS_PATTERNS: Array<{ pattern: RegExp; why: string }> = [
-		{ pattern: /\bfetch\s*\(/, why: 'calls fetch' },
-		{ pattern: /XMLHttpRequest/, why: 'uses XMLHttpRequest' },
-		{ pattern: /\bWebSocket\s*\(/, why: 'opens a WebSocket' },
-		{ pattern: /\bEventSource\s*\(/, why: 'opens an EventSource' },
-		{ pattern: /navigator\s*\.\s*sendBeacon/, why: 'calls sendBeacon' },
-		{ pattern: /\bimport\s*\(/, why: 'performs a dynamic import' },
+		{
+			pattern: /\bfetch\s*\(/,
+			why: 'calls fetch',
+		},
+		{
+			pattern: /XMLHttpRequest/,
+			why: 'uses XMLHttpRequest',
+		},
+		{
+			pattern: /\bWebSocket\s*\(/,
+			why: 'opens a WebSocket',
+		},
+		{
+			pattern: /\bEventSource\s*\(/,
+			why: 'opens an EventSource',
+		},
+		{
+			pattern: /navigator\s*\.\s*sendBeacon/,
+			why: 'calls sendBeacon',
+		},
+		{
+			pattern: /\bimport\s*\(/,
+			why: 'performs a dynamic import',
+		},
 	];
 
 	/**

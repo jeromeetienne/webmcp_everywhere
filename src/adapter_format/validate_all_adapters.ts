@@ -1,13 +1,13 @@
+import { AdapterRegistry } from '../chrome_ext/adapter_registry.js';
+import { AdapterSchema } from './adapter_schema.js';
+import { PermissionAudit } from './permission_audit.js';
+import { ToolNaming } from './tool_naming.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	ValidateAllAdapters — the review check the build runs before it will bundle anything
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import { AdapterRegistry } from '../chrome_ext/adapter_registry.js';
-import { AdapterValidator } from './adapter_schema.js';
-import { PermissionAudit } from './permission_audit.js';
-import { ToolNaming } from './tool_naming.js';
 
 /**
  * Validates every bundled adapter and reports what it found.
@@ -28,7 +28,7 @@ export class ValidateAllAdapters {
 		const seenQualifiedNames = new Map<string, string>();
 
 		for (const adapter of AdapterRegistry.ADAPTERS) {
-			const result = AdapterValidator.validate(adapter);
+			const result = AdapterSchema.validate(adapter);
 			for (const error of result.errors) {
 				problems.push(`${adapter.siteSlug}: ${error}`);
 			}

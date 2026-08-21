@@ -1,12 +1,12 @@
+import { ExtensionStorage } from './extension_storage.js';
+import { InjectionWatch } from './injection_watch.js';
+import type { InjectionSighting } from './injection_watch.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	Popup — shows what is registered here and lets the user withdraw it
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import { ExtensionStorage } from './extension_storage.js';
-import { InjectionWatch } from './injection_watch.js';
-import type { InjectionSighting } from './injection_watch.js';
 
 /** The shape the runtime publishes and the service worker holds on to. */
 type RuntimeReportShape = {
@@ -37,7 +37,10 @@ class Popup {
 	 * @returns Nothing.
 	 */
 	static async start(): Promise<void> {
-		const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+		const [tab] = await chrome.tabs.query({
+			active: true,
+			currentWindow: true,
+		});
 		const body = document.getElementById('body');
 		if (body === null) {
 			return;
@@ -162,7 +165,11 @@ class Popup {
 		clear.textContent = 'I have read this, allow acting again';
 		clear.addEventListener('click', () => {
 			void InjectionWatch.clear()
-				.then(() => chrome.action.setBadgeText({ text: '' }))
+				.then(() =>
+					chrome.action.setBadgeText({
+						text: '',
+					}),
+				)
 				.then(() => {
 					window.close();
 				});

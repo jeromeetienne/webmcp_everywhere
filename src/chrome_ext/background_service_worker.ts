@@ -1,10 +1,10 @@
+import { NativeBridge } from './native_bridge.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	BackgroundServiceWorker — keeps the last report per tab and makes invocations visible
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import { NativeBridge } from './native_bridge.js';
 
 /**
  * The extension's background script.
@@ -71,7 +71,10 @@ class BackgroundServiceWorker {
 	 */
 	static async _showRegisteredCount(tabId: number, report: { registered?: string[] }): Promise<void> {
 		const count = report?.registered?.length ?? 0;
-		await chrome.action.setBadgeBackgroundColor({ tabId: tabId, color: '#3b7dd8' });
+		await chrome.action.setBadgeBackgroundColor({
+			tabId: tabId,
+			color: '#3b7dd8',
+		});
 		await chrome.action.setBadgeText({
 			tabId: tabId,
 			text: count === 0 ? '' : String(count),
@@ -92,8 +95,14 @@ class BackgroundServiceWorker {
 		if (invocation?.permissionClass === 'readOnly') {
 			return;
 		}
-		await chrome.action.setBadgeBackgroundColor({ tabId: tabId, color: '#d8663b' });
-		await chrome.action.setBadgeText({ tabId: tabId, text: '!' });
+		await chrome.action.setBadgeBackgroundColor({
+			tabId: tabId,
+			color: '#d8663b',
+		});
+		await chrome.action.setBadgeText({
+			tabId: tabId,
+			text: '!',
+		});
 		setTimeout(() => {
 			const report = BackgroundServiceWorker._reportByTab.get(tabId) as { registered?: string[] } | undefined;
 			void BackgroundServiceWorker._showRegisteredCount(tabId, report ?? {});

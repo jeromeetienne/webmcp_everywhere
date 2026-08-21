@@ -1,11 +1,11 @@
+import type { Adapter } from '../adapter_format/adapter_types.js';
+import { todomvcAdapter } from '../adapters/demo_playwright_dev/todomvc_adapter.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	AdapterRegistry — the adapters this build of the extension carries
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import type { Adapter } from '../adapter_format/adapter_types.js';
-import { todoMvcAdapter } from '../adapters/demo_playwright_dev/todomvc_adapter.js';
 
 /**
  * Holds every adapter bundled into this build and picks the one that matches a page.
@@ -15,7 +15,7 @@ import { todoMvcAdapter } from '../adapters/demo_playwright_dev/todomvc_adapter.
  */
 export class AdapterRegistry {
 	/** Every adapter this build carries. */
-	static readonly ADAPTERS: Adapter[] = [todoMvcAdapter];
+	static readonly ADAPTERS: Adapter[] = [todomvcAdapter];
 
 	/**
 	 * Finds the adapter that applies to a page.

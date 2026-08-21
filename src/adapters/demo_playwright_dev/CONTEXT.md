@@ -4,7 +4,7 @@
 The adapter for the Playwright TodoMVC demonstration at `https://demo.playwright.dev/todomvc/`, the first site this project covers.
 
 ## Key Exports & Entry Points
-- `todomvc_adapter.ts`: `todoMvcAdapter`, the adapter itself, and `TodomvcAdapter`, the class holding the page-driving helpers.
+- `todomvc_adapter.ts`: `todomvcAdapter`, the adapter itself, and `TodomvcAdapter`, the class holding the page-driving helpers.
 - Command to exercise this folder: `npm run verify`
 
 ## Rules

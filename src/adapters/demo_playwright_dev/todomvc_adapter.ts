@@ -1,10 +1,10 @@
+import type { Adapter } from '../../adapter_format/adapter_types.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	TodomvcAdapter — WebMCP tools for https://demo.playwright.dev/todomvc/
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import type { Adapter } from '../../adapter_format/adapter_types.js';
 
 /** One todo item as the application stores it. */
 export type TodoItem = {
@@ -141,7 +141,11 @@ export class TodomvcAdapter {
 			throw new Error('cannot reach the native input value setter');
 		}
 		descriptor.set.call(element, value);
-		element.dispatchEvent(new Event('input', { bubbles: true }));
+		element.dispatchEvent(
+			new Event('input', {
+				bubbles: true,
+			}),
+		);
 	}
 
 	/**
@@ -152,7 +156,12 @@ export class TodomvcAdapter {
 	 */
 	static _pressEnter(element: HTMLElement): void {
 		element.dispatchEvent(
-			new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, which: 13, bubbles: true }),
+			new KeyboardEvent('keydown', {
+				key: 'Enter',
+				keyCode: 13,
+				which: 13,
+				bubbles: true,
+			}),
 		);
 	}
 
@@ -249,7 +258,7 @@ const NO_INPUT = {
 /**
  * The TodoMVC adapter, as the extension runtime consumes it.
  */
-export const todoMvcAdapter: Adapter = {
+export const todomvcAdapter: Adapter = {
 	siteSlug: 'demo_playwright_dev',
 	siteName: 'Playwright TodoMVC demonstration',
 	matchPatterns: ['https://demo.playwright.dev/todomvc/*'],
@@ -437,7 +446,11 @@ export const todoMvcAdapter: Adapter = {
 						throw new Error('the todo has no label to open for editing');
 					}
 					label.dispatchEvent(
-						new MouseEvent('dblclick', { bubbles: true, cancelable: true, view: window }),
+						new MouseEvent('dblclick', {
+							bubbles: true,
+							cancelable: true,
+							view: window,
+						}),
 					);
 					const field = item.querySelector<HTMLInputElement>('input.edit');
 					if (field === null) {

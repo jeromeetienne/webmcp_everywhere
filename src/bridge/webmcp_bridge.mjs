@@ -1,13 +1,13 @@
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CdpClient } from './cdp_client.mjs';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	WebmcpBridge — re-exposes a page's WebMCP tools to agents that speak Model Context Protocol
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { CdpClient } from './cdp_client.mjs';
 
 /**
  * Serves the tools registered on one browser page as Model Context Protocol tools.
@@ -102,7 +102,10 @@ export class WebmcpBridge {
 				readOnly: tool.annotations?.readOnlyHint === true,
 			}))))
 		`);
-		/** @type {Array<{name: string, title: string|null, description: string, inputSchema: string|null, readOnly: boolean}>} */
+		/**
+		 * @type {Array<{name: string, title: string|null, description: string,
+		 * inputSchema: string|null, readOnly: boolean}>}
+		 */
 		const pageTools = JSON.parse(raw);
 
 		return pageTools.map((tool) => {

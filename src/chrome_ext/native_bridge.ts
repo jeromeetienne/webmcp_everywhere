@@ -1,14 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//	NativeBridge — answers the native host on behalf of every adapted tab
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
 import { AdapterRegistry } from './adapter_registry.js';
 import { ExtensionStorage } from './extension_storage.js';
 import { InjectionWatch } from './injection_watch.js';
 import type { PageToolSummary } from './page_query.js';
 import type { ContentWarning } from '../adapter_format/untrusted_content.js';
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	NativeBridge — answers the native host on behalf of every adapted tab
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 /** One tab that has an adapter running in it. */
 export type AdaptedPage = {
@@ -274,7 +274,9 @@ export class NativeBridge {
 
 		if (message.kind === 'callTool') {
 			if (message.name === NativeBridge.LIST_PAGES_TOOL) {
-				return await NativeBridge._serve({ kind: 'listPages' });
+				return await NativeBridge._serve({
+					kind: 'listPages',
+				});
 			}
 			return await NativeBridge.callTool(message.name ?? '', message.args ?? {});
 		}

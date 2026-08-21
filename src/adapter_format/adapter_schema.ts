@@ -1,22 +1,22 @@
+import { z } from 'zod';
+import { ToolNaming } from './tool_naming.js';
+import { PermissionAudit } from './permission_audit.js';
+import type { Adapter } from './adapter_types.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	AdapterSchema — runtime validation of an adapter before it is allowed to register
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { z } from 'zod';
-import { ToolNaming } from './tool_naming.js';
-import { PermissionAudit } from './permission_audit.js';
-import type { Adapter } from './adapter_types.js';
-
 /** The adapter format version this file validates. */
 export const ADAPTER_FORMAT_VERSION = '0.1.0';
 
 /** Validates the three permission classes. */
-export const permissionClassSchema = z.enum(['readOnly', 'acting', 'sensitive']);
+export const PERMISSION_CLASS_SCHEMA = z.enum(['readOnly', 'acting', 'sensitive']);
 
 /** Validates the provenance block every adapter carries. */
-export const adapterMetadataSchema = z.object({
+export const ADAPTER_METADATA_SCHEMA = z.object({
 	author: z.string().min(1),
 	version: z.string().min(1),
 	adapterFormatVersion: z.string().min(1),
@@ -24,23 +24,23 @@ export const adapterMetadataSchema = z.object({
 });
 
 /** Validates one tool definition. The handler is checked for being a function, not for what it contains. */
-export const adapterToolDefinitionSchema = z.object({
+export const ADAPTER_TOOL_DEFINITION_SCHEMA = z.object({
 	name: z.string().regex(ToolNaming.VALID_NAME, 'tool names must be lower case snake_case'),
 	title: z.string().min(1),
 	description: z.string().min(10, 'a description an agent has to act on cannot be three words'),
 	inputSchema: z.record(z.unknown()),
-	permissionClass: permissionClassSchema,
+	permissionClass: PERMISSION_CLASS_SCHEMA,
 	execute: z.function(),
 });
 
 /** Validates a whole adapter. */
-export const adapterSchema = z.object({
+export const ADAPTER_SCHEMA = z.object({
 	siteSlug: z.string().regex(ToolNaming.VALID_NAME, 'site slugs must be lower case snake_case'),
 	siteName: z.string().min(1),
 	matchPatterns: z.array(z.string().min(1)).min(1),
-	metadata: adapterMetadataSchema,
+	metadata: ADAPTER_METADATA_SCHEMA,
 	yieldCondition: z.function(),
-	tools: z.array(adapterToolDefinitionSchema).min(1),
+	tools: z.array(ADAPTER_TOOL_DEFINITION_SCHEMA).min(1),
 });
 
 /**
@@ -56,7 +56,7 @@ export type AdapterValidationResult = {
 /**
  * Validates an adapter against the format, then against the checks that no schema can express.
  */
-export class AdapterValidator {
+export class AdapterSchema {
 	/**
 	 * Runs every check an adapter must pass before the runtime will register any of its tools.
 	 *
@@ -66,7 +66,7 @@ export class AdapterValidator {
 	static validate(candidate: unknown): AdapterValidationResult {
 		const errors: string[] = [];
 
-		const parsed = adapterSchema.safeParse(candidate);
+		const parsed = ADAPTER_SCHEMA.safeParse(candidate);
 		if (parsed.success === false) {
 			for (const issue of parsed.error.issues) {
 				errors.push(`${issue.path.join('.')}: ${issue.message}`);
@@ -79,7 +79,7 @@ export class AdapterValidator {
 
 		const adapter = candidate as Adapter;
 
-		const duplicateNames = AdapterValidator._duplicateToolNames(adapter);
+		const duplicateNames = AdapterSchema._duplicateToolNames(adapter);
 		for (const name of duplicateNames) {
 			errors.push(`duplicate tool name within the adapter: ${name}`);
 		}

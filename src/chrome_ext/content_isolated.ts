@@ -1,12 +1,12 @@
+import { AdapterRuntime } from './adapter_runtime.js';
+import { ExtensionStorage } from './extension_storage.js';
+import { PageQuery } from './page_query.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	ContentIsolated — carries grants into the main world and questions back out
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import { AdapterRuntime } from './adapter_runtime.js';
-import { ExtensionStorage } from './extension_storage.js';
-import { PageQuery } from './page_query.js';
 
 /**
  * Runs in the ordinary isolated world, where extension privileges are reachable and WebMCP is not.
@@ -59,7 +59,9 @@ class ContentIsolated {
 			}
 
 			if (message?.kind === 'page:listTools') {
-				void PageQuery.ask({ kind: 'listTools' }).then(sendResponse);
+				void PageQuery.ask({
+					kind: 'listTools',
+				}).then(sendResponse);
 				return true;
 			}
 
@@ -92,7 +94,9 @@ class ContentIsolated {
 	 * @returns The main world's reply.
 	 */
 	static async _callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
-		const listed = await PageQuery.ask({ kind: 'listTools' });
+		const listed = await PageQuery.ask({
+			kind: 'listTools',
+		});
 		if (listed.ok === false) {
 			return listed;
 		}

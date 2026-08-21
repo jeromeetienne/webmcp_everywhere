@@ -6,7 +6,7 @@ Defines what an adapter is, how its tools are named, and the checks an adapter m
 ## Key Exports & Entry Points
 - `adapter_types.ts`: `Adapter`, `AdapterToolDefinition`, `PermissionClass`, `OriginGrant`. The shape everything else agrees on.
 - `tool_naming.ts`: `ToolNaming` — qualifies `list_todos` into `demo_playwright_dev__list_todos`.
-- `adapter_schema.ts`: `AdapterValidator`, plus `ADAPTER_FORMAT_VERSION`.
+- `adapter_schema.ts`: `AdapterSchema`, plus `ADAPTER_FORMAT_VERSION`.
 - `permission_audit.ts`: `PermissionAudit` — reads handler source and disagrees with a wrong declaration.
 - `untrusted_content.ts`: `UntrustedContent` — cleans, bounds, frames, and flags everything a page returns.
 - `webmcp_globals.d.ts`: Ambient declarations for `document.modelContext`, written from probing Chrome 151.

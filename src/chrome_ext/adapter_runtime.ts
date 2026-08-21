@@ -1,12 +1,12 @@
+import type { Adapter, AdapterToolDefinition, OriginGrant } from '../adapter_format/adapter_types.js';
+import { ToolNaming } from '../adapter_format/tool_naming.js';
+import { UntrustedContent } from '../adapter_format/untrusted_content.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	AdapterRuntime — decides what an adapter may register, then registers it
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-import type { Adapter, AdapterToolDefinition, OriginGrant } from '../adapter_format/adapter_types.js';
-import { ToolNaming } from '../adapter_format/tool_naming.js';
-import { UntrustedContent } from '../adapter_format/untrusted_content.js';
 
 /** What the runtime did on one page, kept for the user interface and for the verification checks. */
 export type RuntimeReport = {
@@ -110,7 +110,9 @@ export class AdapterRuntime {
 						},
 						execute: AdapterRuntime._wrapExecute(adapter, tool),
 					},
-					{ signal: controller.signal },
+					{
+						signal: controller.signal,
+					},
 				);
 				report.registered.push(qualifiedName);
 			} catch (error) {
