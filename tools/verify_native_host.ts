@@ -7,7 +7,7 @@
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { CdpClient } from '../src/bridge/cdp_client.ts';
+import { CdpClient } from '../src/devtools_protocol_bridge/cdp_client.ts';
 import { GrantActing } from './grant_acting.ts';
 import { LaunchChrome } from './launch_chrome.ts';
 import type { CheckOutcome, HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';

@@ -14,5 +14,5 @@
 		"forceConsistentCasingInFileNames": true,
 		"types": ["node"]
 	},
-	"include": ["tools/**/*.ts", "src/host/**/*.ts", "src/bridge/**/*.ts"]
+	"include": ["tools/**/*.ts", "src/native_messaging_host/**/*.ts", "src/devtools_protocol_bridge/**/*.ts"]
 }

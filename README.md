@@ -75,10 +75,10 @@ The Chrome DevTools Protocol path needs a browser launched with a debugging port
 ## Layout
 
 - `src/adapter_format/` — what an adapter is, and the checks it must pass before a build will bundle it.
-- `src/adapters/` — one folder per target site.
-- `src/chrome_ext/` — the Manifest Version 3 extension.
-- `src/host/` — the native messaging host and its HTTP endpoint.
-- `src/bridge/` — the stdio bridge, used for testing.
+- `src/site_adapters/` — one folder per target site.
+- `src/chrome_extension/` — the Manifest Version 3 extension.
+- `src/native_messaging_host/` — the native messaging host and its HTTP endpoint.
+- `src/devtools_protocol_bridge/` — the stdio bridge, used for testing.
 - `tools/` — build, launch, install, and verification.
 
 Each folder has its own `CONTEXT.md`.

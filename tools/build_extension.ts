@@ -11,7 +11,7 @@ import ChildProcess from 'node:child_process';
 
 const __dirname = import.meta.dirname;
 
-const extensionDir = Path.join(__dirname, '..', 'src', 'chrome_ext');
+const extensionDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
 const outDir = Path.join(extensionDir, 'dist');
 
 /**

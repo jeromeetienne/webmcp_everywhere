@@ -13,7 +13,7 @@ Defines what an adapter is, how its tools are named, and the checks an adapter m
 - `validate_all_adapters.ts`: The build-time check. Run by `npm run build`, never bundled into a page.
 
 ## Rules
-- This folder imports nothing from `chrome_ext/` or `adapters/`, so an adapter can be checked without a browser. The one exception, `validate_all_adapters.ts`, imports the registry on purpose and only ever runs in Node.js.
+- This folder imports nothing from `chrome_extension/` or `site_adapters/`, so an adapter can be checked without a browser. The one exception, `validate_all_adapters.ts`, imports the registry on purpose and only ever runs in Node.js.
 - A tool's `permissionClass` is checked against its handler's source, never trusted. A handler that clicks, submits, navigates, or assigns to `value` is acting, whatever the field says.
 - Every tool result passes through `UntrustedContent.frame` before an agent sees it. This happens in the runtime, not in each adapter, so no author can forget it and no hostile adapter can skip it.
 - Invisible characters are removed; visible instruction-shaped text is flagged and kept. Removing the visible text would be defeated by rephrasing and would hide the attack from the user.

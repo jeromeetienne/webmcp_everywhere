@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../src/bridge/cdp_client.ts';
+import { CdpClient } from '../src/devtools_protocol_bridge/cdp_client.ts';
 import { LaunchChrome } from './launch_chrome.ts';
 import type {
 	ActiveFilterResult,

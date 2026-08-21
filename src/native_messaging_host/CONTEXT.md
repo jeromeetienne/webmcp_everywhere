@@ -1,4 +1,4 @@
-# Directory Context: `/src/host`
+# Directory Context: `/src/native_messaging_host`
 
 ## Purpose
 The native messaging host: Chrome starts it on demand, it holds the HTTP port the extension cannot, and it serves the extension's tools to any agent that speaks Model Context Protocol.

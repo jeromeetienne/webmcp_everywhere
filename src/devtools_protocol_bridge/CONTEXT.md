@@ -1,4 +1,4 @@
-# Directory Context: `/src/bridge`
+# Directory Context: `/src/devtools_protocol_bridge`
 
 ## Purpose
 Carries the WebMCP tools registered on a browser page out to agents that speak Model Context Protocol and not WebMCP, which today is all of them.

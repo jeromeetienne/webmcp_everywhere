@@ -11,7 +11,7 @@
 		"build": "node tools/build_extension.ts",
 		"chrome": "node tools/launch_chrome.ts",
 		"verify": "node tools/verify_milestones.ts",
-		"bridge": "node src/bridge/webmcp_bridge.ts",
+		"bridge": "node src/devtools_protocol_bridge/webmcp_bridge.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
 		"verify:bridge": "node tools/verify_bridge.ts",
 		"grant": "node tools/grant_acting.ts",
