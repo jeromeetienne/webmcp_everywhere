@@ -1,7 +1,30 @@
 {
-	"files": [],
-	"references": [
-		{ "path": "./tsconfig.browser.json" },
-		{ "path": "./tsconfig.node.json" }
+	"compilerOptions": {
+		"target": "ES2023",
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"module": "NodeNext",
+		"moduleResolution": "nodenext",
+		// The Node.js files import with a `.ts` extension, the browser files import with a `.js`
+		// extension, and `nodenext` resolution accepts both once `.ts` extensions are allowed.
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"verbatimModuleSyntax": true,
+		// Node.js runs the files under `tests/`, `tools/` and `src/native_messaging_host/` directly,
+		// so it strips the types instead of compiling them.
+		"erasableSyntaxOnly": true,
+		// esbuild reads this file. Without this line it would define the static class fields instead
+		// of assigning them, because the target is above ES2022, and every bundle would change.
+		"useDefineForClassFields": false,
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"types": ["node", "chrome"]
+	},
+	"include": [
+		"src/**/*.ts",
+		"tests/**/*.ts",
+		"tools/**/*.ts"
 	]
 }

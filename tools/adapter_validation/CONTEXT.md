@@ -11,7 +11,7 @@ The checks an adapter must pass before `npm run build` will bundle it: the schem
 
 ## Rules
 - Nothing in `src/` imports from here. This code exists so the schema library never reaches a content script, and an import from `src/` would undo that.
-- This folder is type-checked through `tsconfig.browser.json`, not `tsconfig.node.json`, because esbuild bundles it and it reads types that assume a browser. `tsconfig.node.json` excludes it for that reason.
+- This folder reads types that assume a browser, and esbuild bundles it before Node.js runs it. The single `tsconfig.json` at the repository root covers it, because that file carries both the DOM library and the Node.js types.
 - `validate_all_adapters.ts` imports the adapter registry from `src/chrome_extension/` on purpose, and is the only file here that reaches into the extension.
 
 ## Background

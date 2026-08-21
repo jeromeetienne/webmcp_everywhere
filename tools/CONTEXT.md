@@ -15,7 +15,7 @@ Everything that builds, installs, or launches the product. The code that checks 
 ## Rules
 - Nothing in `src/` imports from here. `npm run verify:boundary` refuses any relative import that leaves `src/`.
 - The build writes to `build/chrome_extension/` and copies `manifest.json` and `user_interface/popup.html` in beside the bundles, because Chrome loads an unpacked extension from the folder that holds `manifest.json`. Nothing is ever written into `src/`.
-- Every file here is TypeScript that Node.js runs directly, so it must stay within erasable syntax: no `enum`, no `namespace` holding runtime code, no parameter properties, and no decorators. `npm run typecheck` checks this folder through `tsconfig.node.json`, which excludes `adapter_validation/`.
+- Every file here is TypeScript that Node.js runs directly, so it must stay within erasable syntax: no `enum`, no `namespace` holding runtime code, no parameter properties, and no decorators. `npm run typecheck` checks this folder through the single `tsconfig.json` at the repository root.
 - Never use `--load-extension`. Chrome 151 ignores it silently, leaving zero extensions installed and nothing in the log. Install with the Chrome DevTools Protocol method `Extensions.loadUnpacked`.
 - The profile needs `enable-webmcp-testing@1` in `Local State` before launch, or `document.modelContext` is absent, and `extensions.ui.developer_mode` in `Preferences`, or the extension installs but its content scripts never run.
 - The launcher deletes the profile before every launch. Chrome does not re-read an unpacked extension it has already installed, so keeping the profile silently runs the previous build, and every check still passes while testing old code.
