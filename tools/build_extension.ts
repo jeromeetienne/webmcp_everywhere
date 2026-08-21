@@ -11,8 +11,9 @@ import ChildProcess from 'node:child_process';
 
 const __dirname = import.meta.dirname;
 
-const extensionDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
-const outDir = Path.join(extensionDir, 'dist');
+const sourceDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
+const outDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
+const bundleDir = Path.join(outDir, 'dist');
 
 /**
  * Builds every script the extension manifest points at.
@@ -21,6 +22,14 @@ const outDir = Path.join(extensionDir, 'dist');
  * function expression with its imports inlined.
  */
 class BuildExtension {
+	/**
+	 * The files copied into the output directory unchanged, each keeping its path.
+	 */
+	static STATIC_FILES = [
+		'manifest.json',
+		'user_interface/popup.html',
+	];
+
 	/**
 	 * The entry points, each becoming one file in the output directory.
 	 *
@@ -46,18 +55,19 @@ class BuildExtension {
 			recursive: true,
 			force: true,
 		});
-		Fs.mkdirSync(outDir, {
+		Fs.mkdirSync(bundleDir, {
 			recursive: true,
 		});
+		BuildExtension._copyStaticFiles();
 
 		const result = await Esbuild.build({
 			entryPoints: Object.fromEntries(
 				BuildExtension.ENTRY_POINTS.map((name) => [
 					Path.basename(name, '.ts'),
-					Path.join(extensionDir, name),
+					Path.join(sourceDir, name),
 				]),
 			),
-			outdir: outDir,
+			outdir: bundleDir,
 			bundle: true,
 			format: 'iife',
 			target: 'chrome120',
@@ -81,12 +91,12 @@ class BuildExtension {
 	 */
 	static async validateAdapters() {
 		console.log('checking adapters');
-		const bundlePath = Path.join(outDir, '..', '.validate_adapters.mjs');
+		const bundlePath = Path.join(outDir, '.validate_adapters.mjs');
 		Fs.mkdirSync(Path.dirname(bundlePath), {
 			recursive: true,
 		});
 		await Esbuild.build({
-			entryPoints: [Path.join(__dirname, '..', 'src', 'adapter_format', 'validate_all_adapters.ts')],
+			entryPoints: [Path.join(__dirname, 'adapter_validation', 'validate_all_adapters.ts')],
 			outfile: bundlePath,
 			bundle: true,
 			format: 'esm',
@@ -102,6 +112,24 @@ class BuildExtension {
 		});
 		if (validation.status !== 0) {
 			throw new Error('adapter review checks failed, refusing to build');
+		}
+	}
+
+	/**
+	 * Copies the files the extension needs verbatim into the output directory.
+	 *
+	 * Chrome loads an unpacked extension from the folder that holds `manifest.json`, so the manifest and
+	 * the popup markup have to sit beside the bundles rather than stay behind in `src/`.
+	 *
+	 * @returns Nothing.
+	 */
+	static _copyStaticFiles() {
+		for (const name of BuildExtension.STATIC_FILES) {
+			const destination = Path.join(outDir, name);
+			Fs.mkdirSync(Path.dirname(destination), {
+				recursive: true,
+			});
+			Fs.copyFileSync(Path.join(sourceDir, name), destination);
 		}
 	}
 }

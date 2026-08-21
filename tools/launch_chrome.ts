@@ -8,7 +8,7 @@ import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { CdpClient } from '../src/devtools_protocol_bridge/cdp_client.ts';
+import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 
 const __dirname = import.meta.dirname;
@@ -101,7 +101,7 @@ export class LaunchChrome {
 		const port = options.port ?? LaunchChrome.PORT;
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
-		const extensionDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
+		const extensionDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');

@@ -4,8 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../src/devtools_protocol_bridge/cdp_client.ts';
-import { LaunchChrome } from './launch_chrome.ts';
+import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
+import { LaunchChrome } from '../tools/launch_chrome.ts';
 import type { CheckResult, FramedResultOf } from './verify_types.ts';
 
 const TARGET_URL = 'https://caniuse.com/css-grid';

@@ -11,5 +11,10 @@
 		"forceConsistentCasingInFileNames": true,
 		"types": ["node", "chrome"]
 	},
-	"include": ["src/adapter_format/**/*.ts", "src/site_adapters/**/*.ts", "src/chrome_extension/**/*.ts"]
+	"include": [
+		"src/adapter_format/**/*.ts",
+		"src/site_adapters/**/*.ts",
+		"src/chrome_extension/**/*.ts",
+		"tools/adapter_validation/**/*.ts"
+	]
 }

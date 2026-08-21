@@ -80,12 +80,15 @@ The Chrome DevTools Protocol path needs a browser launched with a debugging port
 
 ## Layout
 
-- `src/adapter_format/` — what an adapter is, and the checks it must pass before a build will bundle it.
+`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`.
+
+- `src/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed.
 - `src/site_adapters/` — one folder per target site.
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host and its HTTP endpoint.
-- `src/devtools_protocol_bridge/` — the stdio bridge, used for testing.
-- `tools/` — build, launch, install, and verification.
+- `tools/` — build, launch, and install, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
+- `tests/` — the verification runners, and the stdio bridge one of them checks.
+- `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
 
 Each folder has its own `CONTEXT.md`.
 

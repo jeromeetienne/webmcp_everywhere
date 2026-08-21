@@ -10,26 +10,25 @@
 	"scripts": {
 		"build": "node tools/build_extension.ts",
 		"chrome": "node tools/launch_chrome.ts",
-		"verify": "node tools/verify_milestones.ts",
-		"bridge": "node src/devtools_protocol_bridge/webmcp_bridge.ts",
+		"verify": "node tests/verify_milestones.ts",
+		"bridge": "node tests/devtools_protocol_bridge/webmcp_bridge.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-		"verify:bridge": "node tools/verify_bridge.ts",
-		"verify:caniuse": "node tools/verify_caniuse.ts",
+		"verify:bridge": "node tests/verify_bridge.ts",
+		"verify:caniuse": "node tests/verify_caniuse.ts",
 		"grant": "node tools/grant_acting.ts",
-		"verify:host": "node tools/verify_native_host.ts",
+		"verify:host": "node tests/verify_native_host.ts",
 		"install:host": "node tools/install_native_host.ts",
-		"verify:injection": "node tools/verify_injection_defence.ts",
+		"verify:injection": "node tests/verify_injection_defence.ts",
+		"verify:boundary": "node tests/verify_source_boundary.ts",
 		"mcp:inspector:start": "npx @modelcontextprotocol/inspector --web --transport http --server-url $(jq -r .url ~/.webmcp_everywhere/endpoint.json) --header \"Authorization: Bearer $(jq -r .token ~/.webmcp_everywhere/endpoint.json)\"",
 		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
-	},
-	"dependencies": {
-		"zod": "3.25.76"
 	},
 	"devDependencies": {
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@types/chrome": "0.2.6",
 		"@types/node": "26.2.0",
 		"esbuild": "0.28.2",
-		"typescript": "7.0.2"
+		"typescript": "7.0.2",
+		"zod": "3.25.76"
 	}
 }

@@ -1,7 +1,7 @@
-import { AdapterRegistry } from '../chrome_extension/shared_state/adapter_registry.js';
+import { AdapterRegistry } from '../../src/chrome_extension/shared_state/adapter_registry.js';
 import { AdapterSchema } from './adapter_schema.js';
 import { PermissionAudit } from './permission_audit.js';
-import { ToolNaming } from './tool_naming.js';
+import { ToolNaming } from '../../src/adapter_format/tool_naming.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

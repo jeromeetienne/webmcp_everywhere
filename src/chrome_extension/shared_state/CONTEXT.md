@@ -14,4 +14,4 @@ The state that more than one execution context reads: the adapters this build ca
 - Adapters are added to `adapter_registry.ts` by hand. There is no automatic discovery, because a build that silently picks up a new file is a build that silently ships one.
 
 ## Background
-- `validate_all_adapters.ts` in `adapter_format/` imports `adapter_registry.ts` on purpose and only ever runs in Node.js — see [`../../adapter_format/CONTEXT.md`](../../adapter_format/CONTEXT.md).
+- `validate_all_adapters.ts` in `tools/adapter_validation/` imports `adapter_registry.ts` on purpose and only ever runs in Node.js — see [`../../../tools/adapter_validation/CONTEXT.md`](../../../tools/adapter_validation/CONTEXT.md).

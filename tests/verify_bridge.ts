@@ -30,7 +30,7 @@ export class VerifyBridge {
 	static async run(): Promise<CheckOutcome> {
 		const transport = new StdioClientTransport({
 			command: process.execPath,
-			args: [Path.join(__dirname, '..', 'src', 'bridge', 'webmcp_bridge.ts')],
+			args: [Path.join(__dirname, 'devtools_protocol_bridge', 'webmcp_bridge.ts')],
 		});
 		const client = new Client(
 			{

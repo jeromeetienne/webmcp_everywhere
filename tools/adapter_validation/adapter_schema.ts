@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { ToolNaming } from './tool_naming.js';
+import { ToolNaming } from '../../src/adapter_format/tool_naming.js';
 import { PermissionAudit } from './permission_audit.js';
-import type { Adapter } from './adapter_types.js';
+import type { Adapter } from '../../src/adapter_format/adapter_types.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

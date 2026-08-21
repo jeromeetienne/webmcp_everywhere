@@ -20,4 +20,4 @@ The Manifest Version 3 extension: it matches a page against the bundled adapters
 
 ## Background
 - Main-world injection is required and was proven to work in [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2); the isolated world cannot see `document.modelContext` at all.
-- Issue #1 expects a content security policy to stop adapters reaching the network. It cannot: a main-world script runs under the page's own policy, not the extension's. The build-time check in `adapter_format/permission_audit.ts` is what enforces the rule instead.
+- Issue #1 expects a content security policy to stop adapters reaching the network. It cannot: a main-world script runs under the page's own policy, not the extension's. The build-time check in `tools/adapter_validation/permission_audit.ts` is what enforces the rule instead.

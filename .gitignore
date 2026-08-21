@@ -1,4 +1,4 @@
 node_modules/
-src/chrome_extension/dist/
+build/
 *.log
 extension_private_key.pem
