@@ -1,5 +1,6 @@
 import type { Adapter } from '../../adapter_format/adapter_types.js';
 import { todomvcAdapter } from '../../site_adapters/demo_playwright_dev/todomvc_adapter.js';
+import { caniuseAdapter } from '../../site_adapters/caniuse_com/caniuse_adapter.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -15,7 +16,7 @@ import { todomvcAdapter } from '../../site_adapters/demo_playwright_dev/todomvc_
  */
 export class AdapterRegistry {
 	/** Every adapter this build carries. */
-	static readonly ADAPTERS: Adapter[] = [todomvcAdapter];
+	static readonly ADAPTERS: Adapter[] = [todomvcAdapter, caniuseAdapter];
 
 	/**
 	 * Finds the adapter that applies to a page.

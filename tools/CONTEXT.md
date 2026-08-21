@@ -7,6 +7,7 @@ Development tooling: builds the extension, brings up a Chrome that speaks WebMCP
 - `build_extension.ts`: `BuildExtension` — runs the adapter review checks, then bundles. `npm run build`
 - `launch_chrome.ts`: `LaunchChrome` — the four-step recipe for a Chrome that works. `npm run chrome`
 - `verify_milestones.ts`: `VerifyMilestones` — checks over the Chrome DevTools Protocol path. `npm run verify`
+- `verify_caniuse.ts`: `VerifyCaniuse` — checks the Can I use... adapter against the live site. `npm run verify:caniuse`
 - `verify_native_host.ts`: `VerifyNativeHost` — checks over the real delivery path. `npm run verify:host`
 - `verify_injection_defence.ts`: `VerifyInjectionDefence` — writes hostile content onto the page and attacks through it. `npm run verify:injection`
 - `verify_bridge.ts`: `VerifyBridge` — checks the stdio bridge. `npm run verify:bridge`

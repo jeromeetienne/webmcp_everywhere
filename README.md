@@ -6,7 +6,12 @@ The idea and its reasoning are in [issue #1](https://github.com/jeromeetienne/we
 
 ## What works today
 
-Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the site through them, with no screenshots and no Document Object Model guesswork.
+Two sites are covered.
+
+- Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. See [the adapter's own README.md](src/site_adapters/demo_playwright_dev/README.md).
+- Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](src/site_adapters/caniuse_com/README.md).
+
+On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
 
 ## How an agent reaches the browser
 
@@ -55,7 +60,8 @@ npm run mcp:inspector:stop
 Both exist for testing and neither is the product.
 
 ```bash
-npm run verify          # 14 checks driving the page over the Chrome DevTools Protocol
+npm run verify          # 14 checks driving the TodoMVC page over the Chrome DevTools Protocol
+npm run verify:caniuse  # 14 checks driving https://caniuse.com/ the same way
 npm run verify:bridge   # 4 checks through the stdio Model Context Protocol bridge
 ```
 

@@ -9,7 +9,8 @@
 		"tabs"
 	],
 	"host_permissions": [
-		"https://demo.playwright.dev/*"
+		"https://demo.playwright.dev/*",
+		"https://caniuse.com/*"
 	],
 	"background": {
 		"service_worker": "dist/background_service_worker.js"
@@ -21,7 +22,8 @@
 	"content_scripts": [
 		{
 			"matches": [
-				"https://demo.playwright.dev/*"
+				"https://demo.playwright.dev/*",
+				"https://caniuse.com/*"
 			],
 			"js": [
 				"dist/content_main.js"
@@ -32,7 +34,8 @@
 		},
 		{
 			"matches": [
-				"https://demo.playwright.dev/*"
+				"https://demo.playwright.dev/*",
+				"https://caniuse.com/*"
 			],
 			"js": [
 				"dist/content_isolated.js"

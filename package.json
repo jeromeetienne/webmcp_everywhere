@@ -14,6 +14,7 @@
 		"bridge": "node src/devtools_protocol_bridge/webmcp_bridge.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
 		"verify:bridge": "node tools/verify_bridge.ts",
+		"verify:caniuse": "node tools/verify_caniuse.ts",
 		"grant": "node tools/grant_acting.ts",
 		"verify:host": "node tools/verify_native_host.ts",
 		"install:host": "node tools/install_native_host.ts",
