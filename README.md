@@ -86,14 +86,14 @@ The Chrome DevTools Protocol path needs a browser launched with a debugging port
 
 ## Environment variables
 
-Every variable below is optional, and every one of them has a working default.
+Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what it changes, so one prefix covers all of them and nothing of ours can collide with anything else in your shell. Every variable below is optional, and every one of them has a working default.
 
 | Variable | Values | Default | What it changes |
 | --- | --- | --- | --- |
 | `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. `npm run test:visible` sets this to `visible`. |
-| `WEBMCP_HOST_PORT` | a port number | `8765` | Where the native messaging host serves Model Context Protocol over HTTP. |
-| `WEBMCP_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
-| `WEBMCP_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
+| `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | Where the native messaging host serves Model Context Protocol over HTTP. |
+| `WEBMCP_EVERYWHERE_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
+| `WEBMCP_EVERYWHERE_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
 
 Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rather than ignored, so a typo fails the run instead of silently showing a window.
 

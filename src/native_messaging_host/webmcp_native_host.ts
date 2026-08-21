@@ -185,7 +185,7 @@ export class WebmcpNativeHost {
 	 * @param options - How to run.
 	 */
 	constructor(options: WebmcpNativeHostOptions = {}) {
-		this.port = options.port ?? Number(process.env.WEBMCP_HOST_PORT ?? WebmcpNativeHost.DEFAULT_PORT);
+		this.port = options.port ?? Number(process.env.WEBMCP_EVERYWHERE_HOST_PORT ?? WebmcpNativeHost.DEFAULT_PORT);
 		this.channel = null;
 		this.nextId = 1;
 		this.pending = new Map();

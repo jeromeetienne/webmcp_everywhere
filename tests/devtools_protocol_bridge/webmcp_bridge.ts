@@ -90,8 +90,8 @@ export class WebmcpBridge {
 	 * @param options - How to reach the page.
 	 */
 	constructor(options: WebmcpBridgeOptions = {}) {
-		this.port = options.port ?? Number(process.env.WEBMCP_BRIDGE_PORT ?? 9333);
-		this.urlFragment = options.urlFragment ?? process.env.WEBMCP_BRIDGE_PAGE ?? 'todomvc';
+		this.port = options.port ?? Number(process.env.WEBMCP_EVERYWHERE_BRIDGE_PORT ?? 9333);
+		this.urlFragment = options.urlFragment ?? process.env.WEBMCP_EVERYWHERE_BRIDGE_PAGE ?? 'todomvc';
 		this.page = null;
 		this.server = new Server(
 			{
