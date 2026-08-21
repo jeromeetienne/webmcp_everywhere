@@ -1,6 +1,7 @@
 import type { Adapter } from '../../adapter_format/adapter_types.js';
 import { todomvcAdapter } from '../../site_adapters/demo_playwright_dev/todomvc_adapter.js';
 import { caniuseAdapter } from '../../site_adapters/caniuse_com/caniuse_adapter.js';
+import { openStreetMapAdapter } from '../../site_adapters/openstreetmap_org/openstreetmap_adapter.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -16,7 +17,7 @@ import { caniuseAdapter } from '../../site_adapters/caniuse_com/caniuse_adapter.
  */
 export class AdapterRegistry {
 	/** Every adapter this build carries. */
-	static readonly ADAPTERS: Adapter[] = [todomvcAdapter, caniuseAdapter];
+	static readonly ADAPTERS: Adapter[] = [todomvcAdapter, caniuseAdapter, openStreetMapAdapter];
 
 	/**
 	 * Finds the adapter that applies to a page.

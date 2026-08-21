@@ -6,6 +6,7 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 ## Key Exports & Entry Points
 - `demo_playwright_dev/`: The Playwright TodoMVC demonstration — see its own CONTEXT.md.
 - `caniuse_com/`: The Can I use... browser support tables — see its own CONTEXT.md.
+- `openstreetmap_org/`: The OpenStreetMap map, aimed at a mapper — see its own CONTEXT.md.
 
 ## Rules
 - One folder per origin, named after the origin in `snake_case`, matching the adapter's `siteSlug`.

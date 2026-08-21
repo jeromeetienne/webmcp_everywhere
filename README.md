@@ -6,10 +6,11 @@ The idea and its reasoning are in [issue #1](https://github.com/jeromeetienne/we
 
 ## What works today
 
-Two sites are covered.
+Three sites are covered.
 
 - Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. See [the adapter's own README.md](src/site_adapters/demo_playwright_dev/README.md).
 - Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](src/site_adapters/caniuse_com/README.md).
+- Thirteen tools on `https://www.openstreetmap.org/` — six read-only and seven acting, aimed at a mapper: the tags on a feature, the areas containing a point, what changed in the view, and routing used as a test of the road network. See [the adapter's own README.md](src/site_adapters/openstreetmap_org/README.md).
 
 On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
 
@@ -33,6 +34,12 @@ npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
 ```
 
+That opens the TodoMVC demonstration. Pass an address to open a different covered site.
+
+```bash
+npm run chrome -- "https://www.openstreetmap.org/#map=15/48.8584/2.2945"
+```
+
 ```bash
 npm run verify:host     # checks the real delivery path
 ```
@@ -53,7 +60,17 @@ export WEBMCP_EVERYWHERE_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
 codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
 
-Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`.
+On OpenStreetMap, ask for something a mapper would ask for:
+
+```bash
+codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "What changed on the map around where I am looking, and who made the biggest change?"
+```
+
+Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`, which takes the origin to opt in.
+
+```bash
+npm run grant -- https://www.openstreetmap.org
+```
 
 ## How it works
 

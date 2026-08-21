@@ -17,6 +17,7 @@
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"verify:bridge": "node --test tests/verify_bridge.test.ts",
 		"verify:caniuse": "node --test tests/verify_caniuse.test.ts",
+		"verify:openstreetmap": "node --test tests/verify_openstreetmap.test.ts",
 		"grant": "node tools/grant_acting.ts",
 		"verify:host": "node --test tests/verify_native_host.test.ts",
 		"install:host": "node tools/install_native_host.ts",

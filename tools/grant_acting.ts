@@ -70,5 +70,9 @@ export class GrantActing {
 }
 
 if (import.meta.filename === process.argv[1]) {
-	console.log(await GrantActing.run());
+	console.log(
+		await GrantActing.run({
+			origin: process.argv[2],
+		}),
+	);
 }

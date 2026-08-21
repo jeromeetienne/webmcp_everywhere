@@ -25,11 +25,12 @@ src/site_adapters/example_com/
 	CONTEXT.md          the rules for editing this adapter
 	README.md           what an agent can do with this site, and the workflows worth asking for
 	example_adapter.ts  the adapter
+	example_page.ts     the page-reading and page-driving class, once one file is too long
 ```
 
 ## Step two: write the adapter
 
-One file, holding two exports: the adapter object itself, and a class holding the page-reading and page-driving helpers.
+One file, holding two exports: the adapter object itself, and a class holding the page-reading and page-driving helpers. Split that one file in two once it passes about six hundred lines, as the OpenStreetMap adapter does: `<site>_page.ts` for the class and the result types, `<site>_adapter.ts` for the adapter object and its tools.
 
 ```ts
 import type { Adapter } from '../../adapter_format/adapter_types.js';
@@ -87,7 +88,7 @@ The build runs every check over every adapter before it bundles anything, and pr
 
 ## Step five: check it against the live site
 
-Write a verification runner in [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), named `verify_<site>.test.ts`, following the shape the existing ones use. `npm run verify` covers TodoMVC and `npm run verify:caniuse` covers Can I use...; both are worth reading before writing a third.
+Write a verification runner in [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), named `verify_<site>.test.ts`, following the shape the existing ones use. `npm run verify` covers TodoMVC, `npm run verify:caniuse` covers Can I use..., and `npm run verify:openstreetmap` covers OpenStreetMap; all three are worth reading before writing a fourth.
 
 The rules for a runner are in [`tests/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/CONTEXT.md). The two that matter most:
 

@@ -6,6 +6,7 @@ Everything that exists only to check the product: the verification runners that 
 ## Key Exports & Entry Points
 - `verify_milestones.test.ts`: `VerifyMilestones` — 14 checks driving the TodoMVC page. `npm run verify`
 - `verify_caniuse.test.ts`: `VerifyCaniuse` — 14 checks driving `https://caniuse.com/`. `npm run verify:caniuse`
+- `verify_openstreetmap.test.ts`: `VerifyOpenStreetMap` — 24 checks driving `https://www.openstreetmap.org/`. `npm run verify:openstreetmap`
 - `verify_native_host.test.ts`: `VerifyNativeHost` — 10 checks over the real delivery path. `npm run verify:host`
 - `verify_injection_defence.test.ts`: `VerifyInjectionDefence` — writes hostile content onto the page and attacks through it. `npm run verify:injection`
 - `verify_bridge.test.ts`: `VerifyBridge` — 4 checks through the stdio bridge. `npm run verify:bridge`

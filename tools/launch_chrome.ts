@@ -258,9 +258,12 @@ if (import.meta.filename === process.argv[1]) {
 	// This command exists to hand somebody a browser to look at, so it shows one unless the
 	// environment says otherwise. The checks under tests/ hide theirs instead.
 	const visibility = LaunchChrome._visibilityFromEnvironment() ?? 'visible';
+	const url = process.argv[2] ?? LaunchChrome.TARGET_URL;
 	const result = await LaunchChrome.run({
 		visibility: visibility,
+		url: url,
 	});
+	console.log(`opened ${url}`);
 	console.log(`Chrome ready on port ${result.port}, ${visibility}`);
 	console.log(`extension installed as ${result.extensionId}`);
 	console.log(`profile at ${result.profileDir}`);

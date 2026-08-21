@@ -10,7 +10,9 @@
 	],
 	"host_permissions": [
 		"https://demo.playwright.dev/*",
-		"https://caniuse.com/*"
+		"https://caniuse.com/*",
+		"https://www.openstreetmap.org/*",
+		"https://openstreetmap.org/*"
 	],
 	"background": {
 		"service_worker": "dist/background_service_worker.js"
@@ -23,7 +25,9 @@
 		{
 			"matches": [
 				"https://demo.playwright.dev/*",
-				"https://caniuse.com/*"
+				"https://caniuse.com/*",
+				"https://www.openstreetmap.org/*",
+				"https://openstreetmap.org/*"
 			],
 			"js": [
 				"dist/content_main.js"
@@ -35,7 +39,9 @@
 		{
 			"matches": [
 				"https://demo.playwright.dev/*",
-				"https://caniuse.com/*"
+				"https://caniuse.com/*",
+				"https://www.openstreetmap.org/*",
+				"https://openstreetmap.org/*"
 			],
 			"js": [
 				"dist/content_isolated.js"
