@@ -8,10 +8,65 @@ import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { CdpClient } from '../src/bridge/cdp_client.mjs';
-import { InstallNativeHost } from './install_native_host.mjs';
+import { CdpClient } from '../src/bridge/cdp_client.ts';
+import { InstallNativeHost } from './install_native_host.ts';
 
 const __dirname = import.meta.dirname;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+/** How to launch. */
+export type LaunchChromeOptions = {
+	/** Where to keep the throwaway profile. */
+	profileDir?: string;
+	/** The remote debugging port. */
+	port?: number;
+	/** The page to open. */
+	url?: string;
+	/** Keep the existing profile, and with it the previous build. */
+	keepProfile?: boolean;
+};
+
+/** How to reach the Chrome that was launched. */
+export type LaunchedChrome = {
+	/** The remote debugging port it is listening on. */
+	port: number;
+	/** The identifier Chrome gave the installed extension. */
+	extensionId: string;
+	/** The profile directory it is running against. */
+	profileDir: string;
+};
+
+/** The parts of Chrome's `Local State` file this tool writes. */
+type ChromeLocalState = {
+	/** Browser-wide settings, including which experiments are on. */
+	browser?: {
+		/** The experiments Chrome turns on at startup. */
+		enabled_labs_experiments?: string[];
+	};
+	/** Everything else the file carries, left untouched. */
+	[field: string]: unknown;
+};
+
+/** The parts of Chrome's `Preferences` file this tool writes. */
+type ChromePreferences = {
+	/** Extension settings. */
+	extensions?: {
+		/** The extensions page's own settings. */
+		ui?: {
+			/** Whether developer mode is on, without which content scripts never run. */
+			developer_mode?: boolean;
+		};
+		/** Everything else under `extensions`, left untouched. */
+		[field: string]: unknown;
+	};
+	/** Everything else the file carries, left untouched. */
+	[field: string]: unknown;
+};
 
 /**
  * Starts a Chrome that can run this extension, without a human clicking anything.
@@ -39,14 +94,10 @@ export class LaunchChrome {
 	 * silently keeps running the previous build. That turned a working fix into an apparent failure and
 	 * cost a full debugging cycle, because every check still ran, and ran against old code.
 	 *
-	 * @param {object} options - How to launch.
-	 * @param {string} [options.profileDir] - Where to keep the throwaway profile.
-	 * @param {number} [options.port] - The remote debugging port.
-	 * @param {string} [options.url] - The page to open.
-	 * @param {boolean} [options.keepProfile] - Keep the existing profile, and with it the previous build.
-	 * @returns {Promise<{port: number, extensionId: string, profileDir: string}>} How to reach it.
+	 * @param options - How to launch.
+	 * @returns How to reach it.
 	 */
-	static async run(options = {}) {
+	static async run(options: LaunchChromeOptions = {}): Promise<LaunchedChrome> {
 		const port = options.port ?? LaunchChrome.PORT;
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
@@ -68,7 +119,7 @@ export class LaunchChrome {
 			userDataDirs: [profileDir],
 		});
 
-		const child = ChildProcess.spawn(
+		const childProcess = ChildProcess.spawn(
 			LaunchChrome.CHROME_PATH,
 			[
 				`--user-data-dir=${profileDir}`,
@@ -84,12 +135,12 @@ export class LaunchChrome {
 				stdio: 'ignore',
 			},
 		);
-		child.unref();
+		childProcess.unref();
 
 		await CdpClient.waitUntilReady(port);
 
 		const browser = await CdpClient.connectToBrowser(port);
-		const installed = await browser.send('Extensions.loadUnpacked', {
+		const installed = await browser.send<{ id: string }>('Extensions.loadUnpacked', {
 			path: extensionDir,
 		});
 		browser.close();
@@ -118,25 +169,23 @@ export class LaunchChrome {
 	 * `Preferences` or the extension installs but its content scripts silently never run, which is a
 	 * failure with no error message anywhere.
 	 *
-	 * @param {string} profileDir - The profile directory to prepare.
-	 * @returns {void} Nothing.
+	 * @param profileDir - The profile directory to prepare.
+	 * @returns Nothing.
 	 */
-	static _prepareProfile(profileDir) {
+	static _prepareProfile(profileDir: string): void {
 		const defaultDir = Path.join(profileDir, 'Default');
 		Fs.mkdirSync(defaultDir, {
 			recursive: true,
 		});
 
 		const localStatePath = Path.join(profileDir, 'Local State');
-		/** @type {Record<string, any>} */
-		const localState = LaunchChrome._readJson(localStatePath);
+		const localState = LaunchChrome._readJson<ChromeLocalState>(localStatePath);
 		localState.browser = localState.browser ?? {};
 		localState.browser.enabled_labs_experiments = ['enable-webmcp-testing@1'];
 		Fs.writeFileSync(localStatePath, JSON.stringify(localState));
 
 		const preferencesPath = Path.join(defaultDir, 'Preferences');
-		/** @type {Record<string, any>} */
-		const preferences = LaunchChrome._readJson(preferencesPath);
+		const preferences = LaunchChrome._readJson<ChromePreferences>(preferencesPath);
 		preferences.extensions = preferences.extensions ?? {};
 		preferences.extensions.ui = preferences.extensions.ui ?? {};
 		preferences.extensions.ui.developer_mode = true;
@@ -146,27 +195,27 @@ export class LaunchChrome {
 	/**
 	 * Reads a JSON file, returning an empty object when it is missing or unreadable.
 	 *
-	 * @param {string} path - The file to read.
-	 * @returns {Record<string, any>} The parsed contents.
+	 * @param path - The file to read.
+	 * @returns The parsed contents.
 	 */
-	static _readJson(path) {
+	static _readJson<ShapeType extends object>(path: string): ShapeType {
 		if (Fs.existsSync(path) === false) {
-			return {};
+			return {} as ShapeType;
 		}
 		try {
-			return JSON.parse(Fs.readFileSync(path, 'utf8'));
+			return JSON.parse(Fs.readFileSync(path, 'utf8')) as ShapeType;
 		} catch {
-			return {};
+			return {} as ShapeType;
 		}
 	}
 
 	/**
 	 * Stops any Chrome already running on this profile, so a relaunch picks up new settings.
 	 *
-	 * @param {string} profileDir - The profile directory whose Chrome should be stopped.
-	 * @returns {void} Nothing.
+	 * @param profileDir - The profile directory whose Chrome should be stopped.
+	 * @returns Nothing.
 	 */
-	static _stopExisting(profileDir) {
+	static _stopExisting(profileDir: string): void {
 		ChildProcess.spawnSync('pkill', ['-f', profileDir], {
 			stdio: 'ignore',
 		});

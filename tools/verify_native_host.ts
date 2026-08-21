@@ -7,9 +7,10 @@
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { CdpClient } from '../src/bridge/cdp_client.mjs';
-import { GrantActing } from './grant_acting.mjs';
-import { LaunchChrome } from './launch_chrome.mjs';
+import { CdpClient } from '../src/bridge/cdp_client.ts';
+import { GrantActing } from './grant_acting.ts';
+import { LaunchChrome } from './launch_chrome.ts';
+import type { CheckOutcome, HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
 
@@ -25,9 +26,9 @@ export class VerifyNativeHost {
 	/**
 	 * Runs the checks.
 	 *
-	 * @returns {Promise<{passed: number, failed: number}>} The outcome.
+	 * @returns The outcome.
 	 */
-	static async run() {
+	static async run(): Promise<CheckOutcome> {
 		await LaunchChrome.run();
 		await VerifyNativeHost._pause(5000);
 
@@ -36,18 +37,20 @@ export class VerifyNativeHost {
 		let failed = 0;
 
 		/**
-		 * @param {string} name - What is being checked.
-		 * @param {() => Promise<string>} check - The check.
-		 * @returns {Promise<void>} Nothing.
+		 * Runs one check and records whether it passed.
+		 *
+		 * @param name - What is being checked.
+		 * @param check - The check, returning a detail line. Throwing means failure.
+		 * @returns Nothing.
 		 */
-		const test = async (name, check) => {
+		const test = async (name: string, check: () => Promise<string>): Promise<void> => {
 			try {
 				const detail = await check();
 				passed += 1;
 				console.log(`  PASS  ${name}\n        ${detail}`);
 			} catch (error) {
 				failed += 1;
-				console.log(`  FAIL  ${name}\n        ${error?.message ?? error}`);
+				console.log(`  FAIL  ${name}\n        ${(error as Error)?.message ?? error}`);
 			}
 		};
 
@@ -153,52 +156,57 @@ export class VerifyNativeHost {
 	/**
 	 * Reads where the host says it is listening.
 	 *
-	 * @returns {{url: string, token: string}} The endpoint details.
+	 * @returns The endpoint details.
 	 * @throws When the host never wrote them, which means Chrome never started it.
 	 */
-	static _readEndpoint() {
+	static _readEndpoint(): HostEndpoint {
 		if (Fs.existsSync(ENDPOINT_FILE) === false) {
 			throw new Error(`${ENDPOINT_FILE} is missing, so Chrome never started the native host`);
 		}
-		return JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8'));
+		return JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as HostEndpoint;
 	}
 
 	/**
 	 * Sends one plain HTTP request.
 	 *
-	 * @param {{url: string, token: string}} endpoint - Where the host is.
-	 * @param {string} path - The path to request.
-	 * @param {string|null} token - The bearer token, or null to send none.
-	 * @returns {Promise<{status: number, body: any}>} The response.
+	 * @param endpoint - Where the host is.
+	 * @param path - The path to request.
+	 * @param token - The bearer token, or null to send none.
+	 * @returns The response.
 	 */
-	static async _get(endpoint, path, token) {
+	static async _get(endpoint: HostEndpoint, path: string, token: string | null): Promise<HttpOutcome> {
 		const base = new URL(endpoint.url);
 		const response = await fetch(`${base.origin}${path}`, {
 			headers: token === null ? {} : { authorization: `Bearer ${token}` },
 		});
 		return {
 			status: response.status,
-			body: await response.json().catch(() => null),
+			body: await response.json().then((body) => body as HttpOutcome['body']).catch(() => null),
 		};
 	}
 
 	/**
 	 * Sends one Model Context Protocol call.
 	 *
-	 * @param {{url: string, token: string}} endpoint - Where the host is.
-	 * @param {string} method - The method name.
-	 * @param {object} params - The parameters.
-	 * @param {string|null|undefined} token - The token, or null for none, or undefined for the real one.
-	 * @returns {Promise<{status: number, body: any}>} The response.
+	 * @param endpoint - Where the host is.
+	 * @param method - The method name.
+	 * @param params - The parameters.
+	 * @param token - The token, or null for none, or undefined for the real one.
+	 * @returns The response.
 	 */
-	static async _rpc(endpoint, method, params, token) {
+	static async _rpc(
+		endpoint: HostEndpoint,
+		method: string,
+		params: Record<string, unknown>,
+		token: string | null | undefined,
+	): Promise<HttpOutcome> {
 		const bearer = token === undefined ? endpoint.token : token;
-		const headers = {
+		const headers: Record<string, string> = {
 			'content-type': 'application/json',
 			accept: 'application/json, text/event-stream',
 		};
 		if (bearer !== null) {
-			headers.authorization = `Bearer ${bearer}`;
+			headers['authorization'] = `Bearer ${bearer}`;
 		}
 		const response = await fetch(endpoint.url, {
 			method: 'POST',
@@ -212,17 +220,17 @@ export class VerifyNativeHost {
 		});
 		return {
 			status: response.status,
-			body: await response.json().catch(() => null),
+			body: await response.json().then((body) => body as HttpOutcome['body']).catch(() => null),
 		};
 	}
 
 	/**
 	 * Lists the tool names the endpoint currently offers.
 	 *
-	 * @param {{url: string, token: string}} endpoint - Where the host is.
-	 * @returns {Promise<string[]>} The offered names.
+	 * @param endpoint - Where the host is.
+	 * @returns The offered names.
 	 */
-	static async _tools(endpoint) {
+	static async _tools(endpoint: HostEndpoint): Promise<string[]> {
 		const response = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, undefined);
 		return (response.body?.result?.tools ?? []).map((tool) => tool.name);
 	}
@@ -230,12 +238,16 @@ export class VerifyNativeHost {
 	/**
 	 * Calls one tool through the endpoint.
 	 *
-	 * @param {{url: string, token: string}} endpoint - Where the host is.
-	 * @param {string} name - The tool name.
-	 * @param {object} args - The arguments.
-	 * @returns {Promise<{text: string, isError: boolean}>} What came back.
+	 * @param endpoint - Where the host is.
+	 * @param name - The tool name.
+	 * @param args - The arguments.
+	 * @returns What came back.
 	 */
-	static async _call(endpoint, name, args) {
+	static async _call(
+		endpoint: HostEndpoint,
+		name: string,
+		args: Record<string, unknown>,
+	): Promise<ToolCallOutcome> {
 		const response = await VerifyNativeHost._rpc(
 			endpoint,
 			'tools/call',
@@ -247,7 +259,7 @@ export class VerifyNativeHost {
 		);
 		const result = response.body?.result;
 		return {
-			text: (result?.content ?? []).map((part) => part.text).join(''),
+			text: (result?.content ?? []).map((part) => part.text ?? '').join(''),
 			isError: result?.isError === true,
 		};
 	}
@@ -255,25 +267,25 @@ export class VerifyNativeHost {
 	/**
 	 * Reads the todo titles straight out of the browser, to check a claim rather than trust it.
 	 *
-	 * @returns {Promise<string[]>} The titles on the page.
+	 * @returns The titles on the page.
 	 */
-	static async _readPageTitles() {
+	static async _readPageTitles(): Promise<string[]> {
 		const page = await CdpClient.connectToPage(9333, 'todomvc');
-		const raw = await page.evaluate(
+		const raw = await page.evaluate<string>(
 			'JSON.stringify(JSON.parse(localStorage.getItem("react-todos") ?? "[]").map((todo) => todo.title))',
 		);
 		page.close();
-		return JSON.parse(raw);
+		return JSON.parse(raw) as string[];
 	}
 
 	/**
 	 * Opens a second tab on the same site.
 	 *
-	 * @returns {Promise<string>} The new target's identifier.
+	 * @returns The new target's identifier.
 	 */
-	static async _openSecondTab() {
+	static async _openSecondTab(): Promise<string> {
 		const browser = await CdpClient.connectToBrowser(9333);
-		const created = await browser.send('Target.createTarget', {
+		const created = await browser.send<{ targetId: string }>('Target.createTarget', {
 			url: 'https://demo.playwright.dev/todomvc/#/active',
 		});
 		browser.close();
@@ -283,10 +295,10 @@ export class VerifyNativeHost {
 	/**
 	 * Closes a tab.
 	 *
-	 * @param {string} targetId - The target to close.
-	 * @returns {Promise<void>} Nothing.
+	 * @param targetId - The target to close.
+	 * @returns Nothing.
 	 */
-	static async _closeTarget(targetId) {
+	static async _closeTarget(targetId: string): Promise<void> {
 		const browser = await CdpClient.connectToBrowser(9333);
 		await browser.send('Target.closeTarget', {
 			targetId: targetId,
@@ -297,10 +309,10 @@ export class VerifyNativeHost {
 	/**
 	 * Sets the user's opt-in, standing in for the popup.
 	 *
-	 * @param {boolean} allowed - Whether acting tools are allowed.
-	 * @returns {Promise<void>} Nothing.
+	 * @param allowed - Whether acting tools are allowed.
+	 * @returns Nothing.
 	 */
-	static async _setActing(allowed) {
+	static async _setActing(allowed: boolean): Promise<void> {
 		await GrantActing.run({
 			actingAllowed: allowed,
 			globallyEnabled: true,
@@ -310,11 +322,11 @@ export class VerifyNativeHost {
 	/**
 	 * Waits.
 	 *
-	 * @param {number} ms - How long, in milliseconds.
-	 * @returns {Promise<void>} Nothing.
+	 * @param milliseconds - How long to wait.
+	 * @returns Nothing.
 	 */
-	static async _pause(ms) {
-		await new Promise((resolve) => setTimeout(resolve, ms));
+	static async _pause(milliseconds: number): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, milliseconds));
 	}
 }
 

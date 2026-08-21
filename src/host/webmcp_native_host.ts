@@ -6,7 +6,70 @@ import Path from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { NativeMessagingCodec } from './native_messaging_codec.mjs';
+import { NativeMessagingCodec } from './native_messaging_codec.ts';
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+/** One tool as the extension describes it. */
+export type ExtensionTool = {
+	/** The tool's name, already carrying its adapter and tab namespacing. */
+	name: string;
+	/** What the tool does, shown to an agent. */
+	description: string;
+	/** The tool's JSON Schema, absent when the tool takes no arguments. */
+	inputSchema?: Record<string, unknown>;
+	/** A short human-readable name, when the adapter gave one. */
+	title?: string;
+	/** Whether the tool only reads the page. */
+	readOnly?: boolean;
+};
+
+/** What the host asks the extension to do. */
+export type ExtensionRequest =
+	| {
+		/** Ask for every tool the extension currently offers. */
+		kind: 'listTools';
+	}
+	| {
+		/** Ask the extension to run one tool. */
+		kind: 'callTool';
+		/** The tool's name, as `listTools` reported it. */
+		name: string;
+		/** The tool's arguments. */
+		args: Record<string, unknown>;
+	};
+
+/** One answer coming back from the extension. */
+export type ExtensionAnswer = {
+	/** The identifier of the request this answers. */
+	id?: number;
+	/** Whether the extension carried the request out. */
+	ok?: boolean;
+	/** Why the extension refused, when it did. */
+	error?: string;
+	/** Whatever the request produced. */
+	result?: unknown;
+};
+
+/** One caller waiting for the extension to answer. */
+type PendingRequest = {
+	/** Hands the extension's result to the caller. */
+	resolve: (result: unknown) => void;
+	/** Tells the caller the request failed. */
+	reject: (error: Error) => void;
+	/** The timer that gives up on a silent extension. */
+	timer: NodeJS.Timeout;
+};
+
+/** How to run the host. */
+export type WebmcpNativeHostOptions = {
+	/** The port to serve Model Context Protocol on. */
+	port?: number;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,34 +98,45 @@ export class WebmcpNativeHost {
 	/** How long to wait for the extension to answer one request, in milliseconds. */
 	static REQUEST_TIMEOUT = 20000;
 
+	/** The port to serve on. */
+	port: number;
+
+	/** The channel to the extension. */
+	channel: NativeMessagingCodec | null;
+
+	/** The next request identifier. */
+	nextId: number;
+
+	/** Requests awaiting the extension. */
+	pending: Map<number, PendingRequest>;
+
+	/** Whether the extension is connected. */
+	extensionConnected: boolean;
+
+	/** The bearer token an agent must present. */
+	token: string;
+
 	/**
-	 * @param {object} options - How to run.
-	 * @param {number} [options.port] - The port to serve Model Context Protocol on.
+	 * @param options - How to run.
 	 */
-	constructor(options = {}) {
-		/** @type {number} The port to serve on. */
+	constructor(options: WebmcpNativeHostOptions = {}) {
 		this.port = options.port ?? Number(process.env.WEBMCP_HOST_PORT ?? WebmcpNativeHost.DEFAULT_PORT);
-		/** @type {NativeMessagingCodec|null} The channel to the extension. */
 		this.channel = null;
-		/** @type {number} The next request identifier. */
 		this.nextId = 1;
-		/** @type {Map<number, {resolve: Function, reject: Function, timer: any}>} Requests awaiting the extension. */
 		this.pending = new Map();
-		/** @type {boolean} Whether the extension is connected. */
 		this.extensionConnected = false;
-		/** @type {string} The bearer token an agent must present. */
 		this.token = WebmcpNativeHost._readOrCreateToken();
 	}
 
 	/**
 	 * Connects to the extension and starts serving.
 	 *
-	 * @returns {Promise<number>} The port actually being served on.
+	 * @returns The port actually being served on.
 	 */
-	async start() {
+	async start(): Promise<number> {
 		this.channel = new NativeMessagingCodec(process.stdin, process.stdout);
 		this.channel.onMessage = (message) => {
-			this._onExtensionMessage(message);
+			this._onExtensionMessage(message as ExtensionAnswer);
 		};
 		this.channel.onClose = () => {
 			WebmcpNativeHost._log('the extension disconnected, shutting down');
@@ -91,9 +165,9 @@ export class WebmcpNativeHost {
 	/**
 	 * Builds the Model Context Protocol server and its handlers.
 	 *
-	 * @returns {Server} The configured server.
+	 * @returns The configured server.
 	 */
-	_buildServer() {
+	_buildServer(): Server {
 		const server = new Server(
 			{
 				name: 'webmcp-everywhere',
@@ -107,9 +181,9 @@ export class WebmcpNativeHost {
 		);
 
 		server.setRequestHandler(ListToolsRequestSchema, async () => {
-			const answer = await this._askExtension({
+			const answer = (await this._askExtension({
 				kind: 'listTools',
-			});
+			})) as { tools?: ExtensionTool[] } | undefined;
 			const tools = (answer?.tools ?? []).map((tool) => ({
 				name: tool.name,
 				description: tool.description,
@@ -165,7 +239,7 @@ export class WebmcpNativeHost {
 					content: [
 						{
 							type: 'text',
-							text: `The tool failed: ${error?.message ?? String(error)}`,
+							text: `The tool failed: ${(error as Error)?.message ?? String(error)}`,
 						},
 					],
 					isError: true,
@@ -193,11 +267,11 @@ export class WebmcpNativeHost {
 	 * this would hand any local program the ability to drive the browser — the same hole the Chrome
 	 * DevTools Protocol opens, which is what this design exists to close.
 	 *
-	 * @param {Http.IncomingMessage} request - The request.
-	 * @param {Http.ServerResponse} response - The response.
-	 * @returns {Promise<void>} Nothing.
+	 * @param request - The request.
+	 * @param response - The response.
+	 * @returns Nothing.
 	 */
-	async _onHttpRequest(request, response) {
+	async _onHttpRequest(request: Http.IncomingMessage, response: Http.ServerResponse): Promise<void> {
 		const url = new URL(request.url ?? '/', `http://127.0.0.1:${this.port}`);
 
 		if (url.pathname === '/health') {
@@ -255,13 +329,13 @@ export class WebmcpNativeHost {
 			await server.connect(transport);
 			await transport.handleRequest(request, response, body);
 		} catch (error) {
-			WebmcpNativeHost._log(`handleRequest failed: ${error?.stack ?? error}`);
+			WebmcpNativeHost._log(`handleRequest failed: ${(error as Error)?.stack ?? error}`);
 			if (response.headersSent === false) {
 				response.writeHead(500, {
 					'content-type': 'application/json',
 				});
 				response.end(JSON.stringify({
-					error: String(error?.message ?? error),
+					error: String((error as Error)?.message ?? error),
 				}));
 			}
 		} finally {
@@ -275,12 +349,13 @@ export class WebmcpNativeHost {
 	/**
 	 * Sends one request to the extension and waits for its answer.
 	 *
-	 * @param {object} request - What to ask.
-	 * @returns {Promise<any>} The extension's result.
+	 * @param request - What to ask.
+	 * @returns The extension's result.
 	 * @throws When the extension is absent, refuses, or does not answer in time.
 	 */
-	async _askExtension(request) {
-		if (this.channel === null || this.extensionConnected === false) {
+	async _askExtension(request: ExtensionRequest): Promise<unknown> {
+		const channel = this.channel;
+		if (channel === null || this.extensionConnected === false) {
 			throw new Error('the WebMCP Everywhere extension is not connected');
 		}
 		const id = this.nextId++;
@@ -295,7 +370,7 @@ export class WebmcpNativeHost {
 				reject: reject,
 				timer: timer,
 			});
-			this.channel.send({
+			channel.send({
 				id: id,
 				...request,
 			});
@@ -305,11 +380,14 @@ export class WebmcpNativeHost {
 	/**
 	 * Routes one answer from the extension back to whoever asked.
 	 *
-	 * @param {any} message - The extension's message.
-	 * @returns {void} Nothing.
+	 * @param message - The extension's message.
+	 * @returns Nothing.
 	 */
-	_onExtensionMessage(message) {
-		const waiter = this.pending.get(message?.id);
+	_onExtensionMessage(message: ExtensionAnswer): void {
+		if (message?.id === undefined) {
+			return;
+		}
+		const waiter = this.pending.get(message.id);
 		if (waiter === undefined) {
 			return;
 		}
@@ -325,11 +403,11 @@ export class WebmcpNativeHost {
 	/**
 	 * Checks the bearer token on a request.
 	 *
-	 * @param {Http.IncomingMessage} request - The request.
-	 * @param {string} token - The expected token.
-	 * @returns {boolean} Whether the request may proceed.
+	 * @param request - The request.
+	 * @param token - The expected token.
+	 * @returns Whether the request may proceed.
 	 */
-	static _isAuthorised(request, token) {
+	static _isAuthorised(request: Http.IncomingMessage, token: string): boolean {
 		const header = request.headers.authorization ?? '';
 		const presented = header.startsWith('Bearer ') ? header.slice(7) : '';
 		const expected = Buffer.from(token);
@@ -343,13 +421,13 @@ export class WebmcpNativeHost {
 	/**
 	 * Reads a JSON request body.
 	 *
-	 * @param {Http.IncomingMessage} request - The request.
-	 * @returns {Promise<any>} The parsed body, or undefined when there is none.
+	 * @param request - The request.
+	 * @returns The parsed body, or undefined when there is none.
 	 */
-	static async _readJsonBody(request) {
-		const chunks = [];
+	static async _readJsonBody(request: Http.IncomingMessage): Promise<unknown> {
+		const chunks: Buffer[] = [];
 		for await (const chunk of request) {
-			chunks.push(chunk);
+			chunks.push(chunk as Buffer);
 		}
 		if (chunks.length === 0) {
 			return undefined;
@@ -364,13 +442,13 @@ export class WebmcpNativeHost {
 	/**
 	 * Listens on a port, stepping to the next one when it is taken.
 	 *
-	 * @param {Http.Server} httpServer - The server to start.
-	 * @param {number} preferredPort - The port to try first.
-	 * @returns {Promise<number>} The port actually bound.
+	 * @param httpServer - The server to start.
+	 * @param preferredPort - The port to try first.
+	 * @returns The port actually bound.
 	 */
-	static async _listen(httpServer, preferredPort) {
+	static async _listen(httpServer: Http.Server, preferredPort: number): Promise<number> {
 		for (let port = preferredPort; port < preferredPort + 20; port++) {
-			const bound = await new Promise((resolve) => {
+			const bound = await new Promise<boolean>((resolve) => {
 				const onError = () => {
 					httpServer.removeListener('error', onError);
 					resolve(false);
@@ -393,9 +471,9 @@ export class WebmcpNativeHost {
 	 *
 	 * The token persists so an agent configured once keeps working across restarts.
 	 *
-	 * @returns {string} The token.
+	 * @returns The token.
 	 */
-	static _readOrCreateToken() {
+	static _readOrCreateToken(): string {
 		Fs.mkdirSync(WebmcpNativeHost.STATE_DIR, {
 			recursive: true,
 			mode: 0o700,
@@ -414,11 +492,11 @@ export class WebmcpNativeHost {
 	/**
 	 * Records where the host is listening, so an agent can be pointed at it.
 	 *
-	 * @param {number} port - The bound port.
-	 * @param {string} token - The bearer token.
-	 * @returns {void} Nothing.
+	 * @param port - The bound port.
+	 * @param token - The bearer token.
+	 * @returns Nothing.
 	 */
-	static _writeEndpoint(port, token) {
+	static _writeEndpoint(port: number, token: string): void {
 		Fs.writeFileSync(
 			Path.join(WebmcpNativeHost.STATE_DIR, 'endpoint.json'),
 			JSON.stringify(
@@ -441,10 +519,10 @@ export class WebmcpNativeHost {
 	 *
 	 * Standard output carries native messages and nothing else, so it can never be used for logging.
 	 *
-	 * @param {string} line - What to record.
-	 * @returns {void} Nothing.
+	 * @param line - What to record.
+	 * @returns Nothing.
 	 */
-	static _log(line) {
+	static _log(line: string): void {
 		const stamped = `${new Date().toISOString()} ${line}\n`;
 		process.stderr.write(stamped);
 		try {

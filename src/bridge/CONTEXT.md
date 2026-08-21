@@ -4,8 +4,8 @@
 Carries the WebMCP tools registered on a browser page out to agents that speak Model Context Protocol and not WebMCP, which today is all of them.
 
 ## Key Exports & Entry Points
-- `webmcp_bridge.mjs`: `WebmcpBridge` — a Model Context Protocol server on standard input and output. `npm run bridge`
-- `cdp_client.mjs`: `CdpClient` — one Chrome DevTools Protocol connection, also used by `tools/`.
+- `webmcp_bridge.ts`: `WebmcpBridge` — a Model Context Protocol server on standard input and output. `npm run bridge`
+- `cdp_client.ts`: `CdpClient` — one Chrome DevTools Protocol connection, also used by `tools/`.
 - Command to check this folder: `npm run verify:bridge`
 
 ## Rules

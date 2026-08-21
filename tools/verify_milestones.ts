@@ -4,10 +4,35 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../src/bridge/cdp_client.mjs';
-import { LaunchChrome } from './launch_chrome.mjs';
+import { CdpClient } from '../src/bridge/cdp_client.ts';
+import { LaunchChrome } from './launch_chrome.ts';
+import type {
+	ActiveFilterResult,
+	AddTodoResult,
+	CheckResult,
+	ClearCompletedResult,
+	CountTodosResult,
+	FramedResultOf,
+	ListTodosResult,
+} from './verify_types.ts';
 
 const TARGET_URL = 'https://demo.playwright.dev/todomvc/';
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+/** How the whole suite went, with every check kept so the run can be reported at the end. */
+export type MilestonesOutcome = {
+	/** How many checks passed. */
+	passed: number;
+	/** How many checks failed. */
+	failed: number;
+	/** Every check, in the order it ran. */
+	results: CheckResult[];
+};
 
 /**
  * Runs every milestone check against a live browser and reports what actually happened.
@@ -19,34 +44,35 @@ export class VerifyMilestones {
 	/**
 	 * Runs the whole suite.
 	 *
-	 * @returns {Promise<{passed: number, failed: number, results: Array<{name: string, ok: boolean, detail: string}>}>} The outcome.
+	 * @returns The outcome.
 	 */
-	static async run() {
+	static async run(): Promise<MilestonesOutcome> {
 		const launched = await LaunchChrome.run();
 		const extensionId = await VerifyMilestones._extensionId(launched.port);
 
-		/** @type {Array<{name: string, ok: boolean, detail: string}>} */
-		const results = [];
+		const results: CheckResult[] = [];
 
 		/**
-		 * @param {string} name - What is being checked.
-		 * @param {() => Promise<string>} check - The check, returning a detail line. Throwing means failure.
-		 * @returns {Promise<void>} Nothing.
+		 * Runs one check and records whether it passed.
+		 *
+		 * @param name - What is being checked.
+		 * @param check - The check, returning a detail line. Throwing means failure.
+		 * @returns Nothing.
 		 */
-		const test = async (name, check) => {
+		const test = async (name: string, check: () => Promise<string>): Promise<void> => {
 			try {
 				const detail = await check();
 				results.push({ name, ok: true, detail });
 				console.log(`  PASS  ${name}\n        ${detail}`);
 			} catch (error) {
-				results.push({ name, ok: false, detail: String(error?.message ?? error) });
-				console.log(`  FAIL  ${name}\n        ${error?.message ?? error}`);
+				results.push({ name, ok: false, detail: String((error as Error)?.message ?? error) });
+				console.log(`  FAIL  ${name}\n        ${(error as Error)?.message ?? error}`);
 			}
 		};
 
 		await VerifyMilestones._setGrant(launched.port, extensionId, false, true);
 		await VerifyMilestones._reload(launched.port);
-		let page = await CdpClient.connectToPage(launched.port, 'todomvc');
+		const page = await CdpClient.connectToPage(launched.port, 'todomvc');
 		await VerifyMilestones._resetTodos(page);
 
 		console.log('\nMilestone 3 — permission classes are enforced, not self-reported\n');
@@ -66,7 +92,7 @@ export class VerifyMilestones {
 			if (acting.length > 0) {
 				throw new Error(`acting tools leaked without a grant: ${acting.join(', ')}`);
 			}
-			const report = await page.evaluate('JSON.stringify(window.__webmcpEverywhereReport ?? null)');
+			const report = await page.evaluate<string>('JSON.stringify(window.__webmcpEverywhereReport ?? null)');
 			return `7 acting tools withheld; report says ${report === 'null' ? 'nothing' : report}`;
 		});
 
@@ -74,8 +100,8 @@ export class VerifyMilestones {
 
 		await test('list_todos and count_todos agree with the page', async () => {
 			await VerifyMilestones._seed(page, ['alpha', 'beta', 'gamma']);
-			const listed = await VerifyMilestones._callTool(page, 'list_todos');
-			const counted = await VerifyMilestones._callTool(page, 'count_todos');
+			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
+			const counted = await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos');
 			if (listed.todos.length !== 3) {
 				throw new Error(`list_todos reported ${listed.todos.length} todos, expected 3`);
 			}
@@ -88,10 +114,10 @@ export class VerifyMilestones {
 		await test('get_active_filter follows the page', async () => {
 			await page.evaluate('location.hash = "#/active"');
 			await VerifyMilestones._pause(400);
-			const active = await VerifyMilestones._callTool(page, 'get_active_filter');
+			const active = await VerifyMilestones._callTool<ActiveFilterResult>(page, 'get_active_filter');
 			await page.evaluate('location.hash = "#/"');
 			await VerifyMilestones._pause(400);
-			const all = await VerifyMilestones._callTool(page, 'get_active_filter');
+			const all = await VerifyMilestones._callTool<ActiveFilterResult>(page, 'get_active_filter');
 			if (active.activeFilter !== 'active' || all.activeFilter !== 'all') {
 				throw new Error(`got ${active.activeFilter} then ${all.activeFilter}`);
 			}
@@ -125,9 +151,9 @@ export class VerifyMilestones {
 		console.log('\nMilestone 2 — the acting tools really drive the page\n');
 
 		await test('add_todo adds a todo', async () => {
-			const before = (await VerifyMilestones._callTool(page, 'count_todos')).total;
-			const added = await VerifyMilestones._callTool(page, 'add_todo', { title: 'buy milk' });
-			const after = (await VerifyMilestones._callTool(page, 'count_todos')).total;
+			const before = (await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos')).total;
+			const added = await VerifyMilestones._callTool<AddTodoResult>(page, 'add_todo', { title: 'buy milk' });
+			const after = (await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos')).total;
 			if (after !== before + 1) {
 				throw new Error(`total went from ${before} to ${after}`);
 			}
@@ -135,10 +161,13 @@ export class VerifyMilestones {
 		});
 
 		await test('set_todo_completed marks a todo done', async () => {
-			const listed = await VerifyMilestones._callTool(page, 'list_todos');
+			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const target = listed.todos.find((todo) => todo.title === 'buy milk');
+			if (target === undefined) {
+				throw new Error('"buy milk" is not on the page, so the check proves nothing');
+			}
 			await VerifyMilestones._callTool(page, 'set_todo_completed', { id: target.id, completed: true });
-			const counted = await VerifyMilestones._callTool(page, 'count_todos');
+			const counted = await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos');
 			if (counted.completed !== 1) {
 				throw new Error(`completed count is ${counted.completed}, expected 1`);
 			}
@@ -146,30 +175,33 @@ export class VerifyMilestones {
 		});
 
 		await test('edit_todo renames a todo', async () => {
-			const listed = await VerifyMilestones._callTool(page, 'list_todos');
+			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const target = listed.todos.find((todo) => todo.title === 'alpha');
+			if (target === undefined) {
+				throw new Error('"alpha" is not on the page, so the check proves nothing');
+			}
 			await VerifyMilestones._callTool(page, 'edit_todo', { id: target.id, title: 'alpha renamed' });
-			const after = await VerifyMilestones._callTool(page, 'list_todos');
+			const after = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const found = after.todos.find((todo) => todo.id === target.id);
-			if (found.title !== 'alpha renamed') {
-				throw new Error(`title is "${found.title}"`);
+			if (found?.title !== 'alpha renamed') {
+				throw new Error(`title is "${found?.title}"`);
 			}
 			return 'alpha became "alpha renamed"';
 		});
 
 		await test('an acting tool reaches a todo the filter is hiding', async () => {
 			await VerifyMilestones._callTool(page, 'set_active_filter', { filter: 'completed' });
-			const listed = await VerifyMilestones._callTool(page, 'list_todos');
+			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const hidden = listed.todos.find((todo) => todo.visibleUnderActiveFilter === false);
 			if (hidden === undefined) {
 				throw new Error('nothing was hidden, so the check proves nothing');
 			}
 			await VerifyMilestones._callTool(page, 'edit_todo', { id: hidden.id, title: 'reached while hidden' });
-			const filterAfter = await VerifyMilestones._callTool(page, 'get_active_filter');
-			const after = await VerifyMilestones._callTool(page, 'list_todos');
+			const filterAfter = await VerifyMilestones._callTool<ActiveFilterResult>(page, 'get_active_filter');
+			const after = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const found = after.todos.find((todo) => todo.id === hidden.id);
-			if (found.title !== 'reached while hidden') {
-				throw new Error(`the hidden todo was not changed, it is still "${found.title}"`);
+			if (found?.title !== 'reached while hidden') {
+				throw new Error(`the hidden todo was not changed, it is still "${found?.title}"`);
 			}
 			if (filterAfter.activeFilter !== 'completed') {
 				throw new Error(`the filter was left on ${filterAfter.activeFilter}, not put back`);
@@ -180,12 +212,12 @@ export class VerifyMilestones {
 
 		await test('clear_completed and set_all_completed work', async () => {
 			await VerifyMilestones._callTool(page, 'set_all_completed', { completed: true });
-			const allDone = await VerifyMilestones._callTool(page, 'count_todos');
+			const allDone = await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos');
 			if (allDone.active !== 0) {
 				throw new Error(`${allDone.active} todos are still active after marking all done`);
 			}
-			const cleared = await VerifyMilestones._callTool(page, 'clear_completed');
-			const empty = await VerifyMilestones._callTool(page, 'count_todos');
+			const cleared = await VerifyMilestones._callTool<ClearCompletedResult>(page, 'clear_completed');
+			const empty = await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos');
 			if (empty.total !== 0) {
 				throw new Error(`${empty.total} todos remain after clearing`);
 			}
@@ -195,10 +227,13 @@ export class VerifyMilestones {
 		await test('delete_todo removes one todo', async () => {
 			await VerifyMilestones._callTool(page, 'add_todo', { title: 'doomed' });
 			await VerifyMilestones._callTool(page, 'add_todo', { title: 'survivor' });
-			const listed = await VerifyMilestones._callTool(page, 'list_todos');
+			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const doomed = listed.todos.find((todo) => todo.title === 'doomed');
+			if (doomed === undefined) {
+				throw new Error('"doomed" was never added, so the check proves nothing');
+			}
 			await VerifyMilestones._callTool(page, 'delete_todo', { id: doomed.id });
-			const after = await VerifyMilestones._callTool(page, 'list_todos');
+			const after = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			if (after.todos.some((todo) => todo.title === 'doomed') === true) {
 				throw new Error('the todo is still there');
 			}
@@ -252,11 +287,11 @@ export class VerifyMilestones {
 	/**
 	 * Finds the installed extension's identifier from its service worker target.
 	 *
-	 * @param {number} port - The remote debugging port.
-	 * @returns {Promise<string>} The extension identifier.
+	 * @param port - The remote debugging port.
+	 * @returns The extension identifier.
 	 * @throws When the extension's service worker is not running.
 	 */
-	static async _extensionId(port) {
+	static async _extensionId(port: number): Promise<string> {
 		for (let attempt = 0; attempt < 40; attempt++) {
 			const targets = await CdpClient.listTargets(port);
 			const worker = targets.find(
@@ -273,13 +308,18 @@ export class VerifyMilestones {
 	/**
 	 * Writes the user's settings straight into extension storage, standing in for the popup.
 	 *
-	 * @param {number} port - The remote debugging port.
-	 * @param {string} extensionId - The installed extension's identifier.
-	 * @param {boolean} actingAllowed - Whether acting tools are allowed on the demonstration origin.
-	 * @param {boolean} globallyEnabled - Whether the extension is on at all.
-	 * @returns {Promise<void>} Nothing.
+	 * @param port - The remote debugging port.
+	 * @param extensionId - The installed extension's identifier.
+	 * @param actingAllowed - Whether acting tools are allowed on the demonstration origin.
+	 * @param globallyEnabled - Whether the extension is on at all.
+	 * @returns Nothing.
 	 */
-	static async _setGrant(port, extensionId, actingAllowed, globallyEnabled) {
+	static async _setGrant(
+		port: number,
+		extensionId: string,
+		actingAllowed: boolean,
+		globallyEnabled: boolean,
+	): Promise<void> {
 		const targets = await CdpClient.listTargets(port);
 		const worker = targets.find((target) => target.url.includes(`${extensionId}/dist/background_service_worker.js`));
 		if (worker === undefined) {
@@ -306,10 +346,10 @@ export class VerifyMilestones {
 	 * with `Page.addScriptToEvaluateOnNewDocument` when the client that added them disconnects, so adding
 	 * it and then reconnecting to navigate meant the simulated first-party tool was never there at all.
 	 *
-	 * @param {CdpClient} page - A client attached to the page, kept open across the navigation.
-	 * @returns {Promise<void>} Nothing.
+	 * @param page - A client attached to the page, kept open across the navigation.
+	 * @returns Nothing.
 	 */
-	static async _injectFirstPartyTool(page) {
+	static async _injectFirstPartyTool(page: CdpClient): Promise<void> {
 		await page.send('Page.enable', {});
 		await page.send('Page.addScriptToEvaluateOnNewDocument', {
 			source: `
@@ -326,10 +366,10 @@ export class VerifyMilestones {
 	/**
 	 * Reloads the target page.
 	 *
-	 * @param {number} port - The remote debugging port.
-	 * @returns {Promise<void>} Nothing.
+	 * @param port - The remote debugging port.
+	 * @returns Nothing.
 	 */
-	static async _reload(port) {
+	static async _reload(port: number): Promise<void> {
 		const page = await CdpClient.connectToPage(port, 'todomvc');
 		await page.navigate(TARGET_URL, 3000);
 		page.close();
@@ -338,25 +378,29 @@ export class VerifyMilestones {
 	/**
 	 * Lists the tool names currently registered on the page.
 	 *
-	 * @param {CdpClient} page - A client attached to the page.
-	 * @returns {Promise<string[]>} The registered names.
+	 * @param page - A client attached to the page.
+	 * @returns The registered names.
 	 */
-	static async _toolNames(page) {
-		const json = await page.evaluate(
+	static async _toolNames(page: CdpClient): Promise<string[]> {
+		const json = await page.evaluate<string>(
 			'document.modelContext.getTools().then((tools) => JSON.stringify(tools.map((tool) => tool.name)))',
 		);
-		return JSON.parse(json);
+		return JSON.parse(json) as string[];
 	}
 
 	/**
 	 * Calls one registered tool the way an agent would, and parses its reply.
 	 *
-	 * @param {CdpClient} page - A client attached to the page.
-	 * @param {string} shortName - The unqualified tool name, such as `list_todos`.
-	 * @param {object} input - The tool's input.
-	 * @returns {Promise<any>} The tool's parsed result.
+	 * @param page - A client attached to the page.
+	 * @param shortName - The unqualified tool name, such as `list_todos`.
+	 * @param input - The tool's input.
+	 * @returns The tool's parsed result.
 	 */
-	static async _callTool(page, shortName, input = {}) {
+	static async _callTool<ResultType = unknown>(
+		page: CdpClient,
+		shortName: string,
+		input: Record<string, unknown> = {},
+	): Promise<ResultType> {
 		const qualifiedName = `demo_playwright_dev__${shortName}`;
 		const expression = `
 			(async () => {
@@ -366,8 +410,8 @@ export class VerifyMilestones {
 				return await document.modelContext.executeTool(tool, ${JSON.stringify(JSON.stringify(input))});
 			})()
 		`;
-		const raw = await page.evaluate(expression);
-		const framed = JSON.parse(raw);
+		const raw = await page.evaluate<string>(expression);
+		const framed = JSON.parse(raw) as FramedResultOf<ResultType>;
 		if (framed?.webmcpEverywhere === undefined) {
 			throw new Error(`${shortName} returned an unframed result, so the untrusted content check was skipped`);
 		}
@@ -377,10 +421,10 @@ export class VerifyMilestones {
 	/**
 	 * Empties the todo list so a check starts from a known state.
 	 *
-	 * @param {CdpClient} page - A client attached to the page.
-	 * @returns {Promise<void>} Nothing.
+	 * @param page - A client attached to the page.
+	 * @returns Nothing.
 	 */
-	static async _resetTodos(page) {
+	static async _resetTodos(page: CdpClient): Promise<void> {
 		await page.evaluate('localStorage.removeItem("react-todos"), "cleared"');
 		await page.navigate(TARGET_URL, 2500);
 	}
@@ -388,11 +432,11 @@ export class VerifyMilestones {
 	/**
 	 * Adds todos through the page's own input field, so the starting state is real.
 	 *
-	 * @param {CdpClient} page - A client attached to the page.
-	 * @param {string[]} titles - The todos to add.
-	 * @returns {Promise<void>} Nothing.
+	 * @param page - A client attached to the page.
+	 * @param titles - The todos to add.
+	 * @returns Nothing.
 	 */
-	static async _seed(page, titles) {
+	static async _seed(page: CdpClient, titles: string[]): Promise<void> {
 		await page.evaluate(`
 			(async () => {
 				const field = document.querySelector('.new-todo');
@@ -411,22 +455,22 @@ export class VerifyMilestones {
 	/**
 	 * Waits.
 	 *
-	 * @param {number} ms - How long to wait, in milliseconds.
-	 * @returns {Promise<void>} Nothing.
+	 * @param milliseconds - How long to wait.
+	 * @returns Nothing.
 	 */
-	static async _pause(ms) {
-		await new Promise((resolve) => setTimeout(resolve, ms));
+	static async _pause(milliseconds: number): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, milliseconds));
 	}
 
 	/**
 	 * Asserts two lists hold the same names.
 	 *
-	 * @param {string[]} actual - What was found.
-	 * @param {string[]} expected - What was wanted.
-	 * @returns {void} Nothing.
+	 * @param actual - What was found.
+	 * @param expected - What was wanted.
+	 * @returns Nothing.
 	 * @throws When the lists differ.
 	 */
-	static _assertSameSet(actual, expected) {
+	static _assertSameSet(actual: string[], expected: string[]): void {
 		const left = [...actual].sort().join(', ');
 		const right = [...expected].sort().join(', ');
 		if (left !== right) {

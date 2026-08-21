@@ -7,6 +7,11 @@
 import Path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import type {
+	CheckOutcome,
+	CountTodosResult,
+	ListTodosResult,
+} from './verify_types.ts';
 
 const __dirname = import.meta.dirname;
 
@@ -20,12 +25,12 @@ export class VerifyBridge {
 	/**
 	 * Runs the checks.
 	 *
-	 * @returns {Promise<{passed: number, failed: number}>} The outcome.
+	 * @returns The outcome.
 	 */
-	static async run() {
+	static async run(): Promise<CheckOutcome> {
 		const transport = new StdioClientTransport({
 			command: process.execPath,
-			args: [Path.join(__dirname, '..', 'src', 'bridge', 'webmcp_bridge.mjs')],
+			args: [Path.join(__dirname, '..', 'src', 'bridge', 'webmcp_bridge.ts')],
 		});
 		const client = new Client(
 			{
@@ -42,36 +47,44 @@ export class VerifyBridge {
 		let failed = 0;
 
 		/**
-		 * @param {string} name - What is being checked.
-		 * @param {() => Promise<string>} check - The check.
-		 * @returns {Promise<void>} Nothing.
+		 * Runs one check and records whether it passed.
+		 *
+		 * @param name - What is being checked.
+		 * @param check - The check, returning a detail line. Throwing means failure.
+		 * @returns Nothing.
 		 */
-		const test = async (name, check) => {
+		const test = async (name: string, check: () => Promise<string>): Promise<void> => {
 			try {
 				const detail = await check();
 				passed += 1;
 				console.log(`  PASS  ${name}\n        ${detail}`);
 			} catch (error) {
 				failed += 1;
-				console.log(`  FAIL  ${name}\n        ${error?.message ?? error}`);
+				console.log(`  FAIL  ${name}\n        ${(error as Error)?.message ?? error}`);
 			}
 		};
 
 		/**
-		 * @param {string} name - The tool to call.
-		 * @param {object} args - Its arguments.
-		 * @returns {Promise<{text: string, isError: boolean}>} What came back.
+		 * Calls one tool and unwraps the untrusted content framing around its result.
+		 *
+		 * @param name - The tool to call.
+		 * @param args - Its arguments.
+		 * @returns What came back, both as text and as the framed data.
 		 */
-		const call = async (name, args) => {
+		const call = async <DataType = unknown>(
+			name: string,
+			args: Record<string, unknown>,
+		): Promise<{ text: string; data: DataType | null; isError: boolean }> => {
 			const result = await client.callTool({
 				name: name,
 				arguments: args,
 			});
-			const text = result.content.map((part) => part.text).join('');
-			let data = null;
+			const parts = (result.content ?? []) as Array<{ text?: string }>;
+			const text = parts.map((part) => part.text ?? '').join('');
+			let data: DataType | null = null;
 			try {
-				const framed = JSON.parse(text);
-				data = framed?.webmcpEverywhere === undefined ? framed : framed.data;
+				const framed = JSON.parse(text) as { webmcpEverywhere?: unknown; data?: DataType };
+				data = (framed?.webmcpEverywhere === undefined ? framed : framed.data) as DataType;
 			} catch {
 				data = null;
 			}
@@ -91,7 +104,7 @@ export class VerifyBridge {
 			if (addTodo === undefined) {
 				throw new Error('add_todo was not listed');
 			}
-			if (addTodo.inputSchema?.properties?.title === undefined) {
+			if (addTodo.inputSchema?.properties?.['title'] === undefined) {
 				throw new Error('add_todo lost its input schema crossing the bridge');
 			}
 			const readOnly = listed.tools.filter((tool) => tool.annotations?.readOnlyHint === true);
@@ -101,9 +114,12 @@ export class VerifyBridge {
 		await test('a tool call reaches the page and changes it', async () => {
 			await call('demo_playwright_dev__set_all_completed', { completed: true });
 			await call('demo_playwright_dev__clear_completed', {});
-			const before = (await call('demo_playwright_dev__count_todos', {})).data;
+			const before = (await call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
 			await call('demo_playwright_dev__add_todo', { title: 'added over the bridge' });
-			const after = (await call('demo_playwright_dev__count_todos', {})).data;
+			const after = (await call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
+			if (before === null || after === null) {
+				throw new Error('count_todos returned nothing that could be parsed');
+			}
 			if (after.total !== before.total + 1) {
 				throw new Error(`total went from ${before.total} to ${after.total}`);
 			}
@@ -111,8 +127,8 @@ export class VerifyBridge {
 		});
 
 		await test('arguments survive the crossing', async () => {
-			const listed = (await call('demo_playwright_dev__list_todos', {})).data;
-			const target = listed.todos.find((todo) => todo.title === 'added over the bridge');
+			const listed = (await call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
+			const target = listed?.todos.find((todo) => todo.title === 'added over the bridge');
 			if (target === undefined) {
 				throw new Error('the todo added over the bridge is not there');
 			}
@@ -120,10 +136,10 @@ export class VerifyBridge {
 				id: target.id,
 				title: 'renamed over the bridge',
 			});
-			const after = (await call('demo_playwright_dev__list_todos', {})).data;
-			const renamed = after.todos.find((todo) => todo.id === target.id);
-			if (renamed.title !== 'renamed over the bridge') {
-				throw new Error(`title is "${renamed.title}"`);
+			const after = (await call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
+			const renamed = after?.todos.find((todo) => todo.id === target.id);
+			if (renamed?.title !== 'renamed over the bridge') {
+				throw new Error(`title is "${renamed?.title}"`);
 			}
 			return 'an identifier and a string both arrived intact';
 		});

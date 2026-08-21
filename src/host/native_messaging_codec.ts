@@ -12,30 +12,40 @@
  * the connection with no useful error, so everything else this program says must go to standard error.
  */
 export class NativeMessagingCodec {
+	/** The incoming stream. */
+	input: NodeJS.ReadableStream;
+
+	/** The outgoing stream. */
+	output: NodeJS.WritableStream;
+
+	/** Bytes read but not yet forming a whole message. */
+	buffer: Buffer;
+
+	/** Called with each decoded message. */
+	onMessage: (message: unknown) => void;
+
+	/** Called when the other side goes away. */
+	onClose: () => void;
+
 	/**
-	 * @param {NodeJS.ReadableStream} input - Where messages arrive, normally `process.stdin`.
-	 * @param {NodeJS.WritableStream} output - Where messages go, normally `process.stdout`.
+	 * @param input - Where messages arrive, normally `process.stdin`.
+	 * @param output - Where messages go, normally `process.stdout`.
 	 */
-	constructor(input, output) {
-		/** @type {NodeJS.ReadableStream} The incoming stream. */
+	constructor(input: NodeJS.ReadableStream, output: NodeJS.WritableStream) {
 		this.input = input;
-		/** @type {NodeJS.WritableStream} The outgoing stream. */
 		this.output = output;
-		/** @type {Buffer} Bytes read but not yet forming a whole message. */
 		this.buffer = Buffer.alloc(0);
-		/** @type {(message: any) => void} Called with each decoded message. */
 		this.onMessage = () => {};
-		/** @type {() => void} Called when the other side goes away. */
 		this.onClose = () => {};
 	}
 
 	/**
 	 * Starts reading.
 	 *
-	 * @returns {void} Nothing.
+	 * @returns Nothing.
 	 */
-	start() {
-		this.input.on('data', (chunk) => {
+	start(): void {
+		this.input.on('data', (chunk: Buffer) => {
 			this.buffer = Buffer.concat([this.buffer, chunk]);
 			this._drain();
 		});
@@ -50,10 +60,10 @@ export class NativeMessagingCodec {
 	/**
 	 * Sends one message.
 	 *
-	 * @param {any} message - Anything JSON can represent.
-	 * @returns {void} Nothing.
+	 * @param message - Anything JSON can represent.
+	 * @returns Nothing.
 	 */
-	send(message) {
+	send(message: unknown): void {
 		const body = Buffer.from(JSON.stringify(message), 'utf8');
 		const header = Buffer.alloc(4);
 		header.writeUInt32LE(body.length, 0);
@@ -69,9 +79,9 @@ export class NativeMessagingCodec {
 	/**
 	 * Pulls every whole message out of the buffer.
 	 *
-	 * @returns {void} Nothing.
+	 * @returns Nothing.
 	 */
-	_drain() {
+	_drain(): void {
 		while (this.buffer.length >= 4) {
 			const length = this.buffer.readUInt32LE(0);
 			if (this.buffer.length < 4 + length) {
@@ -82,7 +92,7 @@ export class NativeMessagingCodec {
 			try {
 				this.onMessage(JSON.parse(body.toString('utf8')));
 			} catch (error) {
-				process.stderr.write(`could not decode a native message: ${error.message}\n`);
+				process.stderr.write(`could not decode a native message: ${(error as Error).message}\n`);
 			}
 		}
 	}

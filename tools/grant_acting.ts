@@ -4,7 +4,25 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../src/bridge/cdp_client.mjs';
+import { CdpClient } from '../src/bridge/cdp_client.ts';
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+/** What to write into extension storage. */
+export type GrantActingOptions = {
+	/** Chrome's remote debugging port. */
+	port?: number;
+	/** The origin to change. */
+	origin?: string;
+	/** Whether acting tools are allowed there. */
+	actingAllowed?: boolean;
+	/** Whether the extension is on at all. */
+	globallyEnabled?: boolean;
+};
 
 /**
  * Writes the user's opt-in straight into extension storage.
@@ -16,15 +34,11 @@ export class GrantActing {
 	/**
 	 * Grants or withdraws acting rights for one origin.
 	 *
-	 * @param {object} options - What to set.
-	 * @param {number} [options.port] - Chrome's remote debugging port.
-	 * @param {string} [options.origin] - The origin to change.
-	 * @param {boolean} [options.actingAllowed] - Whether acting tools are allowed there.
-	 * @param {boolean} [options.globallyEnabled] - Whether the extension is on at all.
-	 * @returns {Promise<string>} What was written.
+	 * @param options - What to set.
+	 * @returns What was written.
 	 * @throws When the extension's service worker is not running.
 	 */
-	static async run(options = {}) {
+	static async run(options: GrantActingOptions = {}): Promise<string> {
 		const port = options.port ?? 9333;
 		const origin = options.origin ?? 'https://demo.playwright.dev';
 		const actingAllowed = options.actingAllowed ?? true;

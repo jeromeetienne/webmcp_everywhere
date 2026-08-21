@@ -7,9 +7,31 @@
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { GenerateExtensionKey } from './generate_extension_key.mjs';
+import { GenerateExtensionKey } from './generate_extension_key.ts';
 
 const __dirname = import.meta.dirname;
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Types
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+/** Where to install. */
+export type InstallNativeHostOptions = {
+	/** Extra Chrome user data directories to install into. */
+	userDataDirs?: string[];
+};
+
+/** What one installation wrote. */
+export type InstalledNativeHost = {
+	/** The extension identifier the manifest allows. */
+	identifier: string;
+	/** The executable file Chrome starts. */
+	launcher: string;
+	/** Every manifest file that was written. */
+	manifests: string[];
+};
 
 /**
  * Puts the native messaging host manifest where Chrome will find it.
@@ -26,11 +48,10 @@ export class InstallNativeHost {
 	/**
 	 * Writes the launcher and the manifest.
 	 *
-	 * @param {object} options - Where to install.
-	 * @param {string[]} [options.userDataDirs] - Extra Chrome user data directories to install into.
-	 * @returns {{identifier: string, launcher: string, manifests: string[]}} What was written.
+	 * @param options - Where to install.
+	 * @returns What was written.
 	 */
-	static run(options = {}) {
+	static run(options: InstallNativeHostOptions = {}): InstalledNativeHost {
 		const identifier = GenerateExtensionKey.currentIdentifier();
 		const launcher = InstallNativeHost._writeLauncher();
 
@@ -43,7 +64,7 @@ export class InstallNativeHost {
 		};
 
 		const directories = InstallNativeHost._manifestDirectories(options.userDataDirs ?? []);
-		const written = [];
+		const written: string[] = [];
 		for (const directory of directories) {
 			Fs.mkdirSync(directory, {
 				recursive: true,
@@ -73,12 +94,12 @@ export class InstallNativeHost {
 	 * script it would have to know how to interpret. A one-line shell wrapper around Node.js is the
 	 * simplest thing that satisfies that.
 	 *
-	 * @returns {string} The absolute path to the launcher.
+	 * @returns The absolute path to the launcher.
 	 */
-	static _writeLauncher() {
+	static _writeLauncher(): string {
 		const repoRoot = Path.join(__dirname, '..');
 		const launcher = Path.join(repoRoot, 'bin', 'webmcp_native_host');
-		const hostScript = Path.join(repoRoot, 'src', 'host', 'webmcp_native_host.mjs');
+		const hostScript = Path.join(repoRoot, 'src', 'host', 'webmcp_native_host.ts');
 		Fs.mkdirSync(Path.dirname(launcher), {
 			recursive: true,
 		});
@@ -97,11 +118,11 @@ export class InstallNativeHost {
 	 * `--user-data-dir`, which is what the verification tooling uses, reads them from inside that
 	 * directory instead, so both are written.
 	 *
-	 * @param {string[]} userDataDirs - Extra user data directories to cover.
-	 * @returns {string[]} The directories to write into.
+	 * @param userDataDirs - Extra user data directories to cover.
+	 * @returns The directories to write into.
 	 */
-	static _manifestDirectories(userDataDirs) {
-		const directories = [];
+	static _manifestDirectories(userDataDirs: string[]): string[] {
+		const directories: string[] = [];
 		if (process.platform === 'darwin') {
 			directories.push(
 				Path.join(Os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts'),
@@ -109,8 +130,8 @@ export class InstallNativeHost {
 		} else {
 			directories.push(Path.join(Os.homedir(), '.config', 'google-chrome', 'NativeMessagingHosts'));
 		}
-		for (const dir of userDataDirs) {
-			directories.push(Path.join(dir, 'NativeMessagingHosts'));
+		for (const userDataDir of userDataDirs) {
+			directories.push(Path.join(userDataDir, 'NativeMessagingHosts'));
 		}
 		return directories;
 	}
