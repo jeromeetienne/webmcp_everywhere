@@ -1,6 +1,6 @@
 # What a site adapter is
 
-An adapter is a plain TypeScript object describing one site: which pages it applies to, what tools it contributes, and when it stands down. The type lives in `src/adapter_format/adapter_types.ts`. To write one, read [write_a_site_adapter.md](write_a_site_adapter.md); this document says what the format is and what it is checked against.
+An adapter is a plain TypeScript object describing one site: which pages it applies to, what tools it contributes, and when it stands down. The type lives in [`src/adapter_format/adapter_types.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/adapter_format/adapter_types.ts). To write one, read [write_a_site_adapter.md](write_a_site_adapter.md); this document says what the format is and what it is checked against.
 
 ## The shape
 
@@ -84,11 +84,11 @@ Nothing here stops prompt injection, and it must never be described as though it
 
 ## What the build checks
 
-`npm run build` runs `tools/adapter_validation/validate_all_adapters.ts` over every adapter in `AdapterRegistry` before it bundles anything. A failure stops the build, so an adapter that fails never reaches a browser.
+`npm run build` runs [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) over every adapter in `AdapterRegistry` before it bundles anything. A failure stops the build, so an adapter that fails never reaches a browser.
 
-These checks live in `tools/`, not in `src/`, and they run in Node.js at build time rather than in the page. Validating in the page meant bundling the schema library into a main-world content script, at about 150 kilobytes on every page the user visits, for no protection at all — adapters are bundled, so by the time a page loads there is nothing left to decide.
+These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), not in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and they run in Node.js at build time rather than in the page. Validating in the page meant bundling the schema library into a main-world content script, at about 150 kilobytes on every page the user visits, for no protection at all — adapters are bundled, so by the time a page loads there is nothing left to decide.
 
-**The schema**, in `adapter_schema.ts`, built with Zod:
+**The schema**, in [`adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/adapter_schema.ts), built with Zod:
 
 - `siteSlug` and every tool `name` are lower-case `snake_case`.
 - Every tool has a title, a description of at least ten characters, an input schema, a permission class, and a function to run.
@@ -97,12 +97,12 @@ These checks live in `tools/`, not in `src/`, and they run in Node.js at build t
 - No tool name is used twice inside one adapter.
 - `metadata.adapterFormatVersion` equals the `ADAPTER_FORMAT_VERSION` this runtime speaks.
 
-**The permission audit**, in `permission_audit.ts`, which reads handler source:
+**The permission audit**, in [`permission_audit.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/permission_audit.ts), which reads handler source:
 
 - A handler that clicks, submits, dispatches an event, removes an element, assigns to `value`, `checked`, `innerHTML`, or `textContent`, navigates, changes session history, or writes to local or session storage is acting, whatever its `permissionClass` field says. Declaring such a handler `readOnly` fails the build, and the failure names the evidence.
 - No adapter may reach the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
 
-**Across adapters**, in `validate_all_adapters.ts`:
+**Across adapters**, in [`validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts):
 
 - No qualified tool name is produced by two different adapters.
 
@@ -112,4 +112,4 @@ One consequence catches adapter authors out. `PermissionAudit` cannot tell readi
 
 ## Registration is by hand
 
-Adapters are added to `src/chrome_extension/shared_state/adapter_registry.ts` by hand, and their match patterns are added to `src/chrome_extension/manifest.json` by hand. There is no automatic discovery, because a build that silently picks up a new file is a build that silently ships one.
+Adapters are added to [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) by hand, and their match patterns are added to [`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) by hand. There is no automatic discovery, because a build that silently picks up a new file is a build that silently ships one.

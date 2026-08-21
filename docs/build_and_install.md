@@ -12,26 +12,26 @@ You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 14
 
 ## `npm run build`
 
-`tools/build_extension.ts` does four things, in this order.
+[`tools/build_extension.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/build_extension.ts) does four things, in this order.
 
-**One: it checks every adapter.** `tools/adapter_validation/validate_all_adapters.ts` is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
+**One: it checks every adapter.** [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
 
-**Two: it empties `build/chrome_extension/`.** Nothing is ever written into `src/`.
+**Two: it empties `build/chrome_extension/`.** Nothing is ever written into [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
-**Three: it copies the two static files.** `manifest.json` and `user_interface/popup.html`, each keeping its path. Chrome loads an unpacked extension from the folder that holds `manifest.json`, so both have to sit beside the bundles rather than stay behind in `src/`.
+**Three: it copies the two static files.** [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) and [`user_interface/popup.html`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.html), each keeping its path. Chrome loads an unpacked extension from the folder that holds [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json), so both have to sit beside the bundles rather than stay behind in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
 **Four: it bundles the four entry points with esbuild.**
 
 | Source | Output | Where it runs |
 | --- | --- | --- |
-| `page_injection/content_main.ts` | `dist/content_main.js` | the page's main world |
-| `page_injection/content_isolated.ts` | `dist/content_isolated.js` | the isolated world |
-| `native_host_link/background_service_worker.ts` | `dist/background_service_worker.js` | the background service worker |
-| `user_interface/popup.ts` | `dist/popup.js` | the popup |
+| [`page_injection/content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) | `dist/content_main.js` | the page's main world |
+| [`page_injection/content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) | `dist/content_isolated.js` | the isolated world |
+| [`native_host_link/background_service_worker.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/native_host_link/background_service_worker.ts) | `dist/background_service_worker.js` | the background service worker |
+| [`user_interface/popup.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.ts) | `dist/popup.js` | the popup |
 
 Everything is bundled as an immediately invoked function expression with its imports inlined, because content scripts cannot be ECMAScript modules.
 
-Each entry point keeps its folder in the source path and only its base name in the output name. Letting esbuild derive the output path recreates the subfolders inside `dist/` and breaks every path in `manifest.json`.
+Each entry point keeps its folder in the source path and only its base name in the output name. Letting esbuild derive the output path recreates the subfolders inside `dist/` and breaks every path in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json).
 
 The result, which is what Chrome loads:
 
@@ -49,15 +49,15 @@ That folder is git-ignored.
 
 ## `npm run install:host`
 
-`tools/install_native_host.ts` writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
+[`tools/install_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/install_native_host.ts) writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
 
 Both halves have to be right: the manifest points at an executable file, and it names the extension identifier.
 
-**The launcher** is `bin/webmcp_native_host.sh`, resolved to an absolute path. Chrome starts it with a very small environment, so the script holds no absolute path of its own: it works the repository root out from its own location with `BASH_SOURCE`, and it searches for a Node.js rather than naming one — the shell's own `node` first, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node` — refusing any older than 22.18.0. The whole program is one `exec`, because Chrome talks to the process it starts on standard input and standard output and any extra process in between would break that.
+**The launcher** is [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh), resolved to an absolute path. Chrome starts it with a very small environment, so the script holds no absolute path of its own: it works the repository root out from its own location with `BASH_SOURCE`, and it searches for a Node.js rather than naming one — the shell's own `node` first, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node` — refusing any older than 22.18.0. The whole program is one `exec`, because Chrome talks to the process it starts on standard input and standard output and any extra process in between would break that.
 
-**The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in `manifest.json`. The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
+**The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json). The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
 
-**The manifest itself** is `data/native_messaging_template/com.webmcp_everywhere.host.json`, with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
+**The manifest itself** is [`data/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/data/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
 
 The rendered manifest is written into every Chrome `NativeMessagingHosts` directory found — on macOS `~/Library/Application Support/Google/Chrome/NativeMessagingHosts`, on Linux `~/.config/google-chrome/NativeMessagingHosts`, plus the same directory inside any user data directory passed in, which is how a throwaway profile gets one.
 
@@ -65,7 +65,7 @@ Because the manifest names the launcher's absolute path, **moving the repository
 
 ## `npm run chrome`
 
-`tools/launch_chrome.ts` launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
+[`tools/launch_chrome.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/launch_chrome.ts) launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
 
 It handles four steps that are each silent when they go wrong.
 
@@ -112,4 +112,4 @@ Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rat
 
 ## Erasable syntax
 
-Node.js runs the files in `tools/`, `tests/`, and `src/native_messaging_host/` directly, stripping types without a build step. So those files stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks it.
+Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) directly, stripping types without a build step. So those files stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks it.

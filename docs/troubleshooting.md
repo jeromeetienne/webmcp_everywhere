@@ -10,15 +10,15 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **Zero extensions are installed and the log says nothing.** Chrome was launched with `--load-extension`. Chrome 151 ignores it silently. Install with the Chrome DevTools Protocol method `Extensions.loadUnpacked` instead, which is what `npm run chrome` does.
 
-**The extension runs, but not on this site.** The adapter's match pattern is missing from `src/chrome_extension/manifest.json`. It has to be in `host_permissions` and in **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
+**The extension runs, but not on this site.** The adapter's match pattern is missing from [`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json). It has to be in `host_permissions` and in **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
 
-**The adapter is not registered.** Adapters are added to `src/chrome_extension/shared_state/adapter_registry.ts` by hand. There is no automatic discovery.
+**The adapter is not registered.** Adapters are added to [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) by hand. There is no automatic discovery.
 
 ## Every check passes but you are testing old code
 
 **The throwaway profile was kept.** Chrome does not re-read an unpacked extension it has already installed. `LaunchChrome` deletes the profile before every launch for exactly this reason; keeping it silently runs the previous build.
 
-**The extension was not rebuilt.** Chrome loads `build/chrome_extension/`, not `src/`. Run `npm run build`.
+**The extension was not rebuilt.** Chrome loads `build/chrome_extension/`, not [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Run `npm run build`.
 
 ## An agent cannot reach the endpoint
 
@@ -32,13 +32,13 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **Chrome refuses the host manifest.** The field names in the manifest are Chrome's, not this project's: `name`, `description`, `path`, `type`, and `allowed_origins`. Chrome refuses a manifest with any other spelling and reports nothing useful when it does. The same applies to an unreplaced `{{placeholder}}`, which is why the installation treats one as an error.
 
-**The identifier does not match.** The host manifest's `allowed_origins` names one extension identifier. The identifier is pinned by the `key` field in `manifest.json`, because an unpacked extension without a key gets an identifier derived from wherever its folder happens to sit.
+**The identifier does not match.** The host manifest's `allowed_origins` names one extension identifier. The identifier is pinned by the `key` field in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json), because an unpacked extension without a key gets an identifier derived from wherever its folder happens to sit.
 
 ## The connection dies for no reason
 
 **Something wrote to standard output.** Standard output belongs entirely to the native messaging channel. One stray line corrupts the stream and Chrome closes the connection with no useful error. Everything the host says has to go through `WebmcpNativeHost._log`, which writes to standard error and to `~/.webmcp_everywhere/host.log`.
 
-**No Node.js new enough was found.** `bin/webmcp_native_host.sh` needs Node.js 22.18.0 or later, because it runs TypeScript with no build step; an older Node.js refuses the host program with `ERR_UNKNOWN_FILE_EXTENSION`. The script searches the shell's own `node`, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node`. Chrome gives the host a very small environment, which is why the fixed paths are there at all.
+**No Node.js new enough was found.** [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) needs Node.js 22.18.0 or later, because it runs TypeScript with no build step; an older Node.js refuses the host program with `ERR_UNKNOWN_FILE_EXTENSION`. The script searches the shell's own `node`, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node`. Chrome gives the host a very small environment, which is why the fixed paths are there at all.
 
 **Every request after the first answers 500.** A single shared stateless Model Context Protocol transport serves exactly one request and then rejects everything after it, which looks to a client like the host crashed. A fresh server and transport are built for every request.
 
@@ -74,9 +74,9 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Types and imports
 
-**`npm run verify:boundary` fails.** Something in `src/` has a relative import that leaves `src/`. Imports run one way only: `tests/` → `tools/` → `src/`.
+**`npm run verify:boundary` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) has a relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
-**`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in `tools/`, `tests/`, and `src/native_messaging_host/` directly and only strips types, so those files stay within erasable syntax.
+**`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) directly and only strips types, so those files stay within erasable syntax.
 
 ## Telling an adapter fault from a delivery fault
 

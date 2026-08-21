@@ -2,7 +2,7 @@
 
 This is the task-shaped guide to covering a new site. Read [adapter_format.md](adapter_format.md) first for what an adapter is; this document is the order to do things in.
 
-The worked example throughout is the Playwright TodoMVC adapter in `src/site_adapters/demo_playwright_dev/`.
+The worked example throughout is the Playwright TodoMVC adapter in [`src/site_adapters/demo_playwright_dev/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters/demo_playwright_dev).
 
 ## Before writing anything: probe the live site
 
@@ -18,7 +18,7 @@ Write down what you found. It goes into the folder's `CONTEXT.md` as a rule, and
 
 ## Step one: make the folder
 
-One folder per origin under `src/site_adapters/`, named after the origin in `snake_case`, matching the adapter's `siteSlug`.
+One folder per origin under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), named after the origin in `snake_case`, matching the adapter's `siteSlug`.
 
 ```
 src/site_adapters/example_com/
@@ -61,7 +61,7 @@ export const exampleAdapter: Adapter = {
 
 The rules that apply while writing it:
 
-- **Import types from `../../adapter_format/` and nothing else.** Never another adapter, never anything under `chrome_extension/`.
+- **Import types from `../../adapter_format/` and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
 - **Never reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
 - **Set a `yieldCondition`.** An adapter that cannot stand down when the site ships its own tools is not finished.
 - **Declare the permission class honestly.** The build reads your handler's source and disagrees with a wrong one.
@@ -73,9 +73,9 @@ The rules that apply while writing it:
 
 Both are by hand, and a build that silently picked up a new file would be a build that silently shipped one.
 
-**`src/chrome_extension/shared_state/adapter_registry.ts`** — import the adapter and add it to `AdapterRegistry.ADAPTERS`.
+**[`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts)** — import the adapter and add it to `AdapterRegistry.ADAPTERS`.
 
-**`src/chrome_extension/manifest.json`** — add the match pattern to `host_permissions` and to **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
+**[`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json)** — add the match pattern to `host_permissions` and to **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
 
 ## Step four: build
 
@@ -87,9 +87,9 @@ The build runs every check over every adapter before it bundles anything, and pr
 
 ## Step five: check it against the live site
 
-Write a verification runner in `tests/`, named `verify_<site>.test.ts`, following the shape the existing ones use. `npm run verify` covers TodoMVC and `npm run verify:caniuse` covers Can I use...; both are worth reading before writing a third.
+Write a verification runner in [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), named `verify_<site>.test.ts`, following the shape the existing ones use. `npm run verify` covers TodoMVC and `npm run verify:caniuse` covers Can I use...; both are worth reading before writing a third.
 
-The rules for a runner are in `tests/CONTEXT.md`. The two that matter most:
+The rules for a runner are in [`tests/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/CONTEXT.md). The two that matter most:
 
 - **Assert against state read back out of the live page.** Nothing is mocked, and a check that cannot fail is not a check.
 - **Each runner launches its own throwaway Chrome**, so it needs no browser to be up first.

@@ -31,9 +31,9 @@ flowchart TB
 
 **The product path** is the native messaging host. It is the only one with a token on it and the only one that goes through the extension, which is the only place that knows what the user has allowed.
 
-**The direct path** is a verification runner driving a page over the Chrome DevTools Protocol, through `tools/chrome_devtools_protocol/cdp_client.ts`. It is how the adapter checks assert against a live page.
+**The direct path** is a verification runner driving a page over the Chrome DevTools Protocol, through [`tools/chrome_devtools_protocol/cdp_client.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/chrome_devtools_protocol/cdp_client.ts). It is how the adapter checks assert against a live page.
 
-**The stdio bridge path** is `tests/devtools_protocol_bridge/webmcp_bridge.ts`, a Model Context Protocol server on standard input and standard output that carries a page's registered WebMCP tools out to an agent. It was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `npm run verify:host` fails.
+**The stdio bridge path** is [`tests/devtools_protocol_bridge/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.ts), a Model Context Protocol server on standard input and standard output that carries a page's registered WebMCP tools out to an agent. It was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `npm run verify:host` fails.
 
 Both checking paths depend on Chrome's remote debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
 
@@ -41,12 +41,12 @@ Both checking paths depend on Chrome's remote debugging port, which is unauthent
 
 | Command | Runner | What it covers |
 | --- | --- | --- |
-| `npm run verify` | `tests/verify_milestones.test.ts` | Drives the Playwright TodoMVC page over the Chrome DevTools Protocol |
-| `npm run verify:caniuse` | `tests/verify_caniuse.test.ts` | Drives `https://caniuse.com/` the same way |
-| `npm run verify:host` | `tests/verify_native_host.test.ts` | The real delivery path, from the HTTP endpoint through to the page |
-| `npm run verify:injection` | `tests/verify_injection_defence.test.ts` | Writes hostile content onto the page and attacks through it |
-| `npm run verify:bridge` | `tests/verify_bridge.test.ts` | The stdio Model Context Protocol bridge |
-| `npm run verify:boundary` | `tests/verify_source_boundary.test.ts` | Refuses any relative import that leaves `src/` |
+| `npm run verify` | [`tests/verify_milestones.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_milestones.test.ts) | Drives the Playwright TodoMVC page over the Chrome DevTools Protocol |
+| `npm run verify:caniuse` | [`tests/verify_caniuse.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_caniuse.test.ts) | Drives `https://caniuse.com/` the same way |
+| `npm run verify:host` | [`tests/verify_native_host.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_native_host.test.ts) | The real delivery path, from the HTTP endpoint through to the page |
+| `npm run verify:injection` | [`tests/verify_injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
+| `npm run verify:bridge` | [`tests/verify_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_bridge.test.ts) | The stdio Model Context Protocol bridge |
+| `npm run verify:boundary` | [`tests/verify_source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
 | `npm run typecheck` | `tsc --noEmit` | Types, and that every file Node.js runs directly stays within erasable syntax |
 
 ## Which one to run when
@@ -55,7 +55,7 @@ Both checking paths depend on Chrome's remote debugging port, which is unauthent
 - **You changed the extension or the native messaging host.** Run `npm run verify:host`, which is the only runner covering the real delivery path.
 - **`npm run verify:host` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `npm run verify:bridge` narrows it further, because the bridge reaches the page without the extension or the host in the way.
 - **You touched the framing or the injection watch.** Run `npm run verify:injection`.
-- **You moved a file between `src/`, `tools/`, and `tests/`.** Run `npm run verify:boundary`.
+- **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `npm run verify:boundary`.
 
 ## The import boundary
 
@@ -65,11 +65,11 @@ Imports run one way only.
 tests/  →  tools/  →  src/
 ```
 
-`tests/` may import from `tools/` and from `src/`. `tools/` may import from `src/`. `src/` imports from neither, and `npm run verify:boundary` refuses any relative import that leaves `src/`.
+[`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) may import from [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) and from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) may import from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) imports from neither, and `npm run verify:boundary` refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
-That rule is what keeps build tooling and verification code from drifting back into the product. `src/` holds what ships and nothing else.
+That rule is what keeps build tooling and verification code from drifting back into the product. [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) holds what ships and nothing else.
 
-One import crosses in the other direction on purpose: `tools/adapter_validation/validate_all_adapters.ts` imports the adapter registry from `src/chrome_extension/`. That is `tools/` reading `src/`, which the boundary allows, and it is the only file in that folder reaching into the extension.
+One import crosses in the other direction on purpose: [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) imports the adapter registry from [`src/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension). That is [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) reading [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), which the boundary allows, and it is the only file in that folder reaching into the extension.
 
 ## The shape every runner follows
 
@@ -79,7 +79,7 @@ One shape everywhere, so a runner reads the same as every other runner.
 - `NodeTest.describe` carries what a section header used to print.
 - A check throws its own message rather than calling `node:assert`, because those messages are what the runner is for. Detail lines go to `t.diagnostic`.
 - Checks in one file run in the order written and share one live page, so a check may depend on the one before it. Anything that has to happen between two checks belongs in the `NodeTest.before` of a nested `NodeTest.describe`, never inside a check that does not own it.
-- Every file holding checks ends in `.test.ts`, so `node --test` finds it with no file list. `verify_types.ts` holds no check and keeps its plain name.
+- Every file holding checks ends in `.test.ts`, so `node --test` finds it with no file list. [`verify_types.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_types.ts) holds no check and keeps its plain name.
 
 ## Watching it happen
 

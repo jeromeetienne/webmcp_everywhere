@@ -92,7 +92,7 @@ The refusal is enforced in `NativeBridge.callTool`, in the background service wo
 
 ## The path that is deliberately not the product
 
-The Chrome DevTools Protocol path in `tests/devtools_protocol_bridge/` opens an unauthenticated debugging port reachable by every process on the machine, needs a purpose-launched Chrome, and bypasses the extension, which is the only place that knows what the user has allowed. It exists to check adapters on their own. Agents reach the product through the native messaging host — see [why_a_native_messaging_host.md](why_a_native_messaging_host.md).
+The Chrome DevTools Protocol path in [`tests/devtools_protocol_bridge/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests/devtools_protocol_bridge) opens an unauthenticated debugging port reachable by every process on the machine, needs a purpose-launched Chrome, and bypasses the extension, which is the only place that knows what the user has allowed. It exists to check adapters on their own. Agents reach the product through the native messaging host — see [why_a_native_messaging_host.md](why_a_native_messaging_host.md).
 
 ## What has not been designed
 

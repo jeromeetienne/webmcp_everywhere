@@ -28,11 +28,11 @@ The alternative to native messaging is a program you launch yourself and keep ru
 
 Native messaging removes all three. The extension calls `chrome.runtime.connectNative`, and Chrome starts the program. When the extension goes away, the connection closes and the program exits — `WebmcpNativeHost` handles the channel closing by exiting the process. There is nothing to launch by hand and nothing left running afterwards.
 
-The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so `bin/webmcp_native_host.sh` names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
+The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
 
 ## Why not the Chrome DevTools Protocol
 
-There is a second path to the browser in this repository, and it is not the product. `tests/devtools_protocol_bridge/webmcp_bridge.ts` is a Model Context Protocol server on standard input and output that reaches a page over the Chrome DevTools Protocol. It was the first path that worked, written before the extension and the native messaging host existed.
+There is a second path to the browser in this repository, and it is not the product. [`tests/devtools_protocol_bridge/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.ts) is a Model Context Protocol server on standard input and output that reaches a page over the Chrome DevTools Protocol. It was the first path that worked, written before the extension and the native messaging host existed.
 
 It is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `npm run verify:host` fails. It is not the product for three reasons.
 

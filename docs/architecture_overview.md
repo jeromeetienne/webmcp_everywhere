@@ -18,9 +18,9 @@ flowchart LR
 	adapter -->|"registerTool, executeTool"| page
 ```
 
-- **The site adapter** knows one site. It reads that site's pages and drives them, and it exposes what it can do as a list of tools. It is ordinary TypeScript, it runs inside the page, and it reaches nothing but that page. One folder per site under `src/site_adapters/`.
-- **The Chrome extension** is a Manifest Version 3 extension. It carries every adapter this build was made with, it injects the matching adapter into a page, it holds the user's decision about what an agent may do on each origin, and it is the only part that knows which tabs currently have adapters running. It lives in `src/chrome_extension/`.
-- **The native messaging host** is an ordinary Node.js program on your machine. Chrome starts it as a child process when the extension asks for it. It holds the HTTP port that the extension itself cannot hold, and it serves the extension's tools over Model Context Protocol. It lives in `src/native_messaging_host/`.
+- **The site adapter** knows one site. It reads that site's pages and drives them, and it exposes what it can do as a list of tools. It is ordinary TypeScript, it runs inside the page, and it reaches nothing but that page. One folder per site under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters).
+- **The Chrome extension** is a Manifest Version 3 extension. It carries every adapter this build was made with, it injects the matching adapter into a page, it holds the user's decision about what an agent may do on each origin, and it is the only part that knows which tabs currently have adapters running. It lives in [`src/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
+- **The native messaging host** is an ordinary Node.js program on your machine. Chrome starts it as a child process when the extension asks for it. It holds the HTTP port that the extension itself cannot hold, and it serves the extension's tools over Model Context Protocol. It lives in [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host).
 - **The agent** is whatever you point at the endpoint. Codex and the Model Context Protocol Inspector are the two used while building this.
 
 ## Why each part exists
@@ -53,8 +53,8 @@ flowchart TB
 	worker <-->|"Chrome native messaging, four-byte length-prefixed JSON"| process
 ```
 
-- The **main world** is the page's own JavaScript context. `document.modelContext` is visible only here, so `content_main.ts` and the adapter itself run here. Nothing here can touch `chrome.*`, so a grant has to arrive as a message.
-- The **isolated world** is the ordinary content script context. Extension privileges are reachable here and `document.modelContext` is not. `content_isolated.ts` runs here and is the only bridge between the extension and the page. It sends plain data into the page — a grant, or a request naming a tool — never code, and it never takes instructions from the page.
+- The **main world** is the page's own JavaScript context. `document.modelContext` is visible only here, so [`content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) and the adapter itself run here. Nothing here can touch `chrome.*`, so a grant has to arrive as a message.
+- The **isolated world** is the ordinary content script context. Extension privileges are reachable here and `document.modelContext` is not. [`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) runs here and is the only bridge between the extension and the page. It sends plain data into the page — a grant, or a request naming a tool — never code, and it never takes instructions from the page.
 - The **background service worker** sees every tab. It opens the native messaging connection and it aggregates the tools from every adapted tab into the one list an agent sees.
 - The **native messaging host process** is not in the browser at all. Chrome started it and talks to it on standard input and standard output.
 
@@ -83,13 +83,13 @@ The full account is in [permissions_and_trust.md](permissions_and_trust.md).
 
 | Folder | What it holds |
 | --- | --- |
-| `src/adapter_format/` | What an adapter is, how its tools are named, and how page content is framed before an agent reads it |
-| `src/site_adapters/` | One folder per target site |
-| `src/chrome_extension/` | The Manifest Version 3 extension: the two content scripts, the background service worker, the popup, and the shared state |
-| `src/native_messaging_host/` | The native messaging host and Chrome's message framing |
-| `tools/` | Everything that builds, installs, or launches, plus the adapter checks the build runs |
-| `tests/` | The verification runners, and the stdio Model Context Protocol bridge one of them checks |
-| `data/` | The native messaging host manifest template Chrome reads |
-| `build/chrome_extension/` | What the build writes, and what Chrome loads. Git-ignored |
+| [`src/adapter_format/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/adapter_format) | What an adapter is, how its tools are named, and how page content is framed before an agent reads it |
+| [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters) | One folder per target site |
+| [`src/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension) | The Manifest Version 3 extension: the two content scripts, the background service worker, the popup, and the shared state |
+| [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) | The native messaging host and Chrome's message framing |
+| [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) | Everything that builds, installs, or launches, plus the adapter checks the build runs |
+| [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) | The verification runners, and the stdio Model Context Protocol bridge one of them checks |
+| [`data/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/data) | The native messaging host manifest template Chrome reads |
+| `build/chrome_extension/` | What the build writes, and what Chrome loads. Git-ignored, so it is not in the repository |
 
 Every one of those folders carries its own `CONTEXT.md` with the rules for editing it.
