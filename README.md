@@ -36,11 +36,19 @@ The host writes where it is listening, and the token an agent must present, to `
 Point Codex at it:
 
 ```bash
-export WEBMCP_TOKEN=$(python3 -c "import json;print(json.load(open('$HOME/.webmcp_everywhere/endpoint.json'))['token'])")
-codex exec -c 'mcp_servers.webmcp_everywhere={url="http://127.0.0.1:8765/mcp", bearer_token_env_var="WEBMCP_TOKEN"}' "Add a todo called buy milk, mark it done, and tell me how many are left."
+export WEBMCP_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
+export WEBMCP_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
+codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_URL\", bearer_token_env_var=\"WEBMCP_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
 
 Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`.
+
+To call the tools by hand, without an agent in the way, open the Model Context Protocol Inspector. It starts already pointed at the host, with the url and the token read from `endpoint.json`:
+
+```bash
+npm run mcp:inspector:start
+npm run mcp:inspector:stop
+```
 
 ## The other two paths
 

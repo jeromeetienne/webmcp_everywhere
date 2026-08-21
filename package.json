@@ -14,7 +14,9 @@
 		"grant": "node tools/grant_acting.mjs",
 		"verify:host": "node tools/verify_native_host.mjs",
 		"install:host": "node tools/install_native_host.mjs",
-		"verify:injection": "node tools/verify_injection_defence.mjs"
+		"verify:injection": "node tools/verify_injection_defence.mjs",
+		"mcp:inspector:start": "npx @modelcontextprotocol/inspector --web --transport http --server-url $(jq -r .url ~/.webmcp_everywhere/endpoint.json) --header \"Authorization: Bearer $(jq -r .token ~/.webmcp_everywhere/endpoint.json)\"",
+		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
 	},
 	"dependencies": {
 		"zod": "3.25.76"
