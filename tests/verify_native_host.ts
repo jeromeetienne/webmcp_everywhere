@@ -144,6 +144,49 @@ export class VerifyNativeHost {
 			return `back to ${listed.length} tools with no tab suffixes`;
 		});
 
+		await test('a page nobody had open can be opened, used, and closed again', async () => {
+			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+				url: 'https://caniuse.com/',
+			});
+			if (opened.isError === true) {
+				throw new Error(`open_page was refused: ${opened.text.slice(0, 120)}`);
+			}
+			const page = JSON.parse(opened.text) as { tabId: number; url: string; tools: string[] };
+			const afterOpen = await VerifyNativeHost._tools(endpoint);
+			if (afterOpen.some((name) => name.startsWith('caniuse_com__')) === false) {
+				throw new Error(`the opened page offered no tools; offered: ${afterOpen.join(', ')}`);
+			}
+
+			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+				tabId: page.tabId,
+			});
+			if (closed.isError === true) {
+				throw new Error(`close_page was refused: ${closed.text.slice(0, 120)}`);
+			}
+			await VerifyNativeHost._pause(2000);
+			const afterClose = await VerifyNativeHost._tools(endpoint);
+			if (afterClose.some((name) => name.startsWith('caniuse_com__')) === true) {
+				throw new Error(`the closed page still offers tools: ${afterClose.join(', ')}`);
+			}
+			return `tab ${page.tabId} opened with ${page.tools.length} tools, then closed again`;
+		});
+
+		await test('a page no adapter covers is neither opened nor closed', async () => {
+			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+				url: 'https://example.com/',
+			});
+			if (opened.isError === false) {
+				throw new Error(`opening a page with no adapter succeeded: ${opened.text.slice(0, 120)}`);
+			}
+			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+				tabId: 999999,
+			});
+			if (closed.isError === false) {
+				throw new Error(`closing a tab that does not exist succeeded: ${closed.text.slice(0, 120)}`);
+			}
+			return `both refused: "${opened.text.slice(0, 80)}…"`;
+		});
+
 		return { passed, failed };
 	}
 

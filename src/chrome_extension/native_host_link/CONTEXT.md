@@ -8,6 +8,8 @@ The background script and everything that answers the native messaging host: it 
 - `native_bridge.ts`: `NativeBridge` — answers the native host, aggregating tools across every adapted tab.
 
 ## Rules
+- The bridge answers three synthetic tools itself — `webmcp_everywhere__list_pages`, `webmcp_everywhere__open_page`, and `webmcp_everywhere__close_page` — and they are declared in `WebmcpNativeHost.BUILT_IN_TOOLS` on the host side, so a name added in one place must be added in the other.
+- `openPage` and `closePage` act on a page some adapter in `AdapterRegistry` covers and on no other page, so an agent can never use the bridge as a general browser driver.
 - Read the framing off a result with `NativeBridge._asFramed`. `executeTool` returns a JSON string, so reading `.webmcpEverywhere` straight off a result silently finds nothing and leaves the watch unarmed.
 - A tool offered from two tabs gains a tab suffix in both, never in just one, so the ambiguity is visible rather than resolved to whichever tab came first.
 - This folder imports only the request and reply types from `page_injection/page_query.ts`, never its runtime code. A content script and the background script run in different execution contexts, and bundling one into the other duplicates state.

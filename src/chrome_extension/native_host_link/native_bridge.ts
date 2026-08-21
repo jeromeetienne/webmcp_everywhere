@@ -56,6 +56,18 @@ export class NativeBridge {
 	/** The synthetic tool the bridge answers itself, so an agent can see what pages are available. */
 	static readonly LIST_PAGES_TOOL = 'webmcp_everywhere__list_pages';
 
+	/** The synthetic tool the bridge answers itself, so an agent can open a page an adapter covers. */
+	static readonly OPEN_PAGE_TOOL = 'webmcp_everywhere__open_page';
+
+	/** The synthetic tool the bridge answers itself, so an agent can close a page it no longer needs. */
+	static readonly CLOSE_PAGE_TOOL = 'webmcp_everywhere__close_page';
+
+	/** How long to wait for a freshly opened page to register its tools, in milliseconds. */
+	static readonly OPEN_PAGE_TIMEOUT = 10000;
+
+	/** How long to wait between two attempts to read a freshly opened page's tools, in milliseconds. */
+	static readonly OPEN_PAGE_POLL_DELAY = 250;
+
 	/** The open connection to the host, or null when it is not connected. */
 	static _port: chrome.runtime.Port | null = null;
 
@@ -120,6 +132,89 @@ export class NativeBridge {
 		}
 
 		return pages;
+	}
+
+	/**
+	 * Opens a page in a new tab and waits until its adapter has registered its tools.
+	 *
+	 * Only a page some adapter covers may be opened. An agent that could open any uniform resource
+	 * locator at all would be a general browser driver, which is exactly what this project exists not to
+	 * be: the adapters are the whole of the surface the user has agreed to.
+	 *
+	 * @param url - The page to open.
+	 * @returns The tab that was opened, once its tools are registered.
+	 * @throws When no adapter covers that page, or the page never registers its tools.
+	 */
+	static async openPage(url: string): Promise<AdaptedPage> {
+		const adapter = AdapterRegistry.findForUrl(url);
+		if (adapter === null) {
+			const covered = AdapterRegistry.ADAPTERS.flatMap((candidate) => candidate.matchPatterns);
+			throw new Error(
+				`no adapter covers ${url}; WebMCP Everywhere can open these pages only: ${covered.join(', ')}`,
+			);
+		}
+
+		const tab = await chrome.tabs.create({
+			url: url,
+			active: false,
+		});
+		if (tab.id === undefined) {
+			throw new Error(`the browser opened ${url} without giving it a tab identifier`);
+		}
+
+		const deadline = Date.now() + NativeBridge.OPEN_PAGE_TIMEOUT;
+		while (Date.now() < deadline) {
+			const tools = await NativeBridge._askTab(tab.id, {
+				kind: 'page:listTools',
+			});
+			if (tools !== null) {
+				const opened = await chrome.tabs.get(tab.id);
+				return {
+					tabId: tab.id,
+					url: opened.url ?? url,
+					title: opened.title ?? '',
+					siteSlug: adapter.siteSlug,
+					tools: (tools.result ?? []) as PageToolSummary[],
+				};
+			}
+			await NativeBridge._wait(NativeBridge.OPEN_PAGE_POLL_DELAY);
+		}
+
+		throw new Error(`${url} opened in tab ${tab.id} but registered no tools within the time allowed`);
+	}
+
+	/**
+	 * Closes one adapted tab.
+	 *
+	 * Only a tab an adapter covers may be closed, so an agent can put back a page it opened without ever
+	 * reaching the rest of the user's browser.
+	 *
+	 * @param tabId - The tab to close.
+	 * @returns Which tab was closed and what was on it.
+	 * @throws When the tab is gone, no adapter covers it, or a page has tried to issue instructions.
+	 */
+	static async closePage(tabId: number): Promise<{ tabId: number; url: string; title: string }> {
+		if ((await InjectionWatch.isActingBlocked()) === true) {
+			throw new Error(await InjectionWatch.refusalMessage());
+		}
+
+		let tab: chrome.tabs.Tab;
+		try {
+			tab = await chrome.tabs.get(tabId);
+		} catch {
+			throw new Error(`there is no tab ${tabId}`);
+		}
+
+		if (tab.url === undefined || AdapterRegistry.findForUrl(tab.url) === null) {
+			throw new Error(`tab ${tabId} is not a page WebMCP Everywhere has an adapter for`);
+		}
+
+		await chrome.tabs.remove(tabId);
+		return {
+			tabId: tabId,
+			url: tab.url,
+			title: tab.title ?? '',
+		};
 	}
 
 	/**
@@ -272,10 +367,41 @@ export class NativeBridge {
 			}));
 		}
 
+		if (message.kind === 'openPage') {
+			const page = await NativeBridge.openPage(String(message.args?.['url'] ?? ''));
+			return {
+				tabId: page.tabId,
+				url: page.url,
+				title: page.title,
+				adapter: page.siteSlug,
+				tools: page.tools.map((tool) => tool.name),
+			};
+		}
+
+		if (message.kind === 'closePage') {
+			const tabId = Number(message.args?.['tabId']);
+			if (Number.isInteger(tabId) === false) {
+				throw new Error('closing a page needs the tabId that list_pages or open_page reported');
+			}
+			return await NativeBridge.closePage(tabId);
+		}
+
 		if (message.kind === 'callTool') {
 			if (message.name === NativeBridge.LIST_PAGES_TOOL) {
 				return await NativeBridge._serve({
 					kind: 'listPages',
+				});
+			}
+			if (message.name === NativeBridge.OPEN_PAGE_TOOL) {
+				return await NativeBridge._serve({
+					kind: 'openPage',
+					args: message.args ?? {},
+				});
+			}
+			if (message.name === NativeBridge.CLOSE_PAGE_TOOL) {
+				return await NativeBridge._serve({
+					kind: 'closePage',
+					args: message.args ?? {},
 				});
 			}
 			return await NativeBridge.callTool(message.name ?? '', message.args ?? {});
@@ -374,6 +500,18 @@ export class NativeBridge {
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * Waits for a while.
+	 *
+	 * @param milliseconds - How long to wait.
+	 * @returns Nothing.
+	 */
+	static async _wait(milliseconds: number): Promise<void> {
+		await new Promise((resolve) => {
+			setTimeout(resolve, milliseconds);
+		});
 	}
 
 	/**

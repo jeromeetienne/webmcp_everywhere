@@ -98,6 +98,71 @@ export class WebmcpNativeHost {
 	/** How long to wait for the extension to answer one request, in milliseconds. */
 	static REQUEST_TIMEOUT = 20000;
 
+	/**
+	 * The tools the bridge answers itself, about the browser rather than about any one page.
+	 *
+	 * They are offered before the page tools so an agent that has never used this host reads them first,
+	 * and finds out that a page it needs can be opened rather than only used when it happens to be open.
+	 */
+	static readonly BUILT_IN_TOOLS: ExtensionTool[] = [
+		{
+			name: 'webmcp_everywhere__list_pages',
+			description:
+				'List the open browser pages that WebMCP Everywhere has an adapter for, with the ' +
+				'tab identifier, the page title, and how many tools each one offers. Use this when ' +
+				'a tool name carries a tab suffix and you need to know which page is which.',
+			inputSchema: {
+				type: 'object',
+				properties: {},
+				additionalProperties: false,
+			},
+			title: 'List adapted pages',
+			readOnly: true,
+		},
+		{
+			name: 'webmcp_everywhere__open_page',
+			description:
+				'Open a page in a new background tab and wait until its tools are registered, so a ' +
+				'site can be used even when the user has no tab on it. Only a page WebMCP Everywhere ' +
+				'has an adapter for can be opened; any other address is refused, and the refusal names ' +
+				'the pages that are allowed. Returns the tab identifier and the tools that page now ' +
+				'offers.',
+			inputSchema: {
+				type: 'object',
+				properties: {
+					url: {
+						type: 'string',
+						description: 'The full uniform resource locator of the page to open.',
+					},
+				},
+				required: ['url'],
+				additionalProperties: false,
+			},
+			title: 'Open an adapted page',
+			readOnly: false,
+		},
+		{
+			name: 'webmcp_everywhere__close_page',
+			description:
+				'Close one of the browser pages that WebMCP Everywhere has an adapter for, named by ' +
+				'its tab identifier. Use it to put back a page that was opened with ' +
+				'webmcp_everywhere__open_page. A tab no adapter covers is never closed.',
+			inputSchema: {
+				type: 'object',
+				properties: {
+					tabId: {
+						type: 'integer',
+						description: 'The tab identifier reported by open_page or list_pages.',
+					},
+				},
+				required: ['tabId'],
+				additionalProperties: false,
+			},
+			title: 'Close an adapted page',
+			readOnly: false,
+		},
+	];
+
 	/** The port to serve on. */
 	port: number;
 
@@ -184,7 +249,8 @@ export class WebmcpNativeHost {
 			const answer = (await this._askExtension({
 				kind: 'listTools',
 			})) as { tools?: ExtensionTool[] } | undefined;
-			const tools = (answer?.tools ?? []).map((tool) => ({
+			const offered = [...WebmcpNativeHost.BUILT_IN_TOOLS, ...(answer?.tools ?? [])];
+			const tools = offered.map((tool) => ({
 				name: tool.name,
 				description: tool.description,
 				inputSchema: tool.inputSchema ?? {
@@ -196,23 +262,6 @@ export class WebmcpNativeHost {
 					readOnlyHint: tool.readOnly === true,
 				},
 			}));
-
-			tools.unshift({
-				name: 'webmcp_everywhere__list_pages',
-				description:
-					'List the open browser pages that WebMCP Everywhere has an adapter for, with the ' +
-					'tab identifier, the page title, and how many tools each one offers. Use this when ' +
-					'a tool name carries a tab suffix and you need to know which page is which.',
-				inputSchema: {
-					type: 'object',
-					properties: {},
-					additionalProperties: false,
-				},
-				annotations: {
-					title: 'List adapted pages',
-					readOnlyHint: true,
-				},
-			});
 
 			return {
 				tools: tools,
