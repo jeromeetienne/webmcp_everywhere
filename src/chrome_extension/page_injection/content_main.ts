@@ -1,6 +1,6 @@
-import type { Adapter, OriginGrant } from '../adapter_format/adapter_types.js';
-import { ToolNaming } from '../adapter_format/tool_naming.js';
-import { AdapterRegistry } from './adapter_registry.js';
+import type { Adapter, OriginGrant } from '../../adapter_format/adapter_types.js';
+import { ToolNaming } from '../../adapter_format/tool_naming.js';
+import { AdapterRegistry } from '../shared_state/adapter_registry.js';
 import { AdapterRuntime } from './adapter_runtime.js';
 import { PageQuery } from './page_query.js';
 import type { PageQueryRequest, PageToolSummary } from './page_query.js';

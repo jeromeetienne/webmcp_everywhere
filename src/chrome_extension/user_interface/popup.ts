@@ -1,6 +1,6 @@
-import { ExtensionStorage } from './extension_storage.js';
-import { InjectionWatch } from './injection_watch.js';
-import type { InjectionSighting } from './injection_watch.js';
+import { ExtensionStorage } from '../shared_state/extension_storage.js';
+import { InjectionWatch } from '../shared_state/injection_watch.js';
+import type { InjectionSighting } from '../shared_state/injection_watch.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 import { AdapterRuntime } from './adapter_runtime.js';
-import { ExtensionStorage } from './extension_storage.js';
+import { ExtensionStorage } from '../shared_state/extension_storage.js';
 import { PageQuery } from './page_query.js';
 
 ///////////////////////////////////////////////////////////////////////////////

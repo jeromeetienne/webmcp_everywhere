@@ -1,8 +1,8 @@
-import { AdapterRegistry } from './adapter_registry.js';
-import { ExtensionStorage } from './extension_storage.js';
-import { InjectionWatch } from './injection_watch.js';
-import type { PageToolSummary } from './page_query.js';
-import type { ContentWarning } from '../adapter_format/untrusted_content.js';
+import { AdapterRegistry } from '../shared_state/adapter_registry.js';
+import { ExtensionStorage } from '../shared_state/extension_storage.js';
+import { InjectionWatch } from '../shared_state/injection_watch.js';
+import type { PageToolSummary } from '../page_injection/page_query.js';
+import type { ContentWarning } from '../../adapter_format/untrusted_content.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

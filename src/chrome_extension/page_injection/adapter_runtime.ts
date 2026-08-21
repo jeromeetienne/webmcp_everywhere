@@ -1,6 +1,6 @@
-import type { Adapter, AdapterToolDefinition, OriginGrant } from '../adapter_format/adapter_types.js';
-import { ToolNaming } from '../adapter_format/tool_naming.js';
-import { UntrustedContent } from '../adapter_format/untrusted_content.js';
+import type { Adapter, AdapterToolDefinition, OriginGrant } from '../../adapter_format/adapter_types.js';
+import { ToolNaming } from '../../adapter_format/tool_naming.js';
+import { UntrustedContent } from '../../adapter_format/untrusted_content.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

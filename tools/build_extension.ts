@@ -21,12 +21,17 @@ const outDir = Path.join(extensionDir, 'dist');
  * function expression with its imports inlined.
  */
 class BuildExtension {
-	/** The entry points, each becoming one file in the output directory. */
+	/**
+	 * The entry points, each becoming one file in the output directory.
+	 *
+	 * Every path keeps its folder, but the output file keeps only the base name, because
+	 * `manifest.json` points at a flat `dist/`.
+	 */
 	static ENTRY_POINTS = [
-		'content_main.ts',
-		'content_isolated.ts',
-		'background_service_worker.ts',
-		'popup.ts',
+		'page_injection/content_main.ts',
+		'page_injection/content_isolated.ts',
+		'native_host_link/background_service_worker.ts',
+		'user_interface/popup.ts',
 	];
 
 	/**
@@ -46,7 +51,12 @@ class BuildExtension {
 		});
 
 		const result = await Esbuild.build({
-			entryPoints: BuildExtension.ENTRY_POINTS.map((name) => Path.join(extensionDir, name)),
+			entryPoints: Object.fromEntries(
+				BuildExtension.ENTRY_POINTS.map((name) => [
+					Path.basename(name, '.ts'),
+					Path.join(extensionDir, name),
+				]),
+			),
 			outdir: outDir,
 			bundle: true,
 			format: 'iife',
