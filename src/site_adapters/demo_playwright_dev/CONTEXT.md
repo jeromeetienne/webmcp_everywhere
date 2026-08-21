@@ -4,6 +4,7 @@
 The adapter for the Playwright TodoMVC demonstration at `https://demo.playwright.dev/todomvc/`, the first site this project covers.
 
 ## Key Exports & Entry Points
+- `README.md`: What Codex can do with this site, and the workflows worth asking for.
 - `todomvc_adapter.ts`: `todomvcAdapter`, the adapter itself, and `TodomvcAdapter`, the class holding the page-driving helpers.
 - Command to exercise this folder: `npm run verify`
 
