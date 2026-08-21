@@ -4,32 +4,7 @@ This adapter gives `https://demo.playwright.dev/todomvc/` a set of Model Context
 
 This document is about what you can ask Codex to do with the page. It does not explain how to build, install, or connect anything — the repository README.md at the top of the project covers that.
 
-## The tools Codex sees
-
-Three tools only read the page:
-
-- `list_todos` — every todo, with its stable id, its title, whether it is completed, and whether the active filter is currently showing it. The active filter is reported too.
-- `count_todos` — the number of active, completed, and total todos, counted regardless of which filter is showing.
-- `get_active_filter` — which filter the page is showing: all, active, or completed.
-
-Seven tools change the page:
-
-- `add_todo` — add one todo, and return the new todo with its stable id.
-- `set_todo_completed` — mark one todo, named by its stable id, as done or as not done.
-- `edit_todo` — replace the text of one todo, named by its stable id.
-- `delete_todo` — delete one todo, named by its stable id.
-- `clear_completed` — delete every completed todo at once.
-- `set_all_completed` — mark every todo as done, or every todo as not done.
-- `set_active_filter` — show all todos, only the active ones, or only the completed ones.
-
-Every tool that changes one todo names that todo by the stable id that `list_todos` returns, never by its position in the list. A filter hides todos rather than re-orders them, so a position means a different todo under each filter, and an id always means the same todo.
-
-## Why Codex is good at this page
-
-- Codex never has to read the screen. `list_todos` returns the whole list, including the todos the active filter is hiding, so Codex knows about a todo it cannot see.
-- Codex never has to type into a text field or aim a click. It passes a stable id and a value.
-- A tool that needs a hidden todo shows every todo, acts, and puts the filter back, so the page looks the way you left it after Codex is finished.
-- The whole page state lives in the browser's own local storage. A tool that misfires harms nobody, which makes this a safe page to give an agent a first try on.
+The tool names in the workflows below are all listed and explained under [The tools Codex sees](#the-tools-codex-sees).
 
 ## Workflows worth asking for
 
@@ -93,6 +68,33 @@ Because `list_todos` reports both the whole list and what the active filter is s
 
 - "What is the filter hiding right now?"
 - "Show me only the completed ones, then tell me how many todos I still cannot see."
+
+## The tools Codex sees
+
+Three tools only read the page:
+
+- `list_todos` — every todo, with its stable id, its title, whether it is completed, and whether the active filter is currently showing it. The active filter is reported too.
+- `count_todos` — the number of active, completed, and total todos, counted regardless of which filter is showing.
+- `get_active_filter` — which filter the page is showing: all, active, or completed.
+
+Seven tools change the page:
+
+- `add_todo` — add one todo, and return the new todo with its stable id.
+- `set_todo_completed` — mark one todo, named by its stable id, as done or as not done.
+- `edit_todo` — replace the text of one todo, named by its stable id.
+- `delete_todo` — delete one todo, named by its stable id.
+- `clear_completed` — delete every completed todo at once.
+- `set_all_completed` — mark every todo as done, or every todo as not done.
+- `set_active_filter` — show all todos, only the active ones, or only the completed ones.
+
+Every tool that changes one todo names that todo by the stable id that `list_todos` returns, never by its position in the list. A filter hides todos rather than re-orders them, so a position means a different todo under each filter, and an id always means the same todo.
+
+## Why Codex is good at this page
+
+- Codex never has to read the screen. `list_todos` returns the whole list, including the todos the active filter is hiding, so Codex knows about a todo it cannot see.
+- Codex never has to type into a text field or aim a click. It passes a stable id and a value.
+- A tool that needs a hidden todo shows every todo, acts, and puts the filter back, so the page looks the way you left it after Codex is finished.
+- The whole page state lives in the browser's own local storage. A tool that misfires harms nobody, which makes this a safe page to give an agent a first try on.
 
 ## What this adapter is not for
 
