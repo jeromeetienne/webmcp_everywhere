@@ -16,13 +16,23 @@ On a fresh install only the read-only tools are offered; the acting ones stay wi
 ## How an agent reaches the browser
 
 ```
-any agent ──HTTP MCP──> native host ──native messaging──> extension ──> document.modelContext
+any agent ──HTTP MCP──> native messaging host ──native messaging──> extension ──> document.modelContext
                         (Chrome starts it on demand)
 ```
 
-The native host exists because **a Chrome extension cannot listen on a port**. Measured on Chrome 151: `chrome.sockets` and `chrome.sockets.tcpServer` are undefined, and Manifest Version 3 exposes no server interface at all — only outbound `fetch` and `WebSocket`. Something native has to hold the socket, and Chrome starts that program itself when the extension connects, so nothing needs launching by hand.
+The native messaging host exists because **a Chrome extension cannot listen on a port**. Measured on Chrome 151: `chrome.sockets` and `chrome.sockets.tcpServer` are undefined, and Manifest Version 3 exposes no server interface at all — only outbound `fetch` and `WebSocket`. Something native has to hold the socket, and Chrome starts that program itself when the extension connects, so nothing needs launching by hand.
 
 Every request travels through the extension, which is the only place that knows which tabs have adapters and what you have allowed. The host itself decides nothing about permissions.
+
+## Glossary
+
+Three of the words in this repository are Chrome's, not ours. They are defined in [Chrome's native messaging documentation](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging).
+
+- **Native messaging** — the way a Chrome extension exchanges messages with a program on your machine. Chrome starts the program as a child process and passes messages to it on standard input, reading the answers from standard output. Each message is JSON with a four-byte length in front of it. The extension asks for this with the `nativeMessaging` permission and opens the connection with `chrome.runtime.connectNative`.
+- **Native messaging host** — the program at the other end. It is an ordinary application on your machine, in this repository a Node.js program. Chrome starts it; you do not.
+- **Native messaging host manifest file** — the JSON file that tells Chrome which program to start and which extensions may connect to it. Chrome reads it from a directory named `NativeMessagingHosts`, and the file is named after the host name it declares.
+
+The word "host" is a poor fit and the confusion it causes is Chrome's, not yours. In networking a host is a machine, and a program that accepts connections is a server; this is neither. It is simply an application that Chrome launches and talks to. The name cannot be avoided, because Chrome fixes it in the directory name, in the permission, and in the manifest, so this repository uses Chrome's full term everywhere and never shortens it to "native host".
 
 ## Try it
 
@@ -31,12 +41,12 @@ You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 14
 ```bash
 npm install
 npm run build           # checks every adapter, then bundles the extension
-npm run install:host    # registers the native host with Chrome
+npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
 npm run verify:host     # 8 checks over the real delivery path
 ```
 
-The host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
+The native messaging host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
 
 Point Codex at it:
 
@@ -65,7 +75,7 @@ npm run verify:caniuse  # 14 checks driving https://caniuse.com/ the same way
 npm run verify:bridge   # 4 checks through the stdio Model Context Protocol bridge
 ```
 
-The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native host exists.
+The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
 
 ## Launching Chrome
 
