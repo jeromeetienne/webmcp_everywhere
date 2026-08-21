@@ -10,7 +10,8 @@ import Path from 'node:path';
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../tools/grant_acting.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
-import type { CheckOutcome, HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';
+import { before, describe, test } from 'node:test';
+import type { HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
 
@@ -22,172 +23,21 @@ const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.js
  * Nothing here uses the Chrome DevTools Protocol to reach a page; that path exists only for the other
  * checks, and using it here would prove nothing about the design being tested.
  */
-export class VerifyNativeHost {
+class VerifyNativeHost {
+	/** Where the host says it is listening, read once before the first check. */
+	static endpoint: HostEndpoint | null = null;
+
 	/**
-	 * Runs the checks.
+	 * Returns the endpoint the checks talk to, refusing to continue when it was never read.
 	 *
-	 * @returns The outcome.
+	 * @returns The endpoint details.
+	 * @throws When the launch step never read them.
 	 */
-	static async run(): Promise<CheckOutcome> {
-		await LaunchChrome.run();
-		await VerifyNativeHost._pause(5000);
-
-		const endpoint = VerifyNativeHost._readEndpoint();
-		let passed = 0;
-		let failed = 0;
-
-		/**
-		 * Runs one check and records whether it passed.
-		 *
-		 * @param name - What is being checked.
-		 * @param check - The check, returning a detail line. Throwing means failure.
-		 * @returns Nothing.
-		 */
-		const test = async (name: string, check: () => Promise<string>): Promise<void> => {
-			try {
-				const detail = await check();
-				passed += 1;
-				console.log(`  PASS  ${name}\n        ${detail}`);
-			} catch (error) {
-				failed += 1;
-				console.log(`  FAIL  ${name}\n        ${(error as Error)?.message ?? error}`);
-			}
-		};
-
-		await test('Chrome starts the native host by itself', async () => {
-			const health = await VerifyNativeHost._get(endpoint, '/health', null);
-			if (health.body?.extensionConnected !== true) {
-				throw new Error(`the host is up but the extension is not connected: ${JSON.stringify(health.body)}`);
-			}
-			return `host answering on ${endpoint.url}, extension connected`;
-		});
-
-		await test('the endpoint refuses a request with no token', async () => {
-			const withoutToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, null);
-			if (withoutToken.status !== 401) {
-				throw new Error(`expected 401 without a token, got ${withoutToken.status}`);
-			}
-			const wrongToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, 'not-the-token');
-			if (wrongToken.status !== 401) {
-				throw new Error(`expected 401 with a wrong token, got ${wrongToken.status}`);
-			}
-			return 'both a missing token and a wrong token are refused with 401';
-		});
-
-		await VerifyNativeHost._setActing(false);
-		await VerifyNativeHost._pause(2500);
-
-		await test('with no opt-in the agent is offered read-only tools only', async () => {
-			const listed = await VerifyNativeHost._tools(endpoint);
-			const acting = listed.filter((name) => /add_todo|delete_todo|edit_todo/.test(name));
-			if (acting.length > 0) {
-				throw new Error(`acting tools were offered without an opt-in: ${acting.join(', ')}`);
-			}
-			return `${listed.length} tools offered, none of them acting`;
-		});
-
-		await test('an acting tool is refused even when called by name', async () => {
-			const called = await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__add_todo', {
-				title: 'should never appear',
-			});
-			if (called.isError !== true) {
-				throw new Error(`the call succeeded when it should have been refused: ${called.text}`);
-			}
-			return `refused: ${called.text.slice(0, 90)}`;
-		});
-
-		await VerifyNativeHost._setActing(true);
-		await VerifyNativeHost._pause(2500);
-
-		await test('opting in offers the acting tools', async () => {
-			const listed = await VerifyNativeHost._tools(endpoint);
-			if (listed.includes('demo_playwright_dev__add_todo') === false) {
-				throw new Error(`add_todo still missing after the opt-in; offered: ${listed.join(', ')}`);
-			}
-			return `${listed.length} tools offered, including the acting ones`;
-		});
-
-		await test('a tool call changes the real page', async () => {
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__set_all_completed', { completed: true });
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__clear_completed', {});
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__add_todo', { title: 'through the host' });
-			const seen = await VerifyNativeHost._readPageTitles();
-			if (seen.includes('through the host') === false) {
-				throw new Error(`the page holds ${JSON.stringify(seen)}`);
-			}
-			return `the browser really shows ${JSON.stringify(seen)}`;
-		});
-
-		await test('two tabs on one site are told apart', async () => {
-			const secondTab = await VerifyNativeHost._openSecondTab();
-			await VerifyNativeHost._pause(4000);
-			const listed = await VerifyNativeHost._tools(endpoint);
-			const suffixed = listed.filter((name) => name.includes('__tab'));
-			if (suffixed.length === 0) {
-				throw new Error(`no tool gained a tab suffix; offered: ${listed.length} tools`);
-			}
-			const plain = listed.filter((name) => name.startsWith('demo_playwright_dev__') && name.includes('__tab') === false);
-			if (plain.length > 0) {
-				throw new Error(`some tools stayed ambiguous: ${plain.join(', ')}`);
-			}
-			await VerifyNativeHost._closeTarget(secondTab);
-			await VerifyNativeHost._pause(2000);
-			return `${listed.length} tools, every site tool carrying a tab suffix`;
-		});
-
-		await test('closing a tab withdraws its tools', async () => {
-			const listed = await VerifyNativeHost._tools(endpoint);
-			const suffixed = listed.filter((name) => name.includes('__tab'));
-			if (suffixed.length > 0) {
-				throw new Error(`tools from the closed tab are still offered: ${suffixed.join(', ')}`);
-			}
-			return `back to ${listed.length} tools with no tab suffixes`;
-		});
-
-		await test('a page nobody had open can be opened, used, and closed again', async () => {
-			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
-				url: 'https://caniuse.com/',
-			});
-			if (opened.isError === true) {
-				throw new Error(`open_page was refused: ${opened.text.slice(0, 120)}`);
-			}
-			const page = JSON.parse(opened.text) as { tabId: number; url: string; tools: string[] };
-			const afterOpen = await VerifyNativeHost._tools(endpoint);
-			if (afterOpen.some((name) => name.startsWith('caniuse_com__')) === false) {
-				throw new Error(`the opened page offered no tools; offered: ${afterOpen.join(', ')}`);
-			}
-
-			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
-				tabId: page.tabId,
-			});
-			if (closed.isError === true) {
-				throw new Error(`close_page was refused: ${closed.text.slice(0, 120)}`);
-			}
-			await VerifyNativeHost._pause(2000);
-			const afterClose = await VerifyNativeHost._tools(endpoint);
-			if (afterClose.some((name) => name.startsWith('caniuse_com__')) === true) {
-				throw new Error(`the closed page still offers tools: ${afterClose.join(', ')}`);
-			}
-			return `tab ${page.tabId} opened with ${page.tools.length} tools, then closed again`;
-		});
-
-		await test('a page no adapter covers is neither opened nor closed', async () => {
-			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
-				url: 'https://example.com/',
-			});
-			if (opened.isError === false) {
-				throw new Error(`opening a page with no adapter succeeded: ${opened.text.slice(0, 120)}`);
-			}
-			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
-				tabId: 999999,
-			});
-			if (closed.isError === false) {
-				throw new Error(`closing a tab that does not exist succeeded: ${closed.text.slice(0, 120)}`);
-			}
-			return `both refused: "${opened.text.slice(0, 80)}…"`;
-		});
-
-		return { passed, failed };
+	static _requireEndpoint(): HostEndpoint {
+		if (VerifyNativeHost.endpoint === null) {
+			throw new Error('the native host endpoint was never read');
+		}
+		return VerifyNativeHost.endpoint;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -373,9 +223,166 @@ export class VerifyNativeHost {
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	console.log('\nThe native host path — extension, host, and HTTP endpoint together\n');
-	const outcome = await VerifyNativeHost.run();
-	console.log(`\n${outcome.passed} passed, ${outcome.failed} failed\n`);
-	process.exit(outcome.failed === 0 ? 0 : 1);
-}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Checks
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+describe('The native host path — extension, host, and HTTP endpoint together', () => {
+	before(async () => {
+		await LaunchChrome.run();
+		await VerifyNativeHost._pause(5000);
+		VerifyNativeHost.endpoint = VerifyNativeHost._readEndpoint();
+	});
+
+	test('Chrome starts the native host by itself', async (t) => {
+		const endpoint = VerifyNativeHost._requireEndpoint();
+		const health = await VerifyNativeHost._get(endpoint, '/health', null);
+		if (health.body?.extensionConnected !== true) {
+			throw new Error(`the host is up but the extension is not connected: ${JSON.stringify(health.body)}`);
+		}
+		t.diagnostic(`host answering on ${endpoint.url}, extension connected`);
+	});
+
+	test('the endpoint refuses a request with no token', async (t) => {
+		const endpoint = VerifyNativeHost._requireEndpoint();
+		const withoutToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, null);
+		if (withoutToken.status !== 401) {
+			throw new Error(`expected 401 without a token, got ${withoutToken.status}`);
+		}
+		const wrongToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, 'not-the-token');
+		if (wrongToken.status !== 401) {
+			throw new Error(`expected 401 with a wrong token, got ${wrongToken.status}`);
+		}
+		t.diagnostic('both a missing token and a wrong token are refused with 401');
+	});
+
+	describe('with the acting tools withheld', () => {
+		before(async () => {
+			await VerifyNativeHost._setActing(false);
+			await VerifyNativeHost._pause(2500);
+		});
+
+		test('with no opt-in the agent is offered read-only tools only', async (t) => {
+			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const acting = listed.filter((name) => /add_todo|delete_todo|edit_todo/.test(name));
+			if (acting.length > 0) {
+				throw new Error(`acting tools were offered without an opt-in: ${acting.join(', ')}`);
+			}
+			t.diagnostic(`${listed.length} tools offered, none of them acting`);
+		});
+
+		test('an acting tool is refused even when called by name', async (t) => {
+			const called = await VerifyNativeHost._call(
+				VerifyNativeHost._requireEndpoint(),
+				'demo_playwright_dev__add_todo',
+				{
+					title: 'should never appear',
+				},
+			);
+			if (called.isError !== true) {
+				throw new Error(`the call succeeded when it should have been refused: ${called.text}`);
+			}
+			t.diagnostic(`refused: ${called.text.slice(0, 90)}`);
+		});
+	});
+
+	describe('with the acting tools granted', () => {
+		before(async () => {
+			await VerifyNativeHost._setActing(true);
+			await VerifyNativeHost._pause(2500);
+		});
+
+		test('opting in offers the acting tools', async (t) => {
+			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			if (listed.includes('demo_playwright_dev__add_todo') === false) {
+				throw new Error(`add_todo still missing after the opt-in; offered: ${listed.join(', ')}`);
+			}
+			t.diagnostic(`${listed.length} tools offered, including the acting ones`);
+		});
+
+		test('a tool call changes the real page', async (t) => {
+			const endpoint = VerifyNativeHost._requireEndpoint();
+			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__set_all_completed', { completed: true });
+			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__clear_completed', {});
+			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__add_todo', { title: 'through the host' });
+			const seen = await VerifyNativeHost._readPageTitles();
+			if (seen.includes('through the host') === false) {
+				throw new Error(`the page holds ${JSON.stringify(seen)}`);
+			}
+			t.diagnostic(`the browser really shows ${JSON.stringify(seen)}`);
+		});
+
+		test('two tabs on one site are told apart', async (t) => {
+			const secondTab = await VerifyNativeHost._openSecondTab();
+			await VerifyNativeHost._pause(4000);
+			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const suffixed = listed.filter((name) => name.includes('__tab'));
+			if (suffixed.length === 0) {
+				throw new Error(`no tool gained a tab suffix; offered: ${listed.length} tools`);
+			}
+			const plain = listed.filter((name) => name.startsWith('demo_playwright_dev__') && name.includes('__tab') === false);
+			if (plain.length > 0) {
+				throw new Error(`some tools stayed ambiguous: ${plain.join(', ')}`);
+			}
+			await VerifyNativeHost._closeTarget(secondTab);
+			await VerifyNativeHost._pause(2000);
+			t.diagnostic(`${listed.length} tools, every site tool carrying a tab suffix`);
+		});
+
+		test('closing a tab withdraws its tools', async (t) => {
+			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const suffixed = listed.filter((name) => name.includes('__tab'));
+			if (suffixed.length > 0) {
+				throw new Error(`tools from the closed tab are still offered: ${suffixed.join(', ')}`);
+			}
+			t.diagnostic(`back to ${listed.length} tools with no tab suffixes`);
+		});
+
+		test('a page nobody had open can be opened, used, and closed again', async (t) => {
+			const endpoint = VerifyNativeHost._requireEndpoint();
+			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+				url: 'https://caniuse.com/',
+			});
+			if (opened.isError === true) {
+				throw new Error(`open_page was refused: ${opened.text.slice(0, 120)}`);
+			}
+			const page = JSON.parse(opened.text) as { tabId: number; url: string; tools: string[] };
+			const afterOpen = await VerifyNativeHost._tools(endpoint);
+			if (afterOpen.some((name) => name.startsWith('caniuse_com__')) === false) {
+				throw new Error(`the opened page offered no tools; offered: ${afterOpen.join(', ')}`);
+			}
+
+			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+				tabId: page.tabId,
+			});
+			if (closed.isError === true) {
+				throw new Error(`close_page was refused: ${closed.text.slice(0, 120)}`);
+			}
+			await VerifyNativeHost._pause(2000);
+			const afterClose = await VerifyNativeHost._tools(endpoint);
+			if (afterClose.some((name) => name.startsWith('caniuse_com__')) === true) {
+				throw new Error(`the closed page still offers tools: ${afterClose.join(', ')}`);
+			}
+			t.diagnostic(`tab ${page.tabId} opened with ${page.tools.length} tools, then closed again`);
+		});
+
+		test('a page no adapter covers is neither opened nor closed', async (t) => {
+			const endpoint = VerifyNativeHost._requireEndpoint();
+			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+				url: 'https://example.com/',
+			});
+			if (opened.isError === false) {
+				throw new Error(`opening a page with no adapter succeeded: ${opened.text.slice(0, 120)}`);
+			}
+			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+				tabId: 999999,
+			});
+			if (closed.isError === false) {
+				throw new Error(`closing a tab that does not exist succeeded: ${closed.text.slice(0, 120)}`);
+			}
+			t.diagnostic(`both refused: "${opened.text.slice(0, 80)}…"`);
+		});
+	});
+});
