@@ -1,5 +1,6 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
+import NodeTest from 'node:test';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,27 +31,20 @@ class VerifySourceBoundary {
 	static SOURCE_DIR = Path.join(__dirname, '..', 'src');
 
 	/**
-	 * Runs the check and exits non-zero when any import leaves `src/`.
+	 * Reads every file under `src/` and reports every import that leaves it.
 	 *
-	 * @returns Nothing.
+	 * @returns The files that were read, and the offences found in them.
 	 */
-	static run() {
+	static run(): { filePaths: string[]; offences: Offence[] } {
 		const filePaths = VerifySourceBoundary._collectTypescriptFiles(VerifySourceBoundary.SOURCE_DIR);
 		const offences: Offence[] = [];
 		for (const filePath of filePaths) {
 			offences.push(...VerifySourceBoundary._findOffences(filePath));
 		}
-
-		if (offences.length === 0) {
-			console.log(`source boundary holds: ${filePaths.length} files under src/ import nothing outside it`);
-			return;
-		}
-
-		for (const offence of offences) {
-			console.error(`${offence.filePath}:${offence.lineNumber} imports '${offence.specifier}', which leaves src/`);
-		}
-		console.error(`source boundary broken: ${offences.length} imports leave src/`);
-		process.exitCode = 1;
+		return {
+			filePaths: filePaths,
+			offences: offences,
+		};
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -113,4 +107,19 @@ class VerifySourceBoundary {
 	}
 }
 
-VerifySourceBoundary.run();
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Checks
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+NodeTest.test('src/ holds product code only, so no relative import leaves it', (t) => {
+	const { filePaths, offences } = VerifySourceBoundary.run();
+	if (offences.length > 0) {
+		const listed = offences
+			.map((offence) => `${offence.filePath}:${offence.lineNumber} imports '${offence.specifier}'`)
+			.join('\n        ');
+		throw new Error(`${offences.length} imports leave src/:\n        ${listed}`);
+	}
+	t.diagnostic(`${filePaths.length} files under src/ import nothing outside it`);
+});

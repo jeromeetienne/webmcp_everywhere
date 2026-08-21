@@ -5,9 +5,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import Path from 'node:path';
-import { after, before, describe, test } from 'node:test';
+import NodeTest from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { GrantActing } from '../tools/grant_acting.ts';
+import { LaunchChrome } from '../tools/launch_chrome.ts';
 import type {
 	CountTodosResult,
 	ListTodosResult,
@@ -48,11 +50,21 @@ class VerifyBridge {
 	static client: Client | null = null;
 
 	/**
-	 * Starts the bridge and connects to it.
+	 * Launches Chrome, opts in to the acting tools, then starts the bridge and connects to it.
+	 *
+	 * The bridge attaches to a browser it does not start, so this runner launches one. Without that it
+	 * would only pass when another runner had already left a Chrome behind, which is not something the
+	 * order of a combined run can promise.
 	 *
 	 * @returns Nothing.
 	 */
 	static async connect(): Promise<void> {
+		await LaunchChrome.run();
+		await GrantActing.run({
+			actingAllowed: true,
+			globallyEnabled: true,
+		});
+		await VerifyBridge._pause(2500);
 		const transport = new StdioClientTransport({
 			command: process.execPath,
 			args: [Path.join(__dirname, 'devtools_protocol_bridge', 'webmcp_bridge.ts')],
@@ -81,6 +93,16 @@ class VerifyBridge {
 		}
 		await VerifyBridge.client.close();
 		VerifyBridge.client = null;
+	}
+
+	/**
+	 * Waits.
+	 *
+	 * @param milliseconds - How long to wait.
+	 * @returns Nothing.
+	 */
+	static async _pause(milliseconds: number): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, milliseconds));
 	}
 
 	/**
@@ -134,16 +156,16 @@ class VerifyBridge {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-describe('Milestone 4 — the bridge carries the page tools to a Model Context Protocol client', () => {
-	before(async () => {
+NodeTest.describe('Milestone 4 — the bridge carries the page tools to a Model Context Protocol client', () => {
+	NodeTest.before(async () => {
 		await VerifyBridge.connect();
 	});
 
-	after(async () => {
+	NodeTest.after(async () => {
 		await VerifyBridge.disconnect();
 	});
 
-	test('tools/list reports the page tools with usable schemas', async (t) => {
+	NodeTest.test('tools/list reports the page tools with usable schemas', async (t) => {
 		const listed = await VerifyBridge._requireClient().listTools();
 		if (listed.tools.length !== 10) {
 			throw new Error(`expected 10 tools, got ${listed.tools.length}`);
@@ -161,7 +183,7 @@ describe('Milestone 4 — the bridge carries the page tools to a Model Context P
 		);
 	});
 
-	test('a tool call reaches the page and changes it', async (t) => {
+	NodeTest.test('a tool call reaches the page and changes it', async (t) => {
 		await VerifyBridge._call('demo_playwright_dev__set_all_completed', { completed: true });
 		await VerifyBridge._call('demo_playwright_dev__clear_completed', {});
 		const before = (await VerifyBridge._call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
@@ -176,7 +198,7 @@ describe('Milestone 4 — the bridge carries the page tools to a Model Context P
 		t.diagnostic(`total ${before.total} then ${after.total} after add_todo`);
 	});
 
-	test('arguments survive the crossing', async (t) => {
+	NodeTest.test('arguments survive the crossing', async (t) => {
 		const listed = (await VerifyBridge._call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
 		const target = listed?.todos.find((todo) => todo.title === 'added over the bridge');
 		if (target === undefined) {
@@ -194,7 +216,7 @@ describe('Milestone 4 — the bridge carries the page tools to a Model Context P
 		t.diagnostic('an identifier and a string both arrived intact');
 	});
 
-	test('a failing tool is reported as an error, not as a result', async (t) => {
+	NodeTest.test('a failing tool is reported as an error, not as a result', async (t) => {
 		const missing = await VerifyBridge._call('demo_playwright_dev__does_not_exist', {});
 		if (missing.isError === false) {
 			throw new Error('calling a tool that does not exist was reported as success');

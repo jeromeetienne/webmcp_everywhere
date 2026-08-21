@@ -6,7 +6,7 @@
 
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
-import { after, before, describe, test } from 'node:test';
+import NodeTest from 'node:test';
 import type { FramedResultOf } from './verify_types.ts';
 
 const TARGET_URL = 'https://caniuse.com/css-grid';
@@ -313,8 +313,8 @@ class VerifyCaniuse {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-describe('The Can I use... adapter, on the live site', () => {
-	before(async () => {
+NodeTest.describe('The Can I use... adapter, on the live site', () => {
+	NodeTest.before(async () => {
 		const launched = await LaunchChrome.run({
 			url: TARGET_URL,
 		});
@@ -327,13 +327,13 @@ describe('The Can I use... adapter, on the live site', () => {
 		};
 	});
 
-	after(() => {
+	NodeTest.after(() => {
 		VerifyCaniuse.context?.page.close();
 		VerifyCaniuse.context = null;
 	});
 
-	describe('with the acting tools withheld', () => {
-		test('the five reading tools register with no opt-in', async (t) => {
+	NodeTest.describe('with the acting tools withheld', () => {
+		NodeTest.test('the five reading tools register with no opt-in', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const names = await VerifyCaniuse._toolNames(page);
 			const expected = [
@@ -347,7 +347,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${names.length} registered: ${names.join(', ')}`);
 		});
 
-		test('the two acting tools are withheld until the user opts in', async (t) => {
+		NodeTest.test('the two acting tools are withheld until the user opts in', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const names = await VerifyCaniuse._toolNames(page);
 			for (const withheld of ['caniuse_com__show_feature', 'caniuse_com__search_on_page']) {
@@ -358,7 +358,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic('show_feature and search_on_page are both absent');
 		});
 
-		test('search_features finds a feature across the whole site index', async (t) => {
+		NodeTest.test('search_features finds a feature across the whole site index', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<SearchFeaturesResult>(page, 'search_features', {
 				query: 'subgrid',
@@ -375,7 +375,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			);
 		});
 
-		test('list_browsers reports every browser with its share of global browsing', async (t) => {
+		NodeTest.test('list_browsers reports every browser with its share of global browsing', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<ListBrowsersResult>(page, 'list_browsers', {});
 			const chrome = result.browsers.find((browser) => browser.id === 'chrome');
@@ -390,7 +390,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			);
 		});
 
-		test('list_page_features reports the feature the page was opened on', async (t) => {
+		NodeTest.test('list_page_features reports the feature the page was opened on', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'list_page_features', {});
 			const ids = result.features.map((feature) => feature.id);
@@ -400,7 +400,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${result.featureCount} on the page: ${ids.join(', ')}`);
 		});
 
-		test('get_feature_support agrees with the percentage the page prints', async (t) => {
+		NodeTest.test('get_feature_support agrees with the percentage the page prints', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'css-grid',
@@ -413,7 +413,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${result.id} at ${computed}, and the page prints "${shown}"`);
 		});
 
-		test('get_feature_support names the version support has held from', async (t) => {
+		NodeTest.test('get_feature_support names the version support has held from', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'css-grid',
@@ -435,7 +435,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			);
 		});
 
-		test('check_support reads one old version rather than the current one', async (t) => {
+		NodeTest.test('check_support reads one old version rather than the current one', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<CheckSupportResult>(page, 'check_support', {
 				browserId: 'ie',
@@ -451,7 +451,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${result.browserName} ${result.version}: ${result.support.meaning}, prefix required`);
 		});
 
-		test('a reading tool refuses a feature that is not on the page', async (t) => {
+		NodeTest.test('a reading tool refuses a feature that is not on the page', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<RefusalResult>(page, 'get_feature_support', {
 				featureId: 'webgpu',
@@ -466,8 +466,8 @@ describe('The Can I use... adapter, on the live site', () => {
 		});
 	});
 
-	describe('with the acting tools granted', () => {
-		before(async () => {
+	NodeTest.describe('with the acting tools granted', () => {
+		NodeTest.before(async () => {
 			const { port, extensionId, page } = VerifyCaniuse._requireContext();
 			await VerifyCaniuse._setGrant(port, extensionId, true, true);
 			page.close();
@@ -478,7 +478,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			};
 		});
 
-		test('the acting tools register once the user opts in', async (t) => {
+		NodeTest.test('the acting tools register once the user opts in', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const names = await VerifyCaniuse._toolNames(page);
 			for (const wanted of ['caniuse_com__show_feature', 'caniuse_com__search_on_page']) {
@@ -489,7 +489,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${names.length} registered, including show_feature and search_on_page`);
 		});
 
-		test('show_feature brings a feature onto the page without reloading it', async (t) => {
+		NodeTest.test('show_feature brings a feature onto the page without reloading it', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			await page.evaluate('window.__verifyCaniuseMarker = "alive", "set"');
 			const result = await VerifyCaniuse._callTool<ShowFeatureResult>(page, 'show_feature', {
@@ -505,7 +505,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`the page moved to ${result.url} and kept its script context`);
 		});
 
-		test('get_feature_support then answers for the feature show_feature brought on', async (t) => {
+		NodeTest.test('get_feature_support then answers for the feature show_feature brought on', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'webgpu',
@@ -518,7 +518,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${result.title} at ${computed}, and the page prints "${shown}"`);
 		});
 
-		test('search_on_page loads several features at once', async (t) => {
+		NodeTest.test('search_on_page loads several features at once', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const result = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'search_on_page', {
 				query: 'container queries',
@@ -533,7 +533,7 @@ describe('The Can I use... adapter, on the live site', () => {
 			t.diagnostic(`${result.featureCount} features, all loaded: ${result.features.map((f) => f.id).join(', ')}`);
 		});
 
-		test('show_feature refuses a feature identifier the site does not have', async (t) => {
+		NodeTest.test('show_feature refuses a feature identifier the site does not have', async (t) => {
 			const { page } = VerifyCaniuse._requireContext();
 			const before = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'list_page_features', {});
 			const result = await VerifyCaniuse._callTool<RefusalResult>(page, 'show_feature', {

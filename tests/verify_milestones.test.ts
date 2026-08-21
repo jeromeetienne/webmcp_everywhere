@@ -6,7 +6,7 @@
 
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
-import { after, before, describe, test } from 'node:test';
+import NodeTest from 'node:test';
 import type {
 	ActiveFilterResult,
 	AddTodoResult,
@@ -265,8 +265,8 @@ class VerifyMilestones {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-describe('The milestones, against a live browser', () => {
-	before(async () => {
+NodeTest.describe('The milestones, against a live browser', () => {
+	NodeTest.before(async () => {
 		const launched = await LaunchChrome.run();
 		const extensionId = await VerifyMilestones._extensionId(launched.port);
 		await VerifyMilestones._setGrant(launched.port, extensionId, false, true);
@@ -280,13 +280,13 @@ describe('The milestones, against a live browser', () => {
 		};
 	});
 
-	after(() => {
+	NodeTest.after(() => {
 		VerifyMilestones.context?.page.close();
 		VerifyMilestones.context = null;
 	});
 
-	describe('Milestone 3 — permission classes are enforced, not self-reported', () => {
-		test('read-only tools register with no opt-in', async (t) => {
+	NodeTest.describe('Milestone 3 — permission classes are enforced, not self-reported', () => {
+		NodeTest.test('read-only tools register with no opt-in', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			const names = await VerifyMilestones._toolNames(page);
 			const expected = ['count_todos', 'get_active_filter', 'list_todos'].map(
@@ -296,7 +296,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic(`${names.length} registered: ${names.join(', ')}`);
 		});
 
-		test('acting tools are withheld until the user opts in', async (t) => {
+		NodeTest.test('acting tools are withheld until the user opts in', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			const names = await VerifyMilestones._toolNames(page);
 			const acting = names.filter((name) => name.includes('add_todo') || name.includes('delete_todo'));
@@ -308,8 +308,8 @@ describe('The milestones, against a live browser', () => {
 		});
 	});
 
-	describe('Milestone 2 — the read-only tools tell the truth about the page', () => {
-		test('list_todos and count_todos agree with the page', async (t) => {
+	NodeTest.describe('Milestone 2 — the read-only tools tell the truth about the page', () => {
+		NodeTest.test('list_todos and count_todos agree with the page', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._seed(page, ['alpha', 'beta', 'gamma']);
 			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
@@ -325,7 +325,7 @@ describe('The milestones, against a live browser', () => {
 			);
 		});
 
-		test('get_active_filter follows the page', async (t) => {
+		NodeTest.test('get_active_filter follows the page', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await page.evaluate('location.hash = "#/active"');
 			await VerifyMilestones._pause(400);
@@ -339,7 +339,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic('reported active, then all');
 		});
 
-		test('tools survive same-document navigation', async (t) => {
+		NodeTest.test('tools survive same-document navigation', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await page.evaluate('location.hash = "#/completed"');
 			await VerifyMilestones._pause(600);
@@ -353,8 +353,8 @@ describe('The milestones, against a live browser', () => {
 		});
 	});
 
-	describe('Milestone 3 — granting acting rights changes what is registered, live', () => {
-		test('acting tools appear once the user opts in', async (t) => {
+	NodeTest.describe('Milestone 3 — granting acting rights changes what is registered, live', () => {
+		NodeTest.test('acting tools appear once the user opts in', async (t) => {
 			const { port, extensionId, page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._setGrant(port, extensionId, true, true);
 			await VerifyMilestones._pause(1200);
@@ -366,8 +366,8 @@ describe('The milestones, against a live browser', () => {
 		});
 	});
 
-	describe('Milestone 2 — the acting tools really drive the page', () => {
-		test('add_todo adds a todo', async (t) => {
+	NodeTest.describe('Milestone 2 — the acting tools really drive the page', () => {
+		NodeTest.test('add_todo adds a todo', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			const before = (await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos')).total;
 			const added = await VerifyMilestones._callTool<AddTodoResult>(page, 'add_todo', { title: 'buy milk' });
@@ -378,7 +378,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic(`added "${added.added.title}" with id ${added.added.id.slice(0, 8)}…, total now ${after}`);
 		});
 
-		test('set_todo_completed marks a todo done', async (t) => {
+		NodeTest.test('set_todo_completed marks a todo done', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const target = listed.todos.find((todo) => todo.title === 'buy milk');
@@ -393,7 +393,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic(`"buy milk" is done; ${counted.active} active, ${counted.completed} completed`);
 		});
 
-		test('edit_todo renames a todo', async (t) => {
+		NodeTest.test('edit_todo renames a todo', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
 			const target = listed.todos.find((todo) => todo.title === 'alpha');
@@ -409,7 +409,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic('alpha became "alpha renamed"');
 		});
 
-		test('an acting tool reaches a todo the filter is hiding', async (t) => {
+		NodeTest.test('an acting tool reaches a todo the filter is hiding', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._callTool(page, 'set_active_filter', { filter: 'completed' });
 			const listed = await VerifyMilestones._callTool<ListTodosResult>(page, 'list_todos');
@@ -431,7 +431,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic('edited a hidden todo and put the filter back to completed');
 		});
 
-		test('clear_completed and set_all_completed work', async (t) => {
+		NodeTest.test('clear_completed and set_all_completed work', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._callTool(page, 'set_all_completed', { completed: true });
 			const allDone = await VerifyMilestones._callTool<CountTodosResult>(page, 'count_todos');
@@ -446,7 +446,7 @@ describe('The milestones, against a live browser', () => {
 			t.diagnostic(`marked ${allDone.completed} done, then cleared ${cleared.cleared}, leaving ${empty.total}`);
 		});
 
-		test('delete_todo removes one todo', async (t) => {
+		NodeTest.test('delete_todo removes one todo', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._callTool(page, 'add_todo', { title: 'doomed' });
 			await VerifyMilestones._callTool(page, 'add_todo', { title: 'survivor' });
@@ -464,8 +464,8 @@ describe('The milestones, against a live browser', () => {
 		});
 	});
 
-	describe('Milestone 3 — the kill switch really kills', () => {
-		test('the global kill switch unregisters everything', async (t) => {
+	NodeTest.describe('Milestone 3 — the kill switch really kills', () => {
+		NodeTest.test('the global kill switch unregisters everything', async (t) => {
 			const { port, extensionId, page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._setGrant(port, extensionId, true, false);
 			await VerifyMilestones._pause(1200);
@@ -480,8 +480,8 @@ describe('The milestones, against a live browser', () => {
 		});
 	});
 
-	describe('Milestone 5 — the adapter yields to a first-party tool surface', () => {
-		test('the adapter stands down when the site ships its own tools', async (t) => {
+	NodeTest.describe('Milestone 5 — the adapter yields to a first-party tool surface', () => {
+		NodeTest.test('the adapter stands down when the site ships its own tools', async (t) => {
 			const { page } = VerifyMilestones._requireContext();
 			await VerifyMilestones._injectFirstPartyTool(page);
 			await page.navigate(TARGET_URL, 3500);

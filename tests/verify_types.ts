@@ -111,21 +111,3 @@ export type ClearCompletedResult = {
 	/** How many completed todos were removed. */
 	cleared: number;
 };
-
-/** How many checks passed and how many failed. */
-export type CheckOutcome = {
-	/** How many checks passed. */
-	passed: number;
-	/** How many checks failed. */
-	failed: number;
-};
-
-/** One check's result, kept so the whole run can be reported at the end. */
-export type CheckResult = {
-	/** What was being checked. */
-	name: string;
-	/** Whether it passed. */
-	ok: boolean;
-	/** The detail line, either the check's own or the failure's message. */
-	detail: string;
-};
