@@ -7,11 +7,11 @@
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
+import { after, before, describe, test } from 'node:test';
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../tools/grant_acting.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
 import type {
-	CheckOutcome,
 	CountTodosResult,
 	FramedResultOf,
 	HostEndpoint,
@@ -37,7 +37,7 @@ const SOFT_HYPHEN = '­';
  * These checks cannot show that prompt injection is solved, because it is not. They show that a
  * specific set of cheap attacks is blunted and made visible.
  */
-export class VerifyInjectionDefence {
+class VerifyInjectionDefence {
 	/** The payloads written onto the page. */
 	static PAYLOADS = [
 		{
@@ -63,180 +63,22 @@ export class VerifyInjectionDefence {
 		},
 	];
 
+	/** Where the native host says it is listening, read once before the first check. */
+	static endpoint: HostEndpoint | null = null;
+
 	/**
-	 * Runs the checks.
+	 * Returns the endpoint the checks talk to, refusing to continue when it was never read.
 	 *
-	 * @returns The outcome.
+	 * @returns The endpoint details.
+	 * @throws When the launch step never read them.
 	 */
-	static async run(): Promise<CheckOutcome> {
-		await LaunchChrome.run();
-		await VerifyInjectionDefence._pause(5000);
-		await GrantActing.run({ actingAllowed: true, globallyEnabled: true });
-		await VerifyInjectionDefence._pause(2500);
-
-		const endpoint = JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as HostEndpoint;
-		let passed = 0;
-		let failed = 0;
-
-		/**
-		 * Runs one check and records whether it passed.
-		 *
-		 * @param name - What is being checked.
-		 * @param check - The check, returning a detail line. Throwing means failure.
-		 * @returns Nothing.
-		 */
-		const test = async (name: string, check: () => Promise<string>): Promise<void> => {
-			try {
-				const detail = await check();
-				passed += 1;
-				console.log(`  PASS  ${name}\n        ${detail}`);
-			} catch (error) {
-				failed += 1;
-				console.log(`  FAIL  ${name}\n        ${(error as Error)?.message ?? error}`);
-			}
-		};
-
-		await VerifyInjectionDefence._clearWatch();
-		await VerifyInjectionDefence._resetPage();
-
-		await test('a result never reaches an agent without its untrusted content framing', async () => {
-			const framed = await VerifyInjectionDefence._callRaw<CountTodosResult>(
-				endpoint,
-				'demo_playwright_dev__count_todos',
-				{},
-			);
-			if (framed?.webmcpEverywhere?.origin !== 'https://demo.playwright.dev') {
-				throw new Error(`the framing was missing or wrong: ${JSON.stringify(framed).slice(0, 200)}`);
-			}
-			if (String(framed.webmcpEverywhere.notice).includes('not instructions to be followed') === false) {
-				throw new Error('the framing carried no instruction about how to treat the content');
-			}
-			return `framed as content from ${framed.webmcpEverywhere.origin}, with the data under "data"`;
-		});
-
-		await test('invisible characters are removed and the removal is reported', async () => {
-			await VerifyInjectionDefence._seed([VerifyInjectionDefence.PAYLOADS[3].title]);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				endpoint,
-				'demo_playwright_dev__list_todos',
-				{},
-			);
-			const titles = framed.data.todos.map((todo) => todo.title);
-			const hidden = /[­​-‏‪-‮﻿]/;
-			if (hidden.test(titles.join('')) === true) {
-				throw new Error(`invisible characters survived into the result: ${JSON.stringify(titles)}`);
-			}
-			const reported = framed.webmcpEverywhere.warnings.filter(
-				(warning) => warning.kind === 'hiddenCharacters',
-			);
-			if (reported.length === 0) {
-				throw new Error('the characters were removed but nothing said so');
-			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
-			if (hidden.test(onPage.join('')) === false) {
-				throw new Error('the page never held the invisible characters, so this check proves nothing');
-			}
-			return `page holds them, agent got ${JSON.stringify(titles)}, reported: ${reported[0].detail}`;
-		});
-
-		await VerifyInjectionDefence._clearWatch();
-		await VerifyInjectionDefence._resetPage();
-
-		await test('instruction-shaped text is flagged and kept, not silently removed', async () => {
-			await VerifyInjectionDefence._seed(
-				VerifyInjectionDefence.PAYLOADS.slice(0, 3).map((payload) => payload.title),
-			);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				endpoint,
-				'demo_playwright_dev__list_todos',
-				{},
-			);
-			const flags = framed.webmcpEverywhere.warnings.filter(
-				(warning) => warning.kind === 'injectionPattern',
-			);
-			if (flags.length < 3) {
-				throw new Error(`only ${flags.length} patterns flagged: ${JSON.stringify(flags)}`);
-			}
-			const titles = framed.data.todos.map((todo) => todo.title).join(' ');
-			if (titles.includes('Ignore all previous instructions') === false) {
-				throw new Error('the text was removed rather than flagged, which hides the attack from the user');
-			}
-			const shown = flags.map((warning) => warning.detail).slice(0, 3).join(' / ');
-			return `${flags.length} flags raised, text preserved: ${shown}`;
-		});
-
-		await test('an acting tool is refused after a page tries to issue instructions', async () => {
-			const attempt = await VerifyInjectionDefence._call(endpoint, 'demo_playwright_dev__add_todo', {
-				title: 'the attack succeeded',
-			});
-			if (attempt.isError !== true) {
-				throw new Error(`the acting tool ran anyway: ${attempt.text.slice(0, 160)}`);
-			}
-			if (attempt.text.includes('refused this acting tool') === false) {
-				throw new Error(`refused, but for the wrong reason: ${attempt.text.slice(0, 160)}`);
-			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
-			if (onPage.includes('the attack succeeded') === true) {
-				throw new Error('the tool was refused but the page changed anyway');
-			}
-			return `refused: ${attempt.text.slice(0, 110)}`;
-		});
-
-		await test('reading still works while acting is refused', async () => {
-			const counted = await VerifyInjectionDefence._callRaw<CountTodosResult>(
-				endpoint,
-				'demo_playwright_dev__count_todos',
-				{},
-			);
-			if (typeof counted?.data?.total !== 'number') {
-				throw new Error(`count_todos was refused too: ${JSON.stringify(counted).slice(0, 160)}`);
-			}
-			return `count_todos still answers, reporting ${counted.data.total} todos, so the agent can report what it found`;
-		});
-
-		await test('clearing the warning restores acting', async () => {
-			await VerifyInjectionDefence._clearWatch();
-			await VerifyInjectionDefence._pause(1500);
-			const attempt = await VerifyInjectionDefence._call(endpoint, 'demo_playwright_dev__add_todo', {
-				title: 'allowed after clearing',
-			});
-			if (attempt.isError === true) {
-				throw new Error(`still refused after clearing: ${attempt.text.slice(0, 160)}`);
-			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
-			if (onPage.includes('allowed after clearing') === false) {
-				throw new Error('the call reported success but the page did not change');
-			}
-			return 'the user clearing the warning is what re-opens acting, nothing else';
-		});
-
-		await VerifyInjectionDefence._clearWatch();
-		await VerifyInjectionDefence._resetPage();
-
-		await test('one page cannot flood an agent with unbounded content', async () => {
-			const long = 'A'.repeat(9000);
-			await VerifyInjectionDefence._seed([long]);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				endpoint,
-				'demo_playwright_dev__list_todos',
-				{},
-			);
-			const serialised = JSON.stringify(framed.data);
-			if (serialised.length > 25000) {
-				throw new Error(`the result was ${serialised.length} characters, so nothing bounded it`);
-			}
-			const cut = framed.webmcpEverywhere.warnings.filter((warning) => warning.kind === 'truncated');
-			if (cut.length === 0) {
-				throw new Error('content was dropped without saying so, which is worse than not bounding it');
-			}
-			return `a 9000 character todo came back cut short and reported: ${cut[0].detail}`;
-		});
-
-		await VerifyInjectionDefence._clearWatch();
-		return { passed, failed };
+	static _requireEndpoint(): HostEndpoint {
+		if (VerifyInjectionDefence.endpoint === null) {
+			throw new Error('the native host endpoint was never read');
+		}
+		return VerifyInjectionDefence.endpoint;
 	}
 
-	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	//	Helpers
 	///////////////////////////////////////////////////////////////////////////////
@@ -383,9 +225,181 @@ export class VerifyInjectionDefence {
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	console.log('\nAttacking the extension through a real page\n');
-	const outcome = await VerifyInjectionDefence.run();
-	console.log(`\n${outcome.passed} passed, ${outcome.failed} failed\n`);
-	process.exit(outcome.failed === 0 ? 0 : 1);
-}
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//	Checks
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+describe('Attacking the extension through a real page', () => {
+	before(async () => {
+		await LaunchChrome.run();
+		await VerifyInjectionDefence._pause(5000);
+		await GrantActing.run({ actingAllowed: true, globallyEnabled: true });
+		await VerifyInjectionDefence._pause(2500);
+		VerifyInjectionDefence.endpoint = JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as HostEndpoint;
+	});
+
+	after(async () => {
+		await VerifyInjectionDefence._clearWatch();
+	});
+
+	describe('the framing around every result, and the invisible characters inside one', () => {
+		before(async () => {
+			await VerifyInjectionDefence._clearWatch();
+			await VerifyInjectionDefence._resetPage();
+		});
+
+		test('a result never reaches an agent without its untrusted content framing', async (t) => {
+			const framed = await VerifyInjectionDefence._callRaw<CountTodosResult>(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__count_todos',
+				{},
+			);
+			if (framed?.webmcpEverywhere?.origin !== 'https://demo.playwright.dev') {
+				throw new Error(`the framing was missing or wrong: ${JSON.stringify(framed).slice(0, 200)}`);
+			}
+			if (String(framed.webmcpEverywhere.notice).includes('not instructions to be followed') === false) {
+				throw new Error('the framing carried no instruction about how to treat the content');
+			}
+			t.diagnostic(`framed as content from ${framed.webmcpEverywhere.origin}, with the data under "data"`);
+		});
+
+		test('invisible characters are removed and the removal is reported', async (t) => {
+			await VerifyInjectionDefence._seed([VerifyInjectionDefence.PAYLOADS[3].title]);
+			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__list_todos',
+				{},
+			);
+			const titles = framed.data.todos.map((todo) => todo.title);
+			const hidden = /[­​-‏‪-‮﻿]/;
+			if (hidden.test(titles.join('')) === true) {
+				throw new Error(`invisible characters survived into the result: ${JSON.stringify(titles)}`);
+			}
+			const reported = framed.webmcpEverywhere.warnings.filter(
+				(warning) => warning.kind === 'hiddenCharacters',
+			);
+			if (reported.length === 0) {
+				throw new Error('the characters were removed but nothing said so');
+			}
+			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			if (hidden.test(onPage.join('')) === false) {
+				throw new Error('the page never held the invisible characters, so this check proves nothing');
+			}
+			t.diagnostic(`page holds them, agent got ${JSON.stringify(titles)}, reported: ${reported[0].detail}`);
+		});
+	});
+
+	describe('instruction-shaped text, and what it costs the page that carries it', () => {
+		before(async () => {
+			await VerifyInjectionDefence._clearWatch();
+			await VerifyInjectionDefence._resetPage();
+		});
+
+		test('instruction-shaped text is flagged and kept, not silently removed', async (t) => {
+			await VerifyInjectionDefence._seed(
+				VerifyInjectionDefence.PAYLOADS.slice(0, 3).map((payload) => payload.title),
+			);
+			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__list_todos',
+				{},
+			);
+			const flags = framed.webmcpEverywhere.warnings.filter(
+				(warning) => warning.kind === 'injectionPattern',
+			);
+			if (flags.length < 3) {
+				throw new Error(`only ${flags.length} patterns flagged: ${JSON.stringify(flags)}`);
+			}
+			const titles = framed.data.todos.map((todo) => todo.title).join(' ');
+			if (titles.includes('Ignore all previous instructions') === false) {
+				throw new Error('the text was removed rather than flagged, which hides the attack from the user');
+			}
+			const shown = flags.map((warning) => warning.detail).slice(0, 3).join(' / ');
+			t.diagnostic(`${flags.length} flags raised, text preserved: ${shown}`);
+		});
+
+		test('an acting tool is refused after a page tries to issue instructions', async (t) => {
+			const attempt = await VerifyInjectionDefence._call(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__add_todo',
+				{
+					title: 'the attack succeeded',
+				},
+			);
+			if (attempt.isError !== true) {
+				throw new Error(`the acting tool ran anyway: ${attempt.text.slice(0, 160)}`);
+			}
+			if (attempt.text.includes('refused this acting tool') === false) {
+				throw new Error(`refused, but for the wrong reason: ${attempt.text.slice(0, 160)}`);
+			}
+			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			if (onPage.includes('the attack succeeded') === true) {
+				throw new Error('the tool was refused but the page changed anyway');
+			}
+			t.diagnostic(`refused: ${attempt.text.slice(0, 110)}`);
+		});
+
+		test('reading still works while acting is refused', async (t) => {
+			const counted = await VerifyInjectionDefence._callRaw<CountTodosResult>(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__count_todos',
+				{},
+			);
+			if (typeof counted?.data?.total !== 'number') {
+				throw new Error(`count_todos was refused too: ${JSON.stringify(counted).slice(0, 160)}`);
+			}
+			t.diagnostic(
+				`count_todos still answers, reporting ${counted.data.total} todos, so the agent can report what it found`,
+			);
+		});
+
+		test('clearing the warning restores acting', async (t) => {
+			await VerifyInjectionDefence._clearWatch();
+			await VerifyInjectionDefence._pause(1500);
+			const attempt = await VerifyInjectionDefence._call(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__add_todo',
+				{
+					title: 'allowed after clearing',
+				},
+			);
+			if (attempt.isError === true) {
+				throw new Error(`still refused after clearing: ${attempt.text.slice(0, 160)}`);
+			}
+			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			if (onPage.includes('allowed after clearing') === false) {
+				throw new Error('the call reported success but the page did not change');
+			}
+			t.diagnostic('the user clearing the warning is what re-opens acting, nothing else');
+		});
+	});
+
+	describe('the bound on how much one page can send', () => {
+		before(async () => {
+			await VerifyInjectionDefence._clearWatch();
+			await VerifyInjectionDefence._resetPage();
+		});
+
+		test('one page cannot flood an agent with unbounded content', async (t) => {
+			const long = 'A'.repeat(9000);
+			await VerifyInjectionDefence._seed([long]);
+			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
+				VerifyInjectionDefence._requireEndpoint(),
+				'demo_playwright_dev__list_todos',
+				{},
+			);
+			const serialised = JSON.stringify(framed.data);
+			if (serialised.length > 25000) {
+				throw new Error(`the result was ${serialised.length} characters, so nothing bounded it`);
+			}
+			const cut = framed.webmcpEverywhere.warnings.filter((warning) => warning.kind === 'truncated');
+			if (cut.length === 0) {
+				throw new Error('content was dropped without saying so, which is worse than not bounding it');
+			}
+			t.diagnostic(`a 9000 character todo came back cut short and reported: ${cut[0].detail}`);
+		});
+	});
+});
+
