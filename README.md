@@ -43,7 +43,7 @@ npm install
 npm run build           # checks every adapter, then bundles the extension
 npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
-npm run verify:host     # 8 checks over the real delivery path
+npm run verify:host     # 10 checks over the real delivery path
 ```
 
 The native messaging host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
