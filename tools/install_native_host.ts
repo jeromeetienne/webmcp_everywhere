@@ -98,7 +98,7 @@ export class InstallNativeHost {
 	 */
 	static _writeLauncher(): string {
 		const repoRoot = Path.join(__dirname, '..');
-		const launcher = Path.join(repoRoot, 'bin', 'webmcp_native_host');
+		const launcher = Path.join(repoRoot, 'bin', 'webmcp_native_host.sh');
 		const hostScript = Path.join(repoRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts');
 		Fs.mkdirSync(Path.dirname(launcher), {
 			recursive: true,
