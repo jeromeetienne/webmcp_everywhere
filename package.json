@@ -10,6 +10,7 @@
 	"scripts": {
 		"build": "node tools/build_extension.ts",
 		"test": "node --test --test-concurrency=1",
+		"test:visible": "WEBMCP_EVERYWHERE_CHROME_VISIBILITY=visible node --test --test-concurrency=1",
 		"chrome": "node tools/launch_chrome.ts",
 		"verify": "node --test tests/verify_milestones.test.ts",
 		"bridge": "node tests/devtools_protocol_bridge/webmcp_bridge.ts",

@@ -16,9 +16,10 @@ Everything that builds, installs, or launches the product. The code that checks 
 - `install_native_host.ts` never writes the native messaging host manifest out of string literals. It fills in `data/native_messaging_template/com.webmcp_everywhere.host.json` — see that folder's own CONTEXT.md.
 - Nothing in `src/` imports from here. `npm run verify:boundary` refuses any relative import that leaves `src/`.
 - The build writes to `build/chrome_extension/` and copies `manifest.json` and `user_interface/popup.html` in beside the bundles, because Chrome loads an unpacked extension from the folder that holds `manifest.json`. Nothing is ever written into `src/`.
-- Every file here is TypeScript that Node.js runs directly, so it must stay within erasable syntax: no `enum`, no `namespace` holding runtime code, no parameter properties, and no decorators. `npm run typecheck` checks this folder through the single `tsconfig.json` at the repository root.
+- Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks that.
 - Never use `--load-extension`. Chrome 151 ignores it silently, leaving zero extensions installed and nothing in the log. Install with the Chrome DevTools Protocol method `Extensions.loadUnpacked`.
 - The profile needs `enable-webmcp-testing@1` in `Local State` before launch, or `document.modelContext` is absent, and `extensions.ui.developer_mode` in `Preferences`, or the extension installs but its content scripts never run.
+- `LaunchChrome` launches hidden unless `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is `visible`; `npm run chrome` shows one. Hidden is `--headless=new`, which still installs the extension and still starts the native messaging host.
 - The launcher deletes the profile before every launch. Chrome does not re-read an unpacked extension it has already installed, so keeping the profile silently runs the previous build, and every check still passes while testing old code.
 
 ## Background

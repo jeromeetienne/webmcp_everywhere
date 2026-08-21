@@ -77,7 +77,25 @@ npm run verify:bridge   # 4 checks through the stdio Model Context Protocol brid
 
 Every check is written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs all 50 of them, one runner at a time, in about a minute and a half. Each runner launches its own throwaway Chrome, so none of them needs a browser to be up first.
 
+```bash
+npm test                # all 50 checks, with Chrome hidden
+npm run test:visible    # the same 50 checks, with Chrome on screen
+```
+
 The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
+
+## Environment variables
+
+Every variable below is optional, and every one of them has a working default.
+
+| Variable | Values | Default | What it changes |
+| --- | --- | --- | --- |
+| `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. `npm run test:visible` sets this to `visible`. |
+| `WEBMCP_HOST_PORT` | a port number | `8765` | Where the native messaging host serves Model Context Protocol over HTTP. |
+| `WEBMCP_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
+| `WEBMCP_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
+
+Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rather than ignored, so a typo fails the run instead of silently showing a window.
 
 ## Launching Chrome
 

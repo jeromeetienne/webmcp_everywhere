@@ -19,6 +19,9 @@ const __dirname = import.meta.dirname;
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+/** Whether a launched Chrome puts a window on the screen. */
+export type ChromeVisibility = 'visible' | 'hidden';
+
 /** How to launch. */
 export type LaunchChromeOptions = {
 	/** Where to keep the throwaway profile. */
@@ -29,6 +32,8 @@ export type LaunchChromeOptions = {
 	url?: string;
 	/** Keep the existing profile, and with it the previous build. */
 	keepProfile?: boolean;
+	/** Whether to put a window on the screen. Falls back to the environment, then to hidden. */
+	visibility?: ChromeVisibility;
 };
 
 /** How to reach the Chrome that was launched. */
@@ -83,6 +88,9 @@ export class LaunchChrome {
 	/** The remote debugging port everything else in this repository expects. */
 	static PORT = 9333;
 
+	/** The environment variable that says whether a launched Chrome puts a window on the screen. */
+	static VISIBILITY_VARIABLE = 'WEBMCP_EVERYWHERE_CHROME_VISIBILITY';
+
 	/** The page the extension is built to adapt. */
 	static TARGET_URL = 'https://demo.playwright.dev/todomvc/';
 
@@ -101,6 +109,7 @@ export class LaunchChrome {
 		const port = options.port ?? LaunchChrome.PORT;
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
+		const visibility = options.visibility ?? LaunchChrome._visibilityFromEnvironment() ?? 'hidden';
 		const extensionDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
@@ -119,22 +128,23 @@ export class LaunchChrome {
 			userDataDirs: [profileDir],
 		});
 
-		const childProcess = ChildProcess.spawn(
-			LaunchChrome.CHROME_PATH,
-			[
-				`--user-data-dir=${profileDir}`,
-				`--remote-debugging-port=${port}`,
-				'--enable-unsafe-extension-debugging',
-				'--no-first-run',
-				'--no-default-browser-check',
-				'--disable-sync',
-				'about:blank',
-			],
-			{
-				detached: true,
-				stdio: 'ignore',
-			},
-		);
+		const args = [
+			`--user-data-dir=${profileDir}`,
+			`--remote-debugging-port=${port}`,
+			'--enable-unsafe-extension-debugging',
+			'--no-first-run',
+			'--no-default-browser-check',
+			'--disable-sync',
+		];
+		if (visibility === 'hidden') {
+			args.push('--headless=new');
+		}
+		args.push('about:blank');
+
+		const childProcess = ChildProcess.spawn(LaunchChrome.CHROME_PATH, args, {
+			detached: true,
+			stdio: 'ignore',
+		});
 		childProcess.unref();
 
 		await CdpClient.waitUntilReady(port);
@@ -210,6 +220,25 @@ export class LaunchChrome {
 	}
 
 	/**
+	 * Reads the visibility the environment asks for.
+	 *
+	 * @returns What the environment asked for, or null when it asked for nothing.
+	 * @throws When the variable is set to anything other than `visible` or `hidden`.
+	 */
+	static _visibilityFromEnvironment(): ChromeVisibility | null {
+		const value = process.env[LaunchChrome.VISIBILITY_VARIABLE];
+		if (value === undefined || value === '') {
+			return null;
+		}
+		if (value !== 'visible' && value !== 'hidden') {
+			throw new Error(
+				`${LaunchChrome.VISIBILITY_VARIABLE} must be 'visible' or 'hidden', not '${value}'`,
+			);
+		}
+		return value;
+	}
+
+	/**
 	 * Stops any Chrome already running on this profile, so a relaunch picks up new settings.
 	 *
 	 * @param profileDir - The profile directory whose Chrome should be stopped.
@@ -226,8 +255,13 @@ export class LaunchChrome {
 }
 
 if (import.meta.filename === process.argv[1]) {
-	const result = await LaunchChrome.run();
-	console.log(`Chrome ready on port ${result.port}`);
+	// This command exists to hand somebody a browser to look at, so it shows one unless the
+	// environment says otherwise. The checks under tests/ hide theirs instead.
+	const visibility = LaunchChrome._visibilityFromEnvironment() ?? 'visible';
+	const result = await LaunchChrome.run({
+		visibility: visibility,
+	});
+	console.log(`Chrome ready on port ${result.port}, ${visibility}`);
 	console.log(`extension installed as ${result.extensionId}`);
 	console.log(`profile at ${result.profileDir}`);
 }
