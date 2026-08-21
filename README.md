@@ -13,37 +13,28 @@ Two sites are covered.
 
 On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
 
-## How an agent reaches the browser
-
-```
-any agent ──HTTP MCP──> native messaging host ──native messaging──> extension ──> document.modelContext
-                        (Chrome starts it on demand)
-```
-
-The native messaging host exists because **a Chrome extension cannot listen on a port**. Measured on Chrome 151: `chrome.sockets` and `chrome.sockets.tcpServer` are undefined, and Manifest Version 3 exposes no server interface at all — only outbound `fetch` and `WebSocket`. Something native has to hold the socket, and Chrome starts that program itself when the extension connects, so nothing needs launching by hand.
-
-Every request travels through the extension, which is the only place that knows which tabs have adapters and what you have allowed. The host itself decides nothing about permissions.
-
-## Glossary
-
-Three of the words in this repository are Chrome's, not ours. They are defined in [Chrome's native messaging documentation](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging).
-
-- **Native messaging** — the way a Chrome extension exchanges messages with a program on your machine. Chrome starts the program as a child process and passes messages to it on standard input, reading the answers from standard output. Each message is JSON with a four-byte length in front of it. The extension asks for this with the `nativeMessaging` permission and opens the connection with `chrome.runtime.connectNative`.
-- **Native messaging host** — the program at the other end. It is an ordinary application on your machine, in this repository a Node.js program. Chrome starts it; you do not.
-- **Native messaging host manifest file** — the JSON file that tells Chrome which program to start and which extensions may connect to it. Chrome reads it from a directory named `NativeMessagingHosts`, and the file is named after the host name it declares.
-
-The word "host" is a poor fit and the confusion it causes is Chrome's, not yours. In networking a host is a machine, and a program that accepts connections is a server; this is neither. It is simply an application that Chrome launches and talks to. The name cannot be avoided, because Chrome fixes it in the directory name, in the permission, and in the manifest, so this repository uses Chrome's full term everywhere and never shortens it to "native host".
-
 ## Try it
 
-You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156.
+You need Google Chrome 149 or later and Node.js 22.18.0 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156.
 
 ```bash
 npm install
+```
+
+```bash
 npm run build           # checks every adapter, then bundles the extension
+```
+
+```bash
 npm run install:host    # registers the native messaging host with Chrome
+```
+
+```bash
 npm run chrome          # launches a throwaway Chrome with the extension installed
-npm run verify:host     # 10 checks over the real delivery path
+```
+
+```bash
+npm run verify:host     # checks the real delivery path
 ```
 
 The native messaging host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
@@ -52,61 +43,42 @@ Point Codex at it:
 
 ```bash
 export WEBMCP_EVERYWHERE_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
+```
+
+```bash
 export WEBMCP_EVERYWHERE_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
+```
+
+```bash
 codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
 
 Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`.
 
-To call the tools by hand, without an agent in the way, open the Model Context Protocol Inspector. It starts already pointed at the host, with the url and the token read from `endpoint.json`:
+## How it works
 
-```bash
-npm run mcp:inspector:start
-npm run mcp:inspector:stop
+An agent reaches the browser through a native messaging host, because a Chrome extension cannot listen on a port.
+
+```
+any agent ──HTTP Model Context Protocol──> native messaging host ──native messaging──> extension ──> document.modelContext
+                        (Chrome starts it on demand)
 ```
 
-## The other two paths
+Everything else is explained in **[the documentation in `docs/`](docs/README.md)**.
 
-Both exist for testing and neither is the product.
-
-```bash
-npm run verify          # 14 checks driving the TodoMVC page over the Chrome DevTools Protocol
-npm run verify:caniuse  # 14 checks driving https://caniuse.com/ the same way
-npm run verify:bridge   # 4 checks through the stdio Model Context Protocol bridge
-```
-
-Every check is written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs all 50 of them, one runner at a time, in about a minute and a half. Each runner launches its own throwaway Chrome, so none of them needs a browser to be up first.
-
-```bash
-npm test                # all 50 checks, with Chrome hidden
-npm run test:visible    # the same 50 checks, with Chrome on screen
-```
-
-The Chrome DevTools Protocol path needs a browser launched with a debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
-
-## Environment variables
-
-Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what it changes, so one prefix covers all of them and nothing of ours can collide with anything else in your shell. Every variable below is optional, and every one of them has a working default.
-
-| Variable | Values | Default | What it changes |
-| --- | --- | --- | --- |
-| `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. `npm run test:visible` sets this to `visible`. |
-| `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | Where the native messaging host serves Model Context Protocol over HTTP. |
-| `WEBMCP_EVERYWHERE_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
-| `WEBMCP_EVERYWHERE_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
-
-Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rather than ignored, so a typo fails the run instead of silently showing a window.
-
-## Launching Chrome
-
-`npm run chrome` uses a throwaway profile and never touches your everyday Chrome. It handles four steps that are each silent when they go wrong:
-
-1. `enable-webmcp-testing@1` goes into the profile's `Local State`, or `document.modelContext` is simply absent.
-2. `extensions.ui.developer_mode` goes into `Preferences`, or the extension installs but its content scripts never run.
-3. Chrome launches with `--enable-unsafe-extension-debugging`.
-4. The extension is installed with `Extensions.loadUnpacked` over the Chrome DevTools Protocol.
-
-**Do not reach for `--load-extension`.** Chrome 151 ignores it, leaving zero extensions installed and nothing in the log.
+| Document | What it answers |
+| --- | --- |
+| [architecture_overview.md](docs/architecture_overview.md) | The four parts, and how a tool call travels between them |
+| [why_a_native_messaging_host.md](docs/why_a_native_messaging_host.md) | Why a Chrome extension cannot hold the port itself |
+| [tool_call_lifecycle.md](docs/tool_call_lifecycle.md) | One tool call, followed end to end |
+| [tool_naming_and_tab_identity.md](docs/tool_naming_and_tab_identity.md) | How a tool gets its name, and how two tabs are told apart |
+| [adapter_format.md](docs/adapter_format.md) | What a site adapter is, and what the build checks |
+| [write_a_site_adapter.md](docs/write_a_site_adapter.md) | How to cover a new site |
+| [permissions_and_trust.md](docs/permissions_and_trust.md) | Why acting tools are withheld, and where that is enforced |
+| [security_model.md](docs/security_model.md) | What is defended, and what plainly is not |
+| [testing_and_verification.md](docs/testing_and_verification.md) | The three paths to the browser, and which runner covers which |
+| [build_and_install.md](docs/build_and_install.md) | What each command writes, and every environment variable |
+| [troubleshooting.md](docs/troubleshooting.md) | The failures that report nothing |
 
 ## Layout
 
@@ -118,17 +90,30 @@ Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rat
 - `src/native_messaging_host/` — the native messaging host and its HTTP endpoint.
 - `tools/` — build, launch, and install, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
 - `tests/` — the verification runners, and the stdio bridge one of them checks.
+- `docs/` — how all of it works.
 - `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
 
 Each folder has its own `CONTEXT.md`.
 
+## Checking it
+
+```bash
+npm test                # every check, with Chrome hidden
+```
+
+```bash
+npm run test:visible    # the same checks, with Chrome on screen
+```
+
+Every check drives a real Chrome and asserts against state read back out of a live page. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+
 ## What this is not
 
-There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Prompt injection is untouched: tool outputs are page content handed straight into an agent's context, unbounded and unlabelled. None of that can be designed honestly until one adapter has been written and has broken at least once.
+There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Prompt injection is untouched: tool outputs are page content handed straight into an agent's context. What is and is not defended is set out honestly in [security_model.md](docs/security_model.md). None of the rest can be designed honestly until one adapter has been written and has broken at least once.
 
 ## Useful links
 
-- `chrome://extensions` — the Chrome extensions page, where the unpacked extension shows up, and where you reload it and read its errors.
+- `chrome://extensions` — where the unpacked extension shows up, where you reload it, and where you read its errors.
 - `chrome://extensions/shortcuts` — the keyboard shortcuts of the installed extensions.
 - [Chrome Extensions documentation](https://developer.chrome.com/docs/extensions) — the official documentation for Chrome extensions.
 - [Manifest Version 3 reference](https://developer.chrome.com/docs/extensions/reference/manifest) — every field the extension manifest accepts.
