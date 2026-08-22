@@ -22,11 +22,17 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 ## An agent cannot reach the endpoint
 
-**401 with "a bearer token is required".** Read the token out of `~/.webmcp_everywhere/endpoint.json` and send it as `Authorization: Bearer`.
+**401 with "a bearer token is required".** Read the token out of `~/.webmcp_everywhere/token` and send it as `Authorization: Bearer`. It is not in `endpoint.json`, which carries the address only.
 
-**405 with "this host is stateless, so it serves POST only".** The host serves `POST /mcp` and nothing else. `GET /health` is the one unauthenticated path, and it reports only whether the extension is connected.
+**405 with "this host is stateless, so it serves POST only".** The host serves `POST /mcp` and `POST /stand_down` and nothing else. `GET /health` is the one unauthenticated path; it reports whether the extension is connected, and it names the program and the process answering, which is how one host tells another host from a stranger.
 
-**Nothing is listening at all.** Chrome starts the native messaging host, and only when the extension connects to it. If the extension is not installed or its background service worker is not running, no host is started and `~/.webmcp_everywhere/endpoint.json` may be stale from an earlier run. Check `~/.webmcp_everywhere/host.log`.
+**There is no `endpoint.json` at all.** That means no host is running, and it is the honest answer rather than a stale one. Chrome starts the native messaging host, and only when the extension connects to it, so no extension means no host. Check that the extension is installed and that its background service worker is running on `chrome://extensions`, then read `~/.webmcp_everywhere/host.log`.
+
+**`endpoint.json` is there and nothing answers.** A host removes the file when it stops, so this is left only when a host was killed outright — `kill -9`, or the machine losing power — and nothing was left running to tidy up. Start the browser again: the next host takes port 8765 and writes the file afresh.
+
+**The log says a host is standing by.** A host that cannot take port 8765 writes no `endpoint.json` and waits, checking every five seconds. Two things put it there, and `host.log` says which. Another browser's host has the port, in which case that browser is the one the endpoint reaches and closing it hands the port over within a few seconds. Or a program that is not a WebMCP Everywhere host has the port, in which case `lsof -nP -iTCP:8765 -sTCP:LISTEN` names it, and `WEBMCP_EVERYWHERE_HOST_PORT` moves this project out of its way.
+
+**An address recorded earlier stopped working.** It should not any more. The host serves port 8765 and never steps to another one, so an address given to `codex mcp add`, which records it and keeps it, stays right. A host used to walk to the next free port when 8765 was taken, and that is what made a recorded address go stale.
 
 **The manifest names the wrong path.** The native messaging host manifest carries the launcher's absolute path. Moving the repository breaks it. Run `npm run install:host` again.
 
@@ -89,6 +95,7 @@ When `npm run verify:host` fails and you cannot tell where the fault is, narrow 
 ## Useful places to look
 
 - `~/.webmcp_everywhere/host.log` — everything the native messaging host has to say.
-- `~/.webmcp_everywhere/endpoint.json` — the address and the token.
+- `~/.webmcp_everywhere/endpoint.json` — the address, and only while a host is really listening.
+- `~/.webmcp_everywhere/token` — the bearer token, and the only place it is kept.
 - `chrome://extensions` — where the unpacked extension shows up, where you reload it, and where you read its errors.
 - The popup — which adapter matched, which tools are live, which are held and why, and any injection sighting.

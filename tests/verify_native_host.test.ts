@@ -14,6 +14,7 @@ import { LaunchChrome } from '../tools/launch_chrome.ts';
 import type { HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
+const TOKEN_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'token');
 
 /**
  * Exercises the whole delivery path an ordinary user would have.
@@ -47,7 +48,10 @@ class VerifyNativeHost {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Reads where the host says it is listening.
+	 * Reads where the host says it is listening, and the token to present to it.
+	 *
+	 * They come from two files. The address is in `endpoint.json`, which exists only while a host is
+	 * holding that port. The token is in `token`, which is written once and never changes.
 	 *
 	 * @returns The endpoint details.
 	 * @throws When the host never wrote them, which means Chrome never started it.
@@ -56,7 +60,13 @@ class VerifyNativeHost {
 		if (Fs.existsSync(ENDPOINT_FILE) === false) {
 			throw new Error(`${ENDPOINT_FILE} is missing, so Chrome never started the native host`);
 		}
-		return JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as HostEndpoint;
+		const record = JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as {
+			url: string;
+		};
+		return {
+			url: record.url,
+			token: Fs.readFileSync(TOKEN_FILE, 'utf8').trim(),
+		};
 	}
 
 	/**

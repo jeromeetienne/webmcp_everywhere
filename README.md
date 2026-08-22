@@ -48,13 +48,13 @@ Checks the real delivery path
 npm run verify:host
 ```
 
-The native messaging host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
+The native messaging host writes where it is listening to `~/.webmcp_everywhere/endpoint.json`, and the token an agent must present to `~/.webmcp_everywhere/token`. Two files, because the two facts have different lifetimes: the token is made once and never changes, while the address is true only while a host is holding that port. So `endpoint.json` is there while a host is really listening and gone when none is, and a missing file means no browser is running rather than an address that no longer works. The address itself is always `http://127.0.0.1:8765/mcp`, so an agent registered once stays registered.
 
 ### Point Codex at it
 
 Define the environment variables
 ```bash
-export WEBMCP_EVERYWHERE_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
+export WEBMCP_EVERYWHERE_TOKEN=$(cat ~/.webmcp_everywhere/token)
 export WEBMCP_EVERYWHERE_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
 ```
 
@@ -151,7 +151,7 @@ npm test                # every check, with Chrome hidden
 npm run test:visible    # the same checks, with Chrome on screen
 ```
 
-Every check drives a real Chrome and asserts against state read back out of a live page. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The exception is `npm run verify:endpoint`, whose subject is the native messaging host process and the file it writes rather than any page; it starts real hosts over real pipes instead. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

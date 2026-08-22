@@ -6,15 +6,18 @@ The native messaging host: Chrome starts it on demand, it holds the HTTP port th
 ## Key Exports & Entry Points
 - `webmcp_native_host.ts`: `WebmcpNativeHost` — the program named in the installed host manifest.
 - `native_messaging_codec.ts`: `NativeMessagingCodec` — Chrome's four-byte length-prefixed framing.
-- Command to check this folder: `npm run verify:host`
+- Commands to check this folder: `npm run verify:host` and `npm run verify:endpoint`.
 
 ## Rules
-- The launcher `bin/webmcp_native_host.sh` points straight at `webmcp_native_host.ts`, because Node.js runs TypeScript with no build step. The launcher works the path out from its own location, so moving this file inside the repository means editing the launcher, and moving the repository itself means running `npm run install:host` again so the host manifest names the new path.
-- Never write to standard output except native messages. Standard output is the channel to Chrome, and one stray line corrupts it and closes the connection with no useful error. Use `WebmcpNativeHost._log`, which writes to standard error and to `~/.webmcp_everywhere/host.log`.
-- Build a fresh Model Context Protocol server and transport for every HTTP request. A single shared stateless transport serves one request and then answers 500 to everything after it, which looks to a client like the host crashed.
-- Every request carries a bearer token. A loopback port is reachable by every process on the machine, so an unauthenticated one would hand any local program control of the browser.
-- The host decides nothing about permissions. It forwards to the extension, which is the only place that knows which tabs have adapters and what the user allowed.
+- The launcher `bin/webmcp_native_host.sh` points straight at `webmcp_native_host.ts`, because Node.js runs TypeScript with no build step, and works the path out from its own location. Moving this file means editing the launcher; moving the repository means running `npm run install:host` again.
+- Never write to standard output except native messages: it is the channel to Chrome, and one stray line corrupts it and closes the connection with no useful error. Use `WebmcpNativeHost._log`, which writes to standard error and to `~/.webmcp_everywhere/host.log`.
+- Build a fresh Model Context Protocol server and transport for every HTTP request. A single shared stateless transport serves one request, then answers 500 to everything after it, which looks like the host crashed.
+- Every request carries a bearer token, which lives in `~/.webmcp_everywhere/token` and is never republished in `endpoint.json`: a never-changing token beside an address that could go stale made the whole file read as authoritative. A loopback port is reachable by every process on the machine, so an unauthenticated one would hand any local program control of the browser.
+- The host decides nothing about permissions: it forwards to the extension, the only place that knows which tabs have adapters and what the user allowed.
+- The port never walks, and only its holder writes `endpoint.json`: a host serves `WEBMCP_EVERYWHERE_HOST_PORT`, default 8765, and no other, writes the file when it takes the port, and removes it when it stops. So a recorded address stays right, and the file is there exactly while a live one is.
+- Stop the host on both signals, not one. The parent process identifier changing is the only one that catches a killed Chrome whose pipe stayed open elsewhere.
+- A host that cannot have the port stands by rather than exiting, and only a starting host asks for it over `POST /stand_down`. Either rule broken alone makes two browsers trade the port without end.
 
 ## Background
-- A Chrome extension cannot listen on a port. Measured on Chrome 151: `chrome.sockets` and `chrome.sockets.tcpServer` are undefined and no server interface exists at all, only outbound `fetch` and `WebSocket`. That is why this program exists — see [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).
+- A Chrome extension cannot listen on a port: measured on Chrome 151, no server interface exists, only outbound `fetch` and `WebSocket`. That is why this program exists — see [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).
 - The extension identifier is pinned by a key in the manifest because the host manifest has to name it, and an unpacked extension without a key gets an identifier derived from its path.

@@ -6,11 +6,16 @@
 
 import type { FramedResult } from '../src/adapter_format/untrusted_content.ts';
 
-/** Where the native messaging host says it is listening, read from `~/.webmcp_everywhere/endpoint.json`. */
+/**
+ * How the verification runners reach the native messaging host.
+ *
+ * The two fields come from two files, because the host keeps them apart on purpose: an address is only
+ * true while a host is holding that port, and a token is true for as long as the machine has one.
+ */
 export type HostEndpoint = {
-	/** The Model Context Protocol address to POST to. */
+	/** The Model Context Protocol address to POST to, read from `~/.webmcp_everywhere/endpoint.json`. */
 	url: string;
-	/** The bearer token every request must present. */
+	/** The bearer token every request must present, read from `~/.webmcp_everywhere/token`. */
 	token: string;
 };
 

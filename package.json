@@ -20,10 +20,11 @@
 		"verify:openstreetmap": "node --test tests/verify_openstreetmap.test.ts",
 		"grant": "node tools/grant_acting.ts",
 		"verify:host": "node --test tests/verify_native_host.test.ts",
+		"verify:endpoint": "node --test tests/verify_endpoint_file.test.ts",
 		"install:host": "node tools/install_native_host.ts",
 		"verify:injection": "node --test tests/verify_injection_defence.test.ts",
 		"verify:boundary": "node --test tests/verify_source_boundary.test.ts",
-		"mcp:inspector:start": "npx @modelcontextprotocol/inspector --web --transport http --server-url $(jq -r .url ~/.webmcp_everywhere/endpoint.json) --header \"Authorization: Bearer $(jq -r .token ~/.webmcp_everywhere/endpoint.json)\"",
+		"mcp:inspector:start": "npx @modelcontextprotocol/inspector --web --transport http --server-url $(jq -r .url ~/.webmcp_everywhere/endpoint.json) --header \"Authorization: Bearer $(cat ~/.webmcp_everywhere/token)\"",
 		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
 	},
 	"devDependencies": {
