@@ -22,16 +22,19 @@ You need Google Chrome 149 or later and Node.js 22.18.0 or later; the WebMCP ori
 npm install
 ```
 
+Checks every adapter, then bundles the extension
 ```bash
-npm run build           # checks every adapter, then bundles the extension
+npm run build
 ```
 
+Registers the native messaging host with Chrome
 ```bash
-npm run install:host    # registers the native messaging host with Chrome
+npm run install:host
 ```
 
+Launches a throwaway Chrome with the extension installed
 ```bash
-npm run chrome          # launches a throwaway Chrome with the extension installed
+npm run chrome
 ```
 
 That opens the TodoMVC demonstration. Pass an address to open a different covered site.
@@ -40,22 +43,46 @@ That opens the TodoMVC demonstration. Pass an address to open a different covere
 npm run chrome -- "https://www.openstreetmap.org/#map=15/48.8584/2.2945"
 ```
 
+Checks the real delivery path
 ```bash
-npm run verify:host     # checks the real delivery path
+npm run verify:host
 ```
 
 The native messaging host writes where it is listening, and the token an agent must present, to `~/.webmcp_everywhere/endpoint.json`.
 
-Point Codex at it:
+### Point Codex at it
 
+Define the environment variables
 ```bash
 export WEBMCP_EVERYWHERE_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
-```
-
-```bash
 export WEBMCP_EVERYWHERE_URL=$(jq -r .url ~/.webmcp_everywhere/endpoint.json)
 ```
 
+Declare the http mcp server to codex
+```bash
+codex mcp add webmcp_everywhere --url "$WEBMCP_EVERYWHERE_URL" --bearer-token-env-var WEBMCP_EVERYWHERE_TOKEN
+```
+
+Launch codex
+```
+codex
+```
+
+Inside codex, you can inspect the MCP servers available by `/mcp`
+```
+/mcp
+```
+
+### How to enable write permissions
+Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`, which takes the origin to opt in.
+
+```bash
+npm run grant -- https://www.openstreetmap.org
+```
+
+### Other stuff i dont understand from jerome_etienne
+
+Single line command to (i) install webmcp_everywhere mcp (ii) approve it and (iii) invoking it.
 ```bash
 codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
@@ -66,11 +93,6 @@ On OpenStreetMap, ask for something a mapper would ask for:
 codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "What changed on the map around where I am looking, and who made the biggest change?"
 ```
 
-Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`, which takes the origin to opt in.
-
-```bash
-npm run grant -- https://www.openstreetmap.org
-```
 
 ## How it works
 
@@ -112,7 +134,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 Each folder has its own `CONTEXT.md`.
 
-## Checking it
+## Testing it
 
 ```bash
 npm test                # every check, with Chrome hidden
