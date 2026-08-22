@@ -26,7 +26,9 @@ An agent speaking Model Context Protocol over HTTP has to connect to something. 
 
 The alternative to native messaging is a program you launch yourself and keep running. That would mean one more thing to install, one more thing to start before the browser is useful, and one more thing to notice has died.
 
-Native messaging removes all three. The extension calls `chrome.runtime.connectNative`, and Chrome starts the program. When the extension goes away, the connection closes and the program exits — `WebmcpNativeHost` handles the channel closing by exiting the process. There is nothing to launch by hand and nothing left running afterwards.
+Native messaging removes all three. The extension calls `chrome.runtime.connectNative`, and Chrome starts the program. There is nothing to launch by hand and nothing left running afterwards.
+
+Nothing left running afterwards takes two checks, not one. The channel closing is the first: `WebmcpNativeHost` exits the process when standard input reaches its end. That alone is not enough, because standard input does not always reach its end. Killing a Chrome leaves the write end of the pipe open in whichever of its processes also holds it, and a host has been seen holding the port for hours after its browser was gone, while `endpoint.json` named a later host that had already stopped. So the host also watches the process that started it, which is the browser: the operating system reparents an orphan, so the parent process identifier changes the moment the browser exits, whatever the browser was killed with. Either check stops the host, and stopping takes `endpoint.json` with it.
 
 The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
 
@@ -40,7 +42,7 @@ It is kept because it is the smallest way to tell an adapter fault apart from a 
 2. **It needs a purpose-launched Chrome.** Your everyday Chrome is not listening on a debugging port, and starting it with one would open the hole above.
 3. **It bypasses the extension.** The extension is the only place that knows which tabs have adapters and what the user has allowed. A path that goes around it goes around every decision the user made.
 
-The native messaging host closes the first of those. It requires a bearer token on every request, compared with a timing-safe comparison, and it writes that token to `~/.webmcp_everywhere/endpoint.json` for you to read. A loopback port is reachable by every process on the machine, so an unauthenticated one would hand any local program control of the browser — exactly the hole the Chrome DevTools Protocol opens.
+The native messaging host closes the first of those. It requires a bearer token on every request, compared with a timing-safe comparison, and it writes that token to `~/.webmcp_everywhere/token` for you to read. A loopback port is reachable by every process on the machine, so an unauthenticated one would hand any local program control of the browser — exactly the hole the Chrome DevTools Protocol opens.
 
 ## What the native messaging host does not do
 

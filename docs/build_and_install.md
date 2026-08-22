@@ -82,15 +82,24 @@ The launch refuses to start at all if `build/chrome_extension/dist/content_main.
 
 ## What the native messaging host writes
 
-When Chrome starts the host, it writes two files under `~/.webmcp_everywhere/`.
+When Chrome starts the host, it writes three files under `~/.webmcp_everywhere/`.
 
-- **`endpoint.json`** — the address it is serving on and the bearer token an agent must present.
+- **`endpoint.json`** — the address it is serving on, and the process identifier of the host holding the port.
+- **`token`** — the bearer token an agent must present, and the only place it is kept. It is made once and never changes, so an agent registered with it goes on working across restarts.
 - **`host.log`** — everything the host has to say. It goes here and to standard error, never to standard output, which belongs entirely to the native messaging channel.
 
-Point an agent at it by reading both values out of `endpoint.json`:
+**`endpoint.json` exists only while a host is really listening.** The host writes it at the moment it takes the port, and removes it when it stops. So a missing file means no host is running, rather than a host you have to guess at, and a file that is there names an address you can use. A host that cannot get the port writes nothing at all rather than an address it does not hold.
+
+**The address never changes.** The host serves on port 8765 and on no other. It used to step to the next free port when 8765 was taken, which wrote a different address into `endpoint.json` every time and left an agent registered with `codex mcp add`, which records the address it was given and keeps it, pointing at nothing. A host that cannot have port 8765 now waits for it and takes it the moment it is free.
+
+**One browser at a time.** The port is one address on one machine, so only one browser can be behind it. The browser whose host started last takes the port, and the host it took it from stays running and waits, so closing the newer browser hands the endpoint back to the older one within a few seconds. Both events are recorded in `host.log`.
+
+**The token is never copied into `endpoint.json`.** It used to be, and that is what made the stale-address failure so hard to see: a correct, never-changing token sat on the line beside an address that could be stale, so the whole file read as authoritative and readers followed it to a port nothing was listening on. Each file now carries one fact with one lifetime.
+
+Point an agent at it by reading one value out of each file:
 
 ```bash
-export WEBMCP_EVERYWHERE_TOKEN=$(jq -r .token ~/.webmcp_everywhere/endpoint.json)
+export WEBMCP_EVERYWHERE_TOKEN=$(cat ~/.webmcp_everywhere/token)
 ```
 
 ```bash
@@ -104,7 +113,8 @@ Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what
 | Variable | Values | Default | What it changes |
 | --- | --- | --- | --- |
 | `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. |
-| `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | Where the native messaging host serves Model Context Protocol over HTTP. |
+| `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | The one port the native messaging host serves Model Context Protocol over HTTP on. It never moves to another port; a host that cannot have this one waits for it. |
+| `WEBMCP_EVERYWHERE_STATE_DIR` | a directory | `~/.webmcp_everywhere` | Where the native messaging host keeps `endpoint.json`, `token`, and `host.log`. `npm run verify:endpoint` sets it to a throwaway directory so its hosts never touch the one you are really using. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
 

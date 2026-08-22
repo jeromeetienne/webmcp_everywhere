@@ -8,9 +8,11 @@ Two things happen before any call: the extension connects to the native messagin
 
 The background service worker calls `NativeBridge.connect`, which opens a native messaging connection with `chrome.runtime.connectNative('com.webmcp_everywhere.host')`. Chrome reads the native messaging host manifest file, starts [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh), and connects the two.
 
-The host starts a `NativeMessagingCodec` over standard input and standard output, starts an HTTP server, and writes the port it got and the bearer token it expects to `~/.webmcp_everywhere/endpoint.json`.
+The host starts a `NativeMessagingCodec` over standard input and standard output, then takes port 8765. It takes that port and no other: an agent registered with `codex mcp add` records the address it was given and keeps it, so a host that stepped to the next free port left that address pointing at nothing. Once it has the port it writes the address and its own process identifier to `~/.webmcp_everywhere/endpoint.json`. The bearer token it expects is not written there; it is read from `~/.webmcp_everywhere/token`, which is made once and never changes.
 
-If the connection cannot be opened, or is later lost, `NativeBridge` schedules a reconnection. When the extension goes away for good, the host sees its channel close and exits.
+When another WebMCP Everywhere host already has the port, the starting host asks it to give it up, over `POST /stand_down` with the same bearer token. The host that gives the port up does not exit — it stays connected to its own browser and waits, so the browser started last has the endpoint and closing it hands the endpoint back within a few seconds. Only a starting host ever asks, so two browsers never trade the port back and forth. When the port is held by a program that is not a host at all, the starting host writes no file and waits for the port in the same way.
+
+If the connection cannot be opened, or is later lost, `NativeBridge` schedules a reconnection. When the extension goes away for good, the host stops and removes `endpoint.json`, so the file never names a port nothing is listening on.
 
 ## Before anything: registration
 

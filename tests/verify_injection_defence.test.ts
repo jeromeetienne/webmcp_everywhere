@@ -21,6 +21,7 @@ import type {
 } from './verify_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
+const TOKEN_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'token');
 
 /** Hidden text, spelled out of escapes so this file itself carries no invisible characters. */
 const ZERO_WIDTH_SPACE = '​';
@@ -237,7 +238,10 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 		await VerifyInjectionDefence._pause(5000);
 		await GrantActing.run({ actingAllowed: true, globallyEnabled: true });
 		await VerifyInjectionDefence._pause(2500);
-		VerifyInjectionDefence.endpoint = JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as HostEndpoint;
+		VerifyInjectionDefence.endpoint = {
+			url: (JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as { url: string }).url,
+			token: Fs.readFileSync(TOKEN_FILE, 'utf8').trim(),
+		};
 	});
 
 	NodeTest.after(async () => {

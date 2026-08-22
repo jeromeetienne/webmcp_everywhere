@@ -44,6 +44,7 @@ Both checking paths depend on Chrome's remote debugging port, which is unauthent
 | `npm run verify` | [`tests/verify_milestones.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_milestones.test.ts) | Drives the Playwright TodoMVC page over the Chrome DevTools Protocol |
 | `npm run verify:caniuse` | [`tests/verify_caniuse.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_caniuse.test.ts) | Drives `https://caniuse.com/` the same way |
 | `npm run verify:host` | [`tests/verify_native_host.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_native_host.test.ts) | The real delivery path, from the HTTP endpoint through to the page |
+| `npm run verify:endpoint` | [`tests/verify_endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_endpoint_file.test.ts) | That `endpoint.json` always names a host that is really listening |
 | `npm run verify:injection` | [`tests/verify_injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
 | `npm run verify:bridge` | [`tests/verify_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_bridge.test.ts) | The stdio Model Context Protocol bridge |
 | `npm run verify:boundary` | [`tests/verify_source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
@@ -54,8 +55,15 @@ Both checking paths depend on Chrome's remote debugging port, which is unauthent
 - **You changed an adapter.** Run that adapter's own runner: `npm run verify` or `npm run verify:caniuse`.
 - **You changed the extension or the native messaging host.** Run `npm run verify:host`, which is the only runner covering the real delivery path.
 - **`npm run verify:host` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `npm run verify:bridge` narrows it further, because the bridge reaches the page without the extension or the host in the way.
+- **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `npm run verify:endpoint`.
 - **You touched the framing or the injection watch.** Run `npm run verify:injection`.
 - **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `npm run verify:boundary`.
+
+## The one runner with no browser in it
+
+`npm run verify:endpoint` starts no Chrome. Its subject is the host process and the file it writes, and the fault that hid the longest in that file was a host whose standard input never reached its end — a state a browser cannot be asked for, but a named pipe held open by another process reproduces exactly. Nothing is stood in for. The hosts are the real program, started over a real pipe the way Chrome starts them, holding a real port and writing the real file to a throwaway directory named by `WEBMCP_EVERYWHERE_STATE_DIR`, so the checks never disturb the host you are really using.
+
+What it holds to is one rule: whenever `endpoint.json` is there, the address in it answers, and the process named in it is the process answering. It checks that rule after a second host takes the port from a first, after the host holding the port is stopped, after every host is stopped, after a browser is killed with its host's standard input still open, and while a program that is not a host holds the port.
 
 ## The import boundary
 
@@ -91,7 +99,7 @@ npm run test:visible
 
 ## Calling the tools by hand
 
-The Model Context Protocol Inspector starts already pointed at the native messaging host, with the address and the token read from `~/.webmcp_everywhere/endpoint.json`.
+The Model Context Protocol Inspector starts already pointed at the native messaging host, with the address read from `~/.webmcp_everywhere/endpoint.json` and the token from `~/.webmcp_everywhere/token`.
 
 ```bash
 npm run mcp:inspector:start
