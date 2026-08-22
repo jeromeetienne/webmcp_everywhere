@@ -73,6 +73,11 @@ Inside codex, you can inspect the MCP servers available by `/mcp`
 /mcp
 ```
 
+If codex got trouble to route your queries to `webmcp_everywhere`, say the following
+```
+use only mcp webmcp_everywhere
+```
+
 ### How to enable write permissions
 Acting tools are withheld until you opt in, from the extension's popup or with `npm run grant`, which takes the origin to opt in.
 
