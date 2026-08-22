@@ -80,9 +80,16 @@ Acting tools are withheld until you opt in, from the extension's popup or with `
 npm run grant -- https://www.openstreetmap.org
 ```
 
-### Other stuff i dont understand from jerome_etienne
+### Asking for one thing, without registering anything
 
-Single line command to (i) install webmcp_everywhere mcp (ii) approve it and (iii) invoking it.
+`codex mcp add` above writes the server into `~/.codex/config.toml` and leaves it there. The other way is to declare it for a single run and change nothing on disk, which is what a script, a demonstration, or somebody else's machine wants.
+
+`codex exec` runs one prompt and exits. Three parts do the work.
+
+- `-c "mcp_servers.webmcp_everywhere={…}"` declares the server for this run only.
+- `-c approvals_reviewer="auto_review"` routes Codex's approval requests through automatic review, so the run does not stop to ask permission for each command. This is Codex approving its own actions; it has nothing to do with the acting tool opt-in above, which is still needed before an agent may change anything on a site.
+- The last argument is the prompt.
+
 ```bash
 codex exec -c "mcp_servers.webmcp_everywhere={url=\"$WEBMCP_EVERYWHERE_URL\", bearer_token_env_var=\"WEBMCP_EVERYWHERE_TOKEN\"}" -c approvals_reviewer="auto_review" "Add a todo called buy milk, mark it done, and tell me how many are left."
 ```
