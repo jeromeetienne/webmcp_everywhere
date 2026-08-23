@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyCaniuse — drives the Can I use... adapter in a real Chrome on the real site
+//	CaniuseTest — drives the Can I use... adapter in a real Chrome on the real site
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from './live_page_harness.ts';
-import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
+import { LivePageHarness } from '../live_page_harness.ts';
+import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 
 const TARGET_URL = 'https://caniuse.com/css-grid';
 
@@ -115,7 +115,7 @@ const harness = new LivePageHarness({
  * Everything else these checks need — the browser, the opt-in, the tool list, the tool call — is the
  * same for every site and lives in `LivePageHarness`.
  */
-class VerifyCaniuse {
+class CaniuseTest {
 	/**
 	 * Reads the usage percentage the page itself prints above a feature's support table.
 	 *
@@ -228,7 +228,7 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 			const result = await harness.callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'css-grid',
 			});
-			const shown = await VerifyCaniuse._usagePrintedOnPage(page, 'css-grid');
+			const shown = await CaniuseTest._usagePrintedOnPage(page, 'css-grid');
 			const computed = `${result.globalUsage.fullSupportPercent.toFixed(2)}%`;
 			if (shown.includes(computed) === false) {
 				throw new Error(`the tool computed ${computed} but the page prints "${shown}"`);
@@ -327,7 +327,7 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 			const result = await harness.callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'webgpu',
 			});
-			const shown = await VerifyCaniuse._usagePrintedOnPage(page, 'webgpu');
+			const shown = await CaniuseTest._usagePrintedOnPage(page, 'webgpu');
 			const computed = `${result.globalUsage.fullSupportPercent.toFixed(2)}%`;
 			if (shown.includes(computed) === false) {
 				throw new Error(`the tool computed ${computed} but the page prints "${shown}"`);

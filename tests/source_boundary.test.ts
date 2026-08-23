@@ -4,7 +4,7 @@ import NodeTest from 'node:test';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifySourceBoundary — refuses a relative import that leaves `src/`
+//	SourceBoundaryTest — refuses a relative import that leaves `src/`
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -27,7 +27,7 @@ type Offence = {
  * `tools/` and `tests/` may import from `src/`, and `tests/` may import from `tools/`. The reverse direction is
  * what this check refuses, because that is how build tooling and verification code drifted into `src/` before.
  */
-class VerifySourceBoundary {
+class SourceBoundaryTest {
 	/** The folder every checked file must stay inside. */
 	static SOURCE_DIR = Path.join(__dirname, '..', 'src');
 
@@ -37,10 +37,10 @@ class VerifySourceBoundary {
 	 * @returns The files that were read, and the offences found in them.
 	 */
 	static run(): { filePaths: string[]; offences: Offence[] } {
-		const filePaths = VerifySourceBoundary._collectTypescriptFiles(VerifySourceBoundary.SOURCE_DIR);
+		const filePaths = SourceBoundaryTest._collectTypescriptFiles(SourceBoundaryTest.SOURCE_DIR);
 		const offences: Offence[] = [];
 		for (const filePath of filePaths) {
-			offences.push(...VerifySourceBoundary._findOffences(filePath));
+			offences.push(...SourceBoundaryTest._findOffences(filePath));
 		}
 		return {
 			filePaths: filePaths,
@@ -67,7 +67,7 @@ class VerifySourceBoundary {
 		})) {
 			const entryPath = Path.join(directory, entry.name);
 			if (entry.isDirectory() === true) {
-				filePaths.push(...VerifySourceBoundary._collectTypescriptFiles(entryPath));
+				filePaths.push(...SourceBoundaryTest._collectTypescriptFiles(entryPath));
 				continue;
 			}
 			if (entry.name.endsWith('.ts') === true) {
@@ -94,7 +94,7 @@ class VerifySourceBoundary {
 					continue;
 				}
 				const resolved = Path.resolve(Path.dirname(filePath), specifier);
-				if (resolved.startsWith(VerifySourceBoundary.SOURCE_DIR + Path.sep) === true) {
+				if (resolved.startsWith(SourceBoundaryTest.SOURCE_DIR + Path.sep) === true) {
 					continue;
 				}
 				offences.push({
@@ -115,7 +115,7 @@ class VerifySourceBoundary {
 ///////////////////////////////////////////////////////////////////////////////
 
 NodeTest.test('src/ holds product code only, so no relative import leaves it', (t) => {
-	const { filePaths, offences } = VerifySourceBoundary.run();
+	const { filePaths, offences } = SourceBoundaryTest.run();
 	if (offences.length > 0) {
 		const listed = offences
 			.map((offence) => `${offence.filePath}:${offence.lineNumber} imports '${offence.specifier}'`)

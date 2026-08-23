@@ -45,7 +45,7 @@ npm run chrome -- "https://www.openstreetmap.org/#map=15/48.8584/2.2945"
 
 Checks the real delivery path
 ```bash
-npm run verify:host
+node --test tests/native_host.test.ts
 ```
 
 The native messaging host writes where it is listening to `~/.webmcp_everywhere/endpoint.json`, and the token an agent must present to `~/.webmcp_everywhere/token`. Two files, because the two facts have different lifetimes: the token is made once and never changes, while the address is true only while a host is holding that port. So `endpoint.json` is there while a host is really listening and gone when none is, and a missing file means no browser is running rather than an address that no longer works. The address itself is always `http://127.0.0.1:8765/mcp`, so an agent registered once stays registered.
@@ -140,7 +140,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host and its HTTP endpoint.
 - `tools/` — build, launch, and install, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
-- `tests/` — the verification runners, and the stdio bridge one of them checks.
+- `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
 - `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
 
@@ -156,7 +156,7 @@ npm test                # every check, with Chrome hidden
 npm run test:visible    # the same checks, with Chrome on screen
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The exception is `npm run verify:endpoint`, whose subject is the native messaging host process and the file it writes rather than any page; it starts real hosts over real pipes instead. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The two exceptions are `node --test tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, and `node --test tests/source_boundary.test.ts`, which reads the source folder off disk. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

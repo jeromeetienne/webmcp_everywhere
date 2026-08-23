@@ -8,7 +8,7 @@ The adapter for `https://caniuse.com/`, which turns the browser support tables i
 - `caniuse_adapter.ts`: `caniuseAdapter`, the adapter itself.
 - `caniuse_page.ts`: `CaniusePage`, the class holding the page-reading helpers.
 - `caniuse_types.ts`: the shapes the tools read and return.
-- Command to exercise this folder: `npm run verify:caniuse`
+- Command to exercise this folder: `node --test tests/site_adapters/caniuse.test.ts`
 
 ## Rules
 - Read a feature's support values from the `model.fullData` property of that feature's `ciu-feature` element, never from the rendered support table. The table sits behind three nested shadow roots and is drawn lazily, so it is empty exactly when it is needed.

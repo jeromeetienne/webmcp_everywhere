@@ -1,13 +1,13 @@
 # Testing and verification
 
-Every check drives a real Chrome and asserts against state read back out of a live page. Nothing is mocked, and a check that cannot fail is not a check.
+Almost every check drives a real Chrome and asserts against state read back out of a live page. Nothing is mocked, and a check that cannot fail is not a check.
 
 ```bash
 npm test                # every check, with Chrome hidden
 npm run test:visible    # every check, with Chrome on screen
 ```
 
-The checks are written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs them one runner at a time, because every runner takes the same debugging port and the same throwaway profile. Each runner launches its own throwaway Chrome, so none of them needs a browser to be up first.
+The checks are written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs them one runner at a time, because every runner that starts a browser takes the same debugging port and the same throwaway profile. Each of those launches its own throwaway Chrome, so none of them needs a browser to be up first.
 
 ## The three paths to the browser
 
@@ -33,37 +33,45 @@ flowchart TB
 
 **The direct path** is a verification runner driving a page over the Chrome DevTools Protocol, through [`tools/chrome_devtools_protocol/cdp_client.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/chrome_devtools_protocol/cdp_client.ts). It is how the adapter checks assert against a live page.
 
-**The stdio bridge path** is [`tests/devtools_protocol_bridge/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.ts), a Model Context Protocol server on standard input and standard output that carries a page's registered WebMCP tools out to an agent. It was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `npm run verify:host` fails.
+**The stdio bridge path** is [`tests/devtools_protocol_bridge/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.ts), a Model Context Protocol server on standard input and standard output that carries a page's registered WebMCP tools out to an agent. It was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `node --test tests/native_host.test.ts` fails.
 
 Both checking paths depend on Chrome's remote debugging port, which is unauthenticated and reachable by every process on the machine. That is fine for a throwaway profile and wrong for anything else, which is why the native messaging host exists.
 
 ## The runners
 
-| Command | Runner | What it covers |
-| --- | --- | --- |
-| `npm run verify` | [`tests/verify_milestones.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_milestones.test.ts) | Drives the Playwright TodoMVC page over the Chrome DevTools Protocol |
-| `npm run verify:caniuse` | [`tests/verify_caniuse.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_caniuse.test.ts) | Drives `https://caniuse.com/` the same way |
-| `npm run verify:host` | [`tests/verify_native_host.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_native_host.test.ts) | The real delivery path, from the HTTP endpoint through to the page |
-| `npm run verify:endpoint` | [`tests/verify_endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_endpoint_file.test.ts) | That `endpoint.json` always names a host that is really listening |
-| `npm run verify:injection` | [`tests/verify_injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
-| `npm run verify:bridge` | [`tests/verify_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_bridge.test.ts) | The stdio Model Context Protocol bridge |
-| `npm run verify:boundary` | [`tests/verify_source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
-| `npm run typecheck` | `tsc --noEmit` | Types, and that every file Node.js runs directly stays within erasable syntax |
+`npm test` runs them all. To run one on its own, pass its path to `node --test`.
+
+```bash
+node --test tests/native_host.test.ts
+```
+
+| Runner | What it covers |
+| --- | --- |
+| [`tests/site_adapters/todomvc.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/todomvc.test.ts) | Drives the Playwright TodoMVC page over the Chrome DevTools Protocol |
+| [`tests/site_adapters/caniuse.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/caniuse.test.ts) | Drives `https://caniuse.com/` the same way |
+| [`tests/site_adapters/openstreetmap.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/openstreetmap.test.ts) | Drives `https://www.openstreetmap.org/` the same way |
+| [`tests/native_host.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host.test.ts) | The real delivery path, from the HTTP endpoint through to the page |
+| [`tests/endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/endpoint_file.test.ts) | That `endpoint.json` always names a host that is really listening |
+| [`tests/injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
+| [`tests/devtools_protocol_bridge/webmcp_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.test.ts) | The stdio Model Context Protocol bridge |
+| [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
+
+`npm run typecheck` covers the types, and that every file Node.js runs directly stays within erasable syntax.
 
 ## Which one to run when
 
-- **You changed an adapter.** Run that adapter's own runner: `npm run verify` or `npm run verify:caniuse`.
-- **You changed the extension or the native messaging host.** Run `npm run verify:host`, which is the only runner covering the real delivery path.
-- **`npm run verify:host` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `npm run verify:bridge` narrows it further, because the bridge reaches the page without the extension or the host in the way.
-- **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `npm run verify:endpoint`.
-- **You touched the framing or the injection watch.** Run `npm run verify:injection`.
-- **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `npm run verify:boundary`.
+- **You changed an adapter.** Run that adapter's own runner: `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`.
+- **You changed the extension or the native messaging host.** Run `node --test tests/native_host.test.ts`, which is the only runner covering the real delivery path.
+- **`node --test tests/native_host.test.ts` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` narrows it further, because the bridge reaches the page without the extension or the host in the way.
+- **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `node --test tests/endpoint_file.test.ts`.
+- **You touched the framing or the injection watch.** Run `node --test tests/injection_defence.test.ts`.
+- **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `node --test tests/source_boundary.test.ts`.
 
-## The one runner with no browser in it
+## The two runners with no browser in them
 
-`npm run verify:endpoint` starts no Chrome. Its subject is the host process and the file it writes, and the fault that hid the longest in that file was a host whose standard input never reached its end — a state a browser cannot be asked for, but a named pipe held open by another process reproduces exactly. Nothing is stood in for. The hosts are the real program, started over a real pipe the way Chrome starts them, holding a real port and writing the real file to a throwaway directory named by `WEBMCP_EVERYWHERE_STATE_DIR`, so the checks never disturb the host you are really using.
+[`tests/endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/endpoint_file.test.ts) and [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) start no Chrome. The subject of `endpoint_file.test.ts` is the host process and the file it writes, and the fault that hid the longest in that file was a host whose standard input never reached its end — a state a browser cannot be asked for, but a named pipe held open by another process reproduces exactly. Nothing is stood in for. The hosts are the real program, started over a real pipe the way Chrome starts them, holding a real port and writing the real file to a throwaway directory named by `WEBMCP_EVERYWHERE_STATE_DIR`, so the checks never disturb the host you are really using.
 
-What it holds to is one rule: whenever `endpoint.json` is there, the address in it answers, and the process named in it is the process answering. It checks that rule after a second host takes the port from a first, after the host holding the port is stopped, after every host is stopped, after a browser is killed with its host's standard input still open, and while a program that is not a host holds the port.
+What `endpoint_file.test.ts` holds to is one rule: whenever `endpoint.json` is there, the address in it answers, and the process named in it is the process answering. It checks that rule after a second host takes the port from a first, after the host holding the port is stopped, after every host is stopped, after a browser is killed with its host's standard input still open, and while a program that is not a host holds the port.
 
 ## The import boundary
 
@@ -73,7 +81,7 @@ Imports run one way only.
 tests/  →  tools/  →  src/
 ```
 
-[`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) may import from [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) and from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) may import from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) imports from neither, and `npm run verify:boundary` refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
+[`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) may import from [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) and from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) may import from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) imports from neither, and `node --test tests/source_boundary.test.ts` refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
 That rule is what keeps build tooling and verification code from drifting back into the product. [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) holds what ships and nothing else.
 
@@ -87,7 +95,7 @@ One shape everywhere, so a runner reads the same as every other runner.
 - `NodeTest.describe` carries what a section header used to print.
 - A check throws its own message rather than calling `node:assert`, because those messages are what the runner is for. Detail lines go to `t.diagnostic`.
 - Checks in one file run in the order written and share one live page, so a check may depend on the one before it. Anything that has to happen between two checks belongs in the `NodeTest.before` of a nested `NodeTest.describe`, never inside a check that does not own it.
-- Every file holding checks ends in `.test.ts`, so `node --test` finds it with no file list. [`verify_types.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/verify_types.ts) holds no check and keeps its plain name.
+- Every runner ends in `.test.ts`, so `node --test` finds it with no file list. A file holding no check, such as [`tests/host_call_types.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/host_call_types.ts), keeps a plain name.
 
 ## Watching it happen
 

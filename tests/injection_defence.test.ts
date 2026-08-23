@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyInjectionDefence — puts hostile content on a real page and attacks through it
+//	InjectionDefenceTest — puts hostile content on a real page and attacks through it
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -12,13 +12,15 @@ import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../tools/grant_acting.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
 import type {
-	CountTodosResult,
 	FramedResultOf,
 	HostEndpoint,
 	JsonRpcResponse,
-	ListTodosResult,
 	ToolCallOutcome,
-} from './verify_types.ts';
+} from './host_call_types.ts';
+import type {
+	CountTodosResult,
+	ListTodosResult,
+} from './site_adapters/todomvc_result_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
 const TOKEN_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'token');
@@ -38,7 +40,7 @@ const SOFT_HYPHEN = '­';
  * These checks cannot show that prompt injection is solved, because it is not. They show that a
  * specific set of cheap attacks is blunted and made visible.
  */
-class VerifyInjectionDefence {
+class InjectionDefenceTest {
 	/** The payloads written onto the page. */
 	static PAYLOADS = [
 		{
@@ -74,10 +76,10 @@ class VerifyInjectionDefence {
 	 * @throws When the launch step never read them.
 	 */
 	static _requireEndpoint(): HostEndpoint {
-		if (VerifyInjectionDefence.endpoint === null) {
+		if (InjectionDefenceTest.endpoint === null) {
 			throw new Error('the native host endpoint was never read');
 		}
-		return VerifyInjectionDefence.endpoint;
+		return InjectionDefenceTest.endpoint;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -98,7 +100,7 @@ class VerifyInjectionDefence {
 		name: string,
 		args: Record<string, unknown>,
 	): Promise<FramedResultOf<DataType>> {
-		const called = await VerifyInjectionDefence._call(endpoint, name, args);
+		const called = await InjectionDefenceTest._call(endpoint, name, args);
 		try {
 			return JSON.parse(called.text) as FramedResultOf<DataType>;
 		} catch {
@@ -235,31 +237,31 @@ class VerifyInjectionDefence {
 NodeTest.describe('Attacking the extension through a real page', () => {
 	NodeTest.before(async () => {
 		await LaunchChrome.run();
-		await VerifyInjectionDefence._pause(5000);
+		await InjectionDefenceTest._pause(5000);
 		await GrantActing.run({
 			actingAllowed: true,
 			globallyEnabled: true,
 		});
-		await VerifyInjectionDefence._pause(2500);
-		VerifyInjectionDefence.endpoint = {
+		await InjectionDefenceTest._pause(2500);
+		InjectionDefenceTest.endpoint = {
 			url: (JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as { url: string }).url,
 			token: Fs.readFileSync(TOKEN_FILE, 'utf8').trim(),
 		};
 	});
 
 	NodeTest.after(async () => {
-		await VerifyInjectionDefence._clearWatch();
+		await InjectionDefenceTest._clearWatch();
 	});
 
 	NodeTest.describe('the framing around every result, and the invisible characters inside one', () => {
 		NodeTest.before(async () => {
-			await VerifyInjectionDefence._clearWatch();
-			await VerifyInjectionDefence._resetPage();
+			await InjectionDefenceTest._clearWatch();
+			await InjectionDefenceTest._resetPage();
 		});
 
 		NodeTest.test('a result never reaches an agent without its untrusted content framing', async (t) => {
-			const framed = await VerifyInjectionDefence._callRaw<CountTodosResult>(
-				VerifyInjectionDefence._requireEndpoint(),
+			const framed = await InjectionDefenceTest._callRaw<CountTodosResult>(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__count_todos',
 				{},
 			);
@@ -273,9 +275,9 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 		});
 
 		NodeTest.test('invisible characters are removed and the removal is reported', async (t) => {
-			await VerifyInjectionDefence._seed([VerifyInjectionDefence.PAYLOADS[3].title]);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				VerifyInjectionDefence._requireEndpoint(),
+			await InjectionDefenceTest._seed([InjectionDefenceTest.PAYLOADS[3].title]);
+			const framed = await InjectionDefenceTest._callRaw<ListTodosResult>(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__list_todos',
 				{},
 			);
@@ -290,7 +292,7 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 			if (reported.length === 0) {
 				throw new Error('the characters were removed but nothing said so');
 			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			const onPage = await InjectionDefenceTest._rawPageTitles();
 			if (hidden.test(onPage.join('')) === false) {
 				throw new Error('the page never held the invisible characters, so this check proves nothing');
 			}
@@ -300,16 +302,16 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 
 	NodeTest.describe('instruction-shaped text, and what it costs the page that carries it', () => {
 		NodeTest.before(async () => {
-			await VerifyInjectionDefence._clearWatch();
-			await VerifyInjectionDefence._resetPage();
+			await InjectionDefenceTest._clearWatch();
+			await InjectionDefenceTest._resetPage();
 		});
 
 		NodeTest.test('instruction-shaped text is flagged and kept, not silently removed', async (t) => {
-			await VerifyInjectionDefence._seed(
-				VerifyInjectionDefence.PAYLOADS.slice(0, 3).map((payload) => payload.title),
+			await InjectionDefenceTest._seed(
+				InjectionDefenceTest.PAYLOADS.slice(0, 3).map((payload) => payload.title),
 			);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				VerifyInjectionDefence._requireEndpoint(),
+			const framed = await InjectionDefenceTest._callRaw<ListTodosResult>(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__list_todos',
 				{},
 			);
@@ -328,8 +330,8 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 		});
 
 		NodeTest.test('an acting tool is refused after a page tries to issue instructions', async (t) => {
-			const attempt = await VerifyInjectionDefence._call(
-				VerifyInjectionDefence._requireEndpoint(),
+			const attempt = await InjectionDefenceTest._call(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__add_todo',
 				{
 					title: 'the attack succeeded',
@@ -341,7 +343,7 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 			if (attempt.text.includes('refused this acting tool') === false) {
 				throw new Error(`refused, but for the wrong reason: ${attempt.text.slice(0, 160)}`);
 			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			const onPage = await InjectionDefenceTest._rawPageTitles();
 			if (onPage.includes('the attack succeeded') === true) {
 				throw new Error('the tool was refused but the page changed anyway');
 			}
@@ -349,8 +351,8 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 		});
 
 		NodeTest.test('reading still works while acting is refused', async (t) => {
-			const counted = await VerifyInjectionDefence._callRaw<CountTodosResult>(
-				VerifyInjectionDefence._requireEndpoint(),
+			const counted = await InjectionDefenceTest._callRaw<CountTodosResult>(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__count_todos',
 				{},
 			);
@@ -363,10 +365,10 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 		});
 
 		NodeTest.test('clearing the warning restores acting', async (t) => {
-			await VerifyInjectionDefence._clearWatch();
-			await VerifyInjectionDefence._pause(1500);
-			const attempt = await VerifyInjectionDefence._call(
-				VerifyInjectionDefence._requireEndpoint(),
+			await InjectionDefenceTest._clearWatch();
+			await InjectionDefenceTest._pause(1500);
+			const attempt = await InjectionDefenceTest._call(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__add_todo',
 				{
 					title: 'allowed after clearing',
@@ -375,7 +377,7 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 			if (attempt.isError === true) {
 				throw new Error(`still refused after clearing: ${attempt.text.slice(0, 160)}`);
 			}
-			const onPage = await VerifyInjectionDefence._rawPageTitles();
+			const onPage = await InjectionDefenceTest._rawPageTitles();
 			if (onPage.includes('allowed after clearing') === false) {
 				throw new Error('the call reported success but the page did not change');
 			}
@@ -385,15 +387,15 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 
 	NodeTest.describe('the bound on how much one page can send', () => {
 		NodeTest.before(async () => {
-			await VerifyInjectionDefence._clearWatch();
-			await VerifyInjectionDefence._resetPage();
+			await InjectionDefenceTest._clearWatch();
+			await InjectionDefenceTest._resetPage();
 		});
 
 		NodeTest.test('one page cannot flood an agent with unbounded content', async (t) => {
 			const long = 'A'.repeat(9000);
-			await VerifyInjectionDefence._seed([long]);
-			const framed = await VerifyInjectionDefence._callRaw<ListTodosResult>(
-				VerifyInjectionDefence._requireEndpoint(),
+			await InjectionDefenceTest._seed([long]);
+			const framed = await InjectionDefenceTest._callRaw<ListTodosResult>(
+				InjectionDefenceTest._requireEndpoint(),
 				'demo_playwright_dev__list_todos',
 				{},
 			);

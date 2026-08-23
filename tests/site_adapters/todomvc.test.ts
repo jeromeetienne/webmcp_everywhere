@@ -1,19 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyMilestones — drives the real extension in a real Chrome and checks what it does
+//	TodomvcTest — drives the real extension in a real Chrome and checks what it does
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from './live_page_harness.ts';
-import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
+import { LivePageHarness } from '../live_page_harness.ts';
+import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 import type {
 	ActiveFilterResult,
 	AddTodoResult,
 	ClearCompletedResult,
 	CountTodosResult,
 	ListTodosResult,
-} from './verify_types.ts';
+} from './todomvc_result_types.ts';
 
 const TARGET_URL = 'https://demo.playwright.dev/todomvc/';
 
@@ -37,7 +37,7 @@ const harness = new LivePageHarness({
  * Everything else these checks need — the browser, the opt-in, the tool list, the tool call — is the
  * same for every site and lives in `LivePageHarness`.
  */
-class VerifyMilestones {
+class TodomvcTest {
 	/**
 	 * Empties the todo list and loads the page again, so a check starts from a known state.
 	 *
@@ -113,7 +113,7 @@ class VerifyMilestones {
 NodeTest.describe('The milestones, against a live browser', () => {
 	NodeTest.before(async () => {
 		const { page } = await harness.launch();
-		await VerifyMilestones._resetTodos(page);
+		await TodomvcTest._resetTodos(page);
 	});
 
 	NodeTest.after(() => {
@@ -146,7 +146,7 @@ NodeTest.describe('The milestones, against a live browser', () => {
 	NodeTest.describe('Milestone 2 — the read-only tools tell the truth about the page', () => {
 		NodeTest.test('list_todos and count_todos agree with the page', async (t) => {
 			const { page } = harness.requireContext();
-			await VerifyMilestones._seed(page, ['alpha', 'beta', 'gamma']);
+			await TodomvcTest._seed(page, ['alpha', 'beta', 'gamma']);
 			const listed = await harness.callTool<ListTodosResult>(page, 'list_todos');
 			const counted = await harness.callTool<CountTodosResult>(page, 'count_todos');
 			if (listed.todos.length !== 3) {
@@ -318,7 +318,7 @@ NodeTest.describe('The milestones, against a live browser', () => {
 	NodeTest.describe('Milestone 5 — the adapter yields to a first-party tool surface', () => {
 		NodeTest.test('the adapter stands down when the site ships its own tools', async (t) => {
 			const { page } = harness.requireContext();
-			await VerifyMilestones._injectFirstPartyTool(page);
+			await TodomvcTest._injectFirstPartyTool(page);
 			await page.navigate(TARGET_URL, 3500);
 			const names = await harness.toolNames(page);
 			const ours = names.filter((name) => name.startsWith('demo_playwright_dev__'));

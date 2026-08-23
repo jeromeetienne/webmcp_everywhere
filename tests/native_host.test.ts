@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyNativeHost — checks the extension, the native host, and the HTTP endpoint together
+//	NativeHostTest — checks the extension, the native host, and the HTTP endpoint together
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -11,7 +11,7 @@ import NodeTest from 'node:test';
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../tools/grant_acting.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
-import type { HostEndpoint, HttpOutcome, ToolCallOutcome } from './verify_types.ts';
+import type { HostEndpoint, HttpOutcome, ToolCallOutcome } from './host_call_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');
 const TOKEN_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'token');
@@ -24,7 +24,7 @@ const TOKEN_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'token');
  * Nothing here uses the Chrome DevTools Protocol to reach a page; that path exists only for the other
  * checks, and using it here would prove nothing about the design being tested.
  */
-class VerifyNativeHost {
+class NativeHostTest {
 	/** Where the host says it is listening, read once before the first check. */
 	static endpoint: HostEndpoint | null = null;
 
@@ -35,10 +35,10 @@ class VerifyNativeHost {
 	 * @throws When the launch step never read them.
 	 */
 	static _requireEndpoint(): HostEndpoint {
-		if (VerifyNativeHost.endpoint === null) {
+		if (NativeHostTest.endpoint === null) {
 			throw new Error('the native host endpoint was never read');
 		}
-		return VerifyNativeHost.endpoint;
+		return NativeHostTest.endpoint;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -138,7 +138,7 @@ class VerifyNativeHost {
 	 * @returns The offered names.
 	 */
 	static async _tools(endpoint: HostEndpoint): Promise<string[]> {
-		const response = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, undefined);
+		const response = await NativeHostTest._rpc(endpoint, 'tools/list', {}, undefined);
 		return (response.body?.result?.tools ?? []).map((tool) => tool.name);
 	}
 
@@ -155,7 +155,7 @@ class VerifyNativeHost {
 		name: string,
 		args: Record<string, unknown>,
 	): Promise<ToolCallOutcome> {
-		const response = await VerifyNativeHost._rpc(
+		const response = await NativeHostTest._rpc(
 			endpoint,
 			'tools/call',
 			{
@@ -246,13 +246,13 @@ class VerifyNativeHost {
 NodeTest.describe('The native host path — extension, host, and HTTP endpoint together', () => {
 	NodeTest.before(async () => {
 		await LaunchChrome.run();
-		await VerifyNativeHost._pause(5000);
-		VerifyNativeHost.endpoint = VerifyNativeHost._readEndpoint();
+		await NativeHostTest._pause(5000);
+		NativeHostTest.endpoint = NativeHostTest._readEndpoint();
 	});
 
 	NodeTest.test('Chrome starts the native host by itself', async (t) => {
-		const endpoint = VerifyNativeHost._requireEndpoint();
-		const health = await VerifyNativeHost._get(endpoint, '/health', null);
+		const endpoint = NativeHostTest._requireEndpoint();
+		const health = await NativeHostTest._get(endpoint, '/health', null);
 		if (health.body?.extensionConnected !== true) {
 			throw new Error(`the host is up but the extension is not connected: ${JSON.stringify(health.body)}`);
 		}
@@ -260,12 +260,12 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 	});
 
 	NodeTest.test('the endpoint refuses a request with no token', async (t) => {
-		const endpoint = VerifyNativeHost._requireEndpoint();
-		const withoutToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, null);
+		const endpoint = NativeHostTest._requireEndpoint();
+		const withoutToken = await NativeHostTest._rpc(endpoint, 'tools/list', {}, null);
 		if (withoutToken.status !== 401) {
 			throw new Error(`expected 401 without a token, got ${withoutToken.status}`);
 		}
-		const wrongToken = await VerifyNativeHost._rpc(endpoint, 'tools/list', {}, 'not-the-token');
+		const wrongToken = await NativeHostTest._rpc(endpoint, 'tools/list', {}, 'not-the-token');
 		if (wrongToken.status !== 401) {
 			throw new Error(`expected 401 with a wrong token, got ${wrongToken.status}`);
 		}
@@ -274,12 +274,12 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 
 	NodeTest.describe('with the acting tools withheld', () => {
 		NodeTest.before(async () => {
-			await VerifyNativeHost._setActing(false);
-			await VerifyNativeHost._pause(2500);
+			await NativeHostTest._setActing(false);
+			await NativeHostTest._pause(2500);
 		});
 
 		NodeTest.test('with no opt-in the agent is offered read-only tools only', async (t) => {
-			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const listed = await NativeHostTest._tools(NativeHostTest._requireEndpoint());
 			const acting = listed.filter((name) => /add_todo|delete_todo|edit_todo/.test(name));
 			if (acting.length > 0) {
 				throw new Error(`acting tools were offered without an opt-in: ${acting.join(', ')}`);
@@ -288,8 +288,8 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 		});
 
 		NodeTest.test('an acting tool is refused even when called by name', async (t) => {
-			const called = await VerifyNativeHost._call(
-				VerifyNativeHost._requireEndpoint(),
+			const called = await NativeHostTest._call(
+				NativeHostTest._requireEndpoint(),
 				'demo_playwright_dev__add_todo',
 				{
 					title: 'should never appear',
@@ -304,12 +304,12 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 
 	NodeTest.describe('with the acting tools granted', () => {
 		NodeTest.before(async () => {
-			await VerifyNativeHost._setActing(true);
-			await VerifyNativeHost._pause(2500);
+			await NativeHostTest._setActing(true);
+			await NativeHostTest._pause(2500);
 		});
 
 		NodeTest.test('opting in offers the acting tools', async (t) => {
-			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const listed = await NativeHostTest._tools(NativeHostTest._requireEndpoint());
 			if (listed.includes('demo_playwright_dev__add_todo') === false) {
 				throw new Error(`add_todo still missing after the opt-in; offered: ${listed.join(', ')}`);
 			}
@@ -317,11 +317,11 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 		});
 
 		NodeTest.test('a tool call changes the real page', async (t) => {
-			const endpoint = VerifyNativeHost._requireEndpoint();
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__set_all_completed', { completed: true });
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__clear_completed', {});
-			await VerifyNativeHost._call(endpoint, 'demo_playwright_dev__add_todo', { title: 'through the host' });
-			const seen = await VerifyNativeHost._readPageTitles();
+			const endpoint = NativeHostTest._requireEndpoint();
+			await NativeHostTest._call(endpoint, 'demo_playwright_dev__set_all_completed', { completed: true });
+			await NativeHostTest._call(endpoint, 'demo_playwright_dev__clear_completed', {});
+			await NativeHostTest._call(endpoint, 'demo_playwright_dev__add_todo', { title: 'through the host' });
+			const seen = await NativeHostTest._readPageTitles();
 			if (seen.includes('through the host') === false) {
 				throw new Error(`the page holds ${JSON.stringify(seen)}`);
 			}
@@ -329,9 +329,9 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 		});
 
 		NodeTest.test('two tabs on one site are told apart', async (t) => {
-			const secondTab = await VerifyNativeHost._openSecondTab();
-			await VerifyNativeHost._pause(4000);
-			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const secondTab = await NativeHostTest._openSecondTab();
+			await NativeHostTest._pause(4000);
+			const listed = await NativeHostTest._tools(NativeHostTest._requireEndpoint());
 			const suffixed = listed.filter((name) => name.includes('__tab'));
 			if (suffixed.length === 0) {
 				throw new Error(`no tool gained a tab suffix; offered: ${listed.length} tools`);
@@ -340,13 +340,13 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 			if (plain.length > 0) {
 				throw new Error(`some tools stayed ambiguous: ${plain.join(', ')}`);
 			}
-			await VerifyNativeHost._closeTarget(secondTab);
-			await VerifyNativeHost._pause(2000);
+			await NativeHostTest._closeTarget(secondTab);
+			await NativeHostTest._pause(2000);
 			t.diagnostic(`${listed.length} tools, every site tool carrying a tab suffix`);
 		});
 
 		NodeTest.test('closing a tab withdraws its tools', async (t) => {
-			const listed = await VerifyNativeHost._tools(VerifyNativeHost._requireEndpoint());
+			const listed = await NativeHostTest._tools(NativeHostTest._requireEndpoint());
 			const suffixed = listed.filter((name) => name.includes('__tab'));
 			if (suffixed.length > 0) {
 				throw new Error(`tools from the closed tab are still offered: ${suffixed.join(', ')}`);
@@ -355,27 +355,27 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 		});
 
 		NodeTest.test('a page nobody had open can be opened, used, and closed again', async (t) => {
-			const endpoint = VerifyNativeHost._requireEndpoint();
-			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+			const endpoint = NativeHostTest._requireEndpoint();
+			const opened = await NativeHostTest._call(endpoint, 'webmcp_everywhere__open_page', {
 				url: 'https://caniuse.com/',
 			});
 			if (opened.isError === true) {
 				throw new Error(`open_page was refused: ${opened.text.slice(0, 120)}`);
 			}
 			const page = JSON.parse(opened.text) as { tabId: number; url: string; tools: string[] };
-			const afterOpen = await VerifyNativeHost._tools(endpoint);
+			const afterOpen = await NativeHostTest._tools(endpoint);
 			if (afterOpen.some((name) => name.startsWith('caniuse_com__')) === false) {
 				throw new Error(`the opened page offered no tools; offered: ${afterOpen.join(', ')}`);
 			}
 
-			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+			const closed = await NativeHostTest._call(endpoint, 'webmcp_everywhere__close_page', {
 				tabId: page.tabId,
 			});
 			if (closed.isError === true) {
 				throw new Error(`close_page was refused: ${closed.text.slice(0, 120)}`);
 			}
-			await VerifyNativeHost._pause(2000);
-			const afterClose = await VerifyNativeHost._tools(endpoint);
+			await NativeHostTest._pause(2000);
+			const afterClose = await NativeHostTest._tools(endpoint);
 			if (afterClose.some((name) => name.startsWith('caniuse_com__')) === true) {
 				throw new Error(`the closed page still offers tools: ${afterClose.join(', ')}`);
 			}
@@ -383,14 +383,14 @@ NodeTest.describe('The native host path — extension, host, and HTTP endpoint t
 		});
 
 		NodeTest.test('a page no adapter covers is neither opened nor closed', async (t) => {
-			const endpoint = VerifyNativeHost._requireEndpoint();
-			const opened = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__open_page', {
+			const endpoint = NativeHostTest._requireEndpoint();
+			const opened = await NativeHostTest._call(endpoint, 'webmcp_everywhere__open_page', {
 				url: 'https://example.com/',
 			});
 			if (opened.isError === false) {
 				throw new Error(`opening a page with no adapter succeeded: ${opened.text.slice(0, 120)}`);
 			}
-			const closed = await VerifyNativeHost._call(endpoint, 'webmcp_everywhere__close_page', {
+			const closed = await NativeHostTest._call(endpoint, 'webmcp_everywhere__close_page', {
 				tabId: 999999,
 			});
 			if (closed.isError === false) {

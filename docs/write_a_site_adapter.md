@@ -88,14 +88,14 @@ The build runs every check over every adapter before it bundles anything, and pr
 
 ## Step five: check it against the live site
 
-Write a verification runner in [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), named `verify_<site>.test.ts`, following the shape the existing ones use. `npm run verify` covers TodoMVC, `npm run verify:caniuse` covers Can I use..., and `npm run verify:openstreetmap` covers OpenStreetMap; all three are worth reading before writing a fourth.
+Write a verification runner in [`tests/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests/site_adapters), named after the adapter file with `_adapter` dropped, so `bandcamp_adapter.ts` is checked by `bandcamp.test.ts`. Follow the shape the existing ones use. `node --test tests/site_adapters/todomvc.test.ts` covers TodoMVC, `node --test tests/site_adapters/caniuse.test.ts` covers Can I use..., and `node --test tests/site_adapters/openstreetmap.test.ts` covers OpenStreetMap; all three are worth reading before writing a fourth.
 
-The rules for a runner are in [`tests/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/CONTEXT.md). The two that matter most:
+The rules for a runner are in [`tests/site_adapters/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/CONTEXT.md). The two that matter most:
 
 - **Assert against state read back out of the live page.** Nothing is mocked, and a check that cannot fail is not a check.
 - **Each runner launches its own throwaway Chrome**, so it needs no browser to be up first.
 
-When a check fails, `npm run verify:bridge` and the stdio Model Context Protocol bridge are the smallest way to tell an adapter fault apart from a delivery fault — see [testing_and_verification.md](testing_and_verification.md).
+When a check fails, `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` and the stdio Model Context Protocol bridge are the smallest way to tell an adapter fault apart from a delivery fault — see [testing_and_verification.md](testing_and_verification.md).
 
 ## Step six: write the two documents
 

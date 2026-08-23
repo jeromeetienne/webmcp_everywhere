@@ -14,7 +14,7 @@ Everything that builds, installs, or launches the product. The code that checks 
 
 ## Rules
 - `install_native_host.ts` never writes the native messaging host manifest out of string literals. It fills in `data/native_messaging_template/com.webmcp_everywhere.host.json` — see that folder's own CONTEXT.md.
-- Nothing in `src/` imports from here. `npm run verify:boundary` refuses any relative import that leaves `src/`.
+- Nothing in `src/` imports from here. `node --test tests/source_boundary.test.ts` refuses any relative import that leaves `src/`.
 - `GrantActing` is the only place that writes the extension's settings from outside the browser, so the wait for the extension's service worker to start is written once rather than in every caller.
 - The build writes to `build/chrome_extension/` and copies `manifest.json` and `user_interface/popup.html` in beside the bundles, because Chrome loads an unpacked extension from the folder that holds `manifest.json`. Nothing is ever written into `src/`.
 - Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks that.

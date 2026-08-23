@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyBridge — checks the Model Context Protocol bridge against a live page
+//	WebmcpBridgeTest — checks the Model Context Protocol bridge against a live page
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -8,12 +8,12 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { GrantActing } from '../tools/grant_acting.ts';
-import { LaunchChrome } from '../tools/launch_chrome.ts';
+import { GrantActing } from '../../tools/grant_acting.ts';
+import { LaunchChrome } from '../../tools/launch_chrome.ts';
 import type {
 	CountTodosResult,
 	ListTodosResult,
-} from './verify_types.ts';
+} from '../site_adapters/todomvc_result_types.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -46,7 +46,7 @@ type BridgeCallOutcome<DataType> = {
  * This is the check that matters for Milestone 4. If it passes, any Model Context Protocol client can
  * drive a site that never shipped WebMCP, which is the whole point of the project.
  */
-class VerifyBridge {
+class WebmcpBridgeTest {
 	/** The connected client, opened before the first check and closed after the last one. */
 	static client: Client | null = null;
 
@@ -65,10 +65,10 @@ class VerifyBridge {
 			actingAllowed: true,
 			globallyEnabled: true,
 		});
-		await VerifyBridge._pause(2500);
+		await WebmcpBridgeTest._pause(2500);
 		const transport = new StdioClientTransport({
 			command: process.execPath,
-			args: [Path.join(__dirname, 'devtools_protocol_bridge', 'webmcp_bridge.ts')],
+			args: [Path.join(__dirname, 'webmcp_bridge.ts')],
 		});
 		const client = new Client(
 			{
@@ -80,7 +80,7 @@ class VerifyBridge {
 			},
 		);
 		await client.connect(transport);
-		VerifyBridge.client = client;
+		WebmcpBridgeTest.client = client;
 	}
 
 	/**
@@ -89,11 +89,11 @@ class VerifyBridge {
 	 * @returns Nothing.
 	 */
 	static async disconnect(): Promise<void> {
-		if (VerifyBridge.client === null) {
+		if (WebmcpBridgeTest.client === null) {
 			return;
 		}
-		await VerifyBridge.client.close();
-		VerifyBridge.client = null;
+		await WebmcpBridgeTest.client.close();
+		WebmcpBridgeTest.client = null;
 	}
 
 	/**
@@ -113,10 +113,10 @@ class VerifyBridge {
 	 * @throws When the connection was never opened.
 	 */
 	static _requireClient(): Client {
-		if (VerifyBridge.client === null) {
+		if (WebmcpBridgeTest.client === null) {
 			throw new Error('the bridge client is not connected');
 		}
-		return VerifyBridge.client;
+		return WebmcpBridgeTest.client;
 	}
 
 	/**
@@ -130,7 +130,7 @@ class VerifyBridge {
 		name: string,
 		args: Record<string, unknown>,
 	): Promise<BridgeCallOutcome<DataType>> {
-		const result = await VerifyBridge._requireClient().callTool({
+		const result = await WebmcpBridgeTest._requireClient().callTool({
 			name: name,
 			arguments: args,
 		});
@@ -159,15 +159,15 @@ class VerifyBridge {
 
 NodeTest.describe('Milestone 4 — the bridge carries the page tools to a Model Context Protocol client', () => {
 	NodeTest.before(async () => {
-		await VerifyBridge.connect();
+		await WebmcpBridgeTest.connect();
 	});
 
 	NodeTest.after(async () => {
-		await VerifyBridge.disconnect();
+		await WebmcpBridgeTest.disconnect();
 	});
 
 	NodeTest.test('tools/list reports the page tools with usable schemas', async (t) => {
-		const listed = await VerifyBridge._requireClient().listTools();
+		const listed = await WebmcpBridgeTest._requireClient().listTools();
 		if (listed.tools.length !== 10) {
 			throw new Error(`expected 10 tools, got ${listed.tools.length}`);
 		}
@@ -185,11 +185,11 @@ NodeTest.describe('Milestone 4 — the bridge carries the page tools to a Model 
 	});
 
 	NodeTest.test('a tool call reaches the page and changes it', async (t) => {
-		await VerifyBridge._call('demo_playwright_dev__set_all_completed', { completed: true });
-		await VerifyBridge._call('demo_playwright_dev__clear_completed', {});
-		const before = (await VerifyBridge._call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
-		await VerifyBridge._call('demo_playwright_dev__add_todo', { title: 'added over the bridge' });
-		const after = (await VerifyBridge._call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
+		await WebmcpBridgeTest._call('demo_playwright_dev__set_all_completed', { completed: true });
+		await WebmcpBridgeTest._call('demo_playwright_dev__clear_completed', {});
+		const before = (await WebmcpBridgeTest._call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
+		await WebmcpBridgeTest._call('demo_playwright_dev__add_todo', { title: 'added over the bridge' });
+		const after = (await WebmcpBridgeTest._call<CountTodosResult>('demo_playwright_dev__count_todos', {})).data;
 		if (before === null || after === null) {
 			throw new Error('count_todos returned nothing that could be parsed');
 		}
@@ -200,16 +200,16 @@ NodeTest.describe('Milestone 4 — the bridge carries the page tools to a Model 
 	});
 
 	NodeTest.test('arguments survive the crossing', async (t) => {
-		const listed = (await VerifyBridge._call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
+		const listed = (await WebmcpBridgeTest._call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
 		const target = listed?.todos.find((todo) => todo.title === 'added over the bridge');
 		if (target === undefined) {
 			throw new Error('the todo added over the bridge is not there');
 		}
-		await VerifyBridge._call('demo_playwright_dev__edit_todo', {
+		await WebmcpBridgeTest._call('demo_playwright_dev__edit_todo', {
 			id: target.id,
 			title: 'renamed over the bridge',
 		});
-		const after = (await VerifyBridge._call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
+		const after = (await WebmcpBridgeTest._call<ListTodosResult>('demo_playwright_dev__list_todos', {})).data;
 		const renamed = after?.todos.find((todo) => todo.id === target.id);
 		if (renamed?.title !== 'renamed over the bridge') {
 			throw new Error(`title is "${renamed?.title}"`);
@@ -218,11 +218,11 @@ NodeTest.describe('Milestone 4 — the bridge carries the page tools to a Model 
 	});
 
 	NodeTest.test('a failing tool is reported as an error, not as a result', async (t) => {
-		const missing = await VerifyBridge._call('demo_playwright_dev__does_not_exist', {});
+		const missing = await WebmcpBridgeTest._call('demo_playwright_dev__does_not_exist', {});
 		if (missing.isError === false) {
 			throw new Error('calling a tool that does not exist was reported as success');
 		}
-		const badInput = await VerifyBridge._call('demo_playwright_dev__delete_todo', { id: 'not-a-real-id' });
+		const badInput = await WebmcpBridgeTest._call('demo_playwright_dev__delete_todo', { id: 'not-a-real-id' });
 		if (badInput.isError === false) {
 			throw new Error('deleting a todo that does not exist was reported as success');
 		}

@@ -82,7 +82,7 @@ Clearing is a deliberate click and never a timeout. A timeout would make the blo
 
 The refusal is enforced in `NativeBridge.callTool`, in the background service worker, which is on the path of every call from an agent.
 
-`npm run verify:injection` writes hostile content onto a real page and attacks through it.
+`node --test tests/injection_defence.test.ts` writes hostile content onto a real page and attacks through it.
 
 ## Known weaknesses, named
 

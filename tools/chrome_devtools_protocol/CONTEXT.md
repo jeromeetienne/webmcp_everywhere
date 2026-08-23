@@ -12,4 +12,4 @@ One WebSocket connection to a locally running Chrome, spoken over the Chrome Dev
 - Nothing in `src/` imports from here. The debugging port this speaks to is unauthenticated and reachable by every process on the machine, which is why the product reaches the browser through the native messaging host instead.
 
 ## Background
-- This file sat in `src/devtools_protocol_bridge/` until the source folder was cut down to product code only. It is shared by `tools/launch_chrome.ts`, `tools/grant_acting.ts`, and four verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.
+- This file sat in `src/devtools_protocol_bridge/` until the source folder was cut down to product code only. It is shared by `tools/launch_chrome.ts`, `tools/grant_acting.ts`, and several verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.

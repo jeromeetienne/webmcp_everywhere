@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyOpenStreetMap — drives the OpenStreetMap adapter in a real Chrome on the real site
+//	OpenStreetMapTest — drives the OpenStreetMap adapter in a real Chrome on the real site
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from './live_page_harness.ts';
-import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
+import { LivePageHarness } from '../live_page_harness.ts';
+import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 import type {
 	ChangesetResult,
 	MapViewResult,
@@ -19,7 +19,7 @@ import type {
 	RouteResultShape,
 	SearchResultsResult,
 	SelectedFeatureResult,
-} from './verify_openstreetmap_types.ts';
+} from './openstreetmap_result_types.ts';
 
 const TARGET_URL = 'https://www.openstreetmap.org/#map=18/48.8584/2.2945';
 
@@ -46,7 +46,7 @@ const harness = new LivePageHarness({
  * Everything else these checks need — the browser, the opt-in, the tool list, the tool call — is the
  * same for every site and lives in `LivePageHarness`.
  */
-class VerifyOpenStreetMap {
+class OpenStreetMapTest {
 	/** The distance and instruction count of the driving route, kept to compare the walking one against. */
 	static carRoute = '';
 
@@ -173,7 +173,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 		NodeTest.test('get_map_view follows the map when it moves', async (t) => {
 			const { page } = harness.requireContext();
-			await VerifyOpenStreetMap._moveMap(page, 12, 51.5074, -0.1278);
+			await OpenStreetMapTest._moveMap(page, 12, 51.5074, -0.1278);
 			const view = await harness.callTool<MapViewResult>(page, 'get_map_view');
 			if (Math.abs(view.latitude - 51.5074) > 0.01 || Math.abs(view.longitude + 0.1278) > 0.01) {
 				throw new Error(`the map was moved to London but the tool said ${view.latitude}, ${view.longitude}`);
@@ -194,7 +194,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 	NodeTest.describe('with a feature open', () => {
 		NodeTest.before(async () => {
 			const { page } = harness.requireContext();
-			await VerifyOpenStreetMap._route(page, `/node/${SAMPLE_NODE_ID}`);
+			await OpenStreetMapTest._route(page, `/node/${SAMPLE_NODE_ID}`);
 		});
 
 		NodeTest.test('get_selected_feature reads every tag the panel shows', async (t) => {
@@ -240,9 +240,9 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 	NodeTest.describe('with the Query Features panel open', () => {
 		NodeTest.before(async () => {
 			const { page } = harness.requireContext();
-			await VerifyOpenStreetMap._moveMap(page, 17, 48.8584, 2.2945);
-			await VerifyOpenStreetMap._route(page, '/query?lat=48.8584&lon=2.2945', 0);
-			await VerifyOpenStreetMap._waitForQueryPanel(page);
+			await OpenStreetMapTest._moveMap(page, 17, 48.8584, 2.2945);
+			await OpenStreetMapTest._route(page, '/query?lat=48.8584&lon=2.2945', 0);
+			await OpenStreetMapTest._waitForQueryPanel(page);
 		});
 
 		NodeTest.test('an unfinished list says so rather than reporting nothing', async (t) => {
@@ -266,7 +266,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		NodeTest.describe('once both lists have arrived', () => {
 			NodeTest.before(async () => {
 				const { page } = harness.requireContext();
-				await VerifyOpenStreetMap._waitForQueryLists(page);
+				await OpenStreetMapTest._waitForQueryLists(page);
 			});
 
 			NodeTest.test('list_queried_features matches both lists the panel holds', async (t) => {
@@ -319,8 +319,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 	NodeTest.describe('with the changeset list open', () => {
 		NodeTest.before(async () => {
 			const { page } = harness.requireContext();
-			await VerifyOpenStreetMap._moveMap(page, 14, 48.8584, 2.2945);
-			await VerifyOpenStreetMap._route(page, '/history');
+			await OpenStreetMapTest._moveMap(page, 14, 48.8584, 2.2945);
+			await OpenStreetMapTest._route(page, '/history');
 		});
 
 		NodeTest.test('list_recent_changesets matches the entries the panel shows', async (t) => {
@@ -355,7 +355,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			const openable = await page.evaluate<number>(
 				'JSON.parse(document.querySelector("#sidebar_content li[data-changeset]").dataset.changeset).id',
 			);
-			await VerifyOpenStreetMap._route(page, `/changeset/${openable}`);
+			await OpenStreetMapTest._route(page, `/changeset/${openable}`);
 		});
 
 		NodeTest.test('get_changeset reads the changeset the panel is showing', async (t) => {
@@ -402,7 +402,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 	NodeTest.describe('with search results open', () => {
 		NodeTest.before(async () => {
 			const { page } = harness.requireContext();
-			await VerifyOpenStreetMap._route(page, `/search?query=${encodeURIComponent('Eiffel Tower')}`);
+			await OpenStreetMapTest._route(page, `/search?query=${encodeURIComponent('Eiffel Tower')}`);
 		});
 
 		NodeTest.test('list_search_results matches the results the panel shows', async (t) => {
@@ -650,7 +650,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			if (answer.route.distance !== onPage) {
 				throw new Error(`the tool said ${answer.route.distance} but the panel says ${onPage}`);
 			}
-			VerifyOpenStreetMap.carRoute = `${answer.route.distance}|${answer.route.turnCount}`;
+			OpenStreetMapTest.carRoute = `${answer.route.distance}|${answer.route.turnCount}`;
 			t.diagnostic(
 				`${answer.engine} by ${answer.mode}: ${answer.route.distance} in ${answer.route.time}, ` +
 					`${answer.route.turnCount} instructions`,
@@ -667,7 +667,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 				mode: 'foot',
 			});
 			const signature = `${answer.route.distance}|${answer.route.turnCount}`;
-			if (signature === VerifyOpenStreetMap.carRoute) {
+			if (signature === OpenStreetMapTest.carRoute) {
 				throw new Error(`walking returned the same route as driving: ${signature}`);
 			}
 			const onPage = await page.evaluate<string>(
@@ -678,7 +678,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			}
 			t.diagnostic(
 				`on foot: ${answer.route.distance} in ${answer.route.time}, ` +
-					`${answer.route.turnCount} instructions, against driving ${VerifyOpenStreetMap.carRoute}`,
+					`${answer.route.turnCount} instructions, against driving ${OpenStreetMapTest.carRoute}`,
 			);
 		});
 	});

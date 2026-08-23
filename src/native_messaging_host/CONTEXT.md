@@ -8,7 +8,7 @@ The native messaging host: Chrome starts it on demand, it holds the HTTP port th
 - `native_messaging_codec.ts`: `NativeMessagingCodec` — Chrome's four-byte length-prefixed framing.
 - `host_state_files.ts`: `HostStateFiles` — the bearer token and `endpoint.json` in the state directory.
 - `webmcp_native_host_types.ts`: the messages the extension and the host exchange.
-- Commands to check this folder: `npm run verify:host` and `npm run verify:endpoint`.
+- Commands to check this folder: `node --test tests/native_host.test.ts` and `node --test tests/endpoint_file.test.ts`.
 
 ## Rules
 - The launcher `bin/webmcp_native_host.sh` points straight at `webmcp_native_host.ts`, because Node.js runs TypeScript with no build step, and works the path out from its own location. Moving this file means editing the launcher; moving the repository means running `npm run install:host` again.

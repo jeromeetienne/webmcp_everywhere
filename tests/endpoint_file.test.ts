@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	VerifyEndpointFile — checks that endpoint.json always names a host that is really listening
+//	EndpointFileTest — checks that endpoint.json always names a host that is really listening
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -31,7 +31,7 @@ const __dirname = import.meta.dirname;
  * exactly. Nothing is stood in for: the hosts are the real program, started over a real pipe the way
  * Chrome starts them, holding a real port and writing the real file.
  */
-class VerifyEndpointFile {
+class EndpointFileTest {
 	/** The host program the checks start, the same file the installed host manifest names. */
 	static readonly HOST_SCRIPT = Path.join(__dirname, '..', 'src', 'native_messaging_host', 'webmcp_native_host.ts');
 
@@ -80,11 +80,11 @@ class VerifyEndpointFile {
 	 * @returns The host process.
 	 */
 	static _startHost(): ChildProcess.ChildProcess {
-		const childProcess = ChildProcess.spawn(process.execPath, [VerifyEndpointFile.HOST_SCRIPT], {
+		const childProcess = ChildProcess.spawn(process.execPath, [EndpointFileTest.HOST_SCRIPT], {
 			stdio: ['pipe', 'pipe', 'pipe'],
-			env: VerifyEndpointFile._environment(),
+			env: EndpointFileTest._environment(),
 		});
-		VerifyEndpointFile.started.push(childProcess);
+		EndpointFileTest.started.push(childProcess);
 		return childProcess;
 	}
 
@@ -96,8 +96,8 @@ class VerifyEndpointFile {
 	static _environment(): NodeJS.ProcessEnv {
 		return {
 			...process.env,
-			WEBMCP_EVERYWHERE_STATE_DIR: VerifyEndpointFile.stateDir,
-			WEBMCP_EVERYWHERE_HOST_PORT: String(VerifyEndpointFile.port),
+			WEBMCP_EVERYWHERE_STATE_DIR: EndpointFileTest.stateDir,
+			WEBMCP_EVERYWHERE_HOST_PORT: String(EndpointFileTest.port),
 		};
 	}
 
@@ -108,7 +108,7 @@ class VerifyEndpointFile {
 	 */
 	static _readEndpoint(): HostEndpointRecord | null {
 		try {
-			const path = Path.join(VerifyEndpointFile.stateDir, 'endpoint.json');
+			const path = Path.join(EndpointFileTest.stateDir, 'endpoint.json');
 			return JSON.parse(Fs.readFileSync(path, 'utf8')) as HostEndpointRecord;
 		} catch {
 			return null;
@@ -122,7 +122,7 @@ class VerifyEndpointFile {
 	 */
 	static async _health(): Promise<HostHealth | null> {
 		try {
-			const response = await fetch(`http://127.0.0.1:${VerifyEndpointFile.port}/health`, {
+			const response = await fetch(`http://127.0.0.1:${EndpointFileTest.port}/health`, {
 				signal: AbortSignal.timeout(1000),
 			});
 			return (await response.json()) as HostHealth;
@@ -139,11 +139,11 @@ class VerifyEndpointFile {
 	 * @throws When the file names an address nothing answers, or a process that is not the one answering.
 	 */
 	static async _requireTruthfulEndpoint(moment: string): Promise<HostEndpointRecord> {
-		const record = VerifyEndpointFile._readEndpoint();
+		const record = EndpointFileTest._readEndpoint();
 		if (record === null) {
 			throw new Error(`${moment}: there is no endpoint.json at all`);
 		}
-		const health = await VerifyEndpointFile._health();
+		const health = await EndpointFileTest._health();
 		if (health === null) {
 			throw new Error(`${moment}: endpoint.json names ${record.url}, and nothing is listening there`);
 		}
@@ -156,7 +156,7 @@ class VerifyEndpointFile {
 					`but process ${health.processId} is the one listening`,
 			);
 		}
-		if (record.url !== `http://127.0.0.1:${VerifyEndpointFile.port}/mcp`) {
+		if (record.url !== `http://127.0.0.1:${EndpointFileTest.port}/mcp`) {
 			throw new Error(`${moment}: endpoint.json names ${record.url}, not the port the host was given`);
 		}
 		return record;
@@ -217,16 +217,16 @@ class VerifyEndpointFile {
 
 NodeTest.describe('endpoint.json always names a host that is really listening', () => {
 	NodeTest.before(async () => {
-		VerifyEndpointFile.stateDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'webmcp_everywhere_endpoint_'));
-		VerifyEndpointFile.port = await VerifyEndpointFile._findFreePort();
+		EndpointFileTest.stateDir = Fs.mkdtempSync(Path.join(Os.tmpdir(), 'webmcp_everywhere_endpoint_'));
+		EndpointFileTest.port = await EndpointFileTest._findFreePort();
 	});
 
 	NodeTest.after(async () => {
-		for (const childProcess of VerifyEndpointFile.started) {
+		for (const childProcess of EndpointFileTest.started) {
 			childProcess.kill('SIGKILL');
 		}
-		await VerifyEndpointFile._pause(500);
-		Fs.rmSync(VerifyEndpointFile.stateDir, {
+		await EndpointFileTest._pause(500);
+		Fs.rmSync(EndpointFileTest.stateDir, {
 			recursive: true,
 			force: true,
 		});
@@ -234,13 +234,13 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 
 	NodeTest.describe('with one host running', () => {
 		NodeTest.before(async () => {
-			VerifyEndpointFile.firstHost = VerifyEndpointFile._startHost();
-			await VerifyEndpointFile._pause(2000);
+			EndpointFileTest.firstHost = EndpointFileTest._startHost();
+			await EndpointFileTest._pause(2000);
 		});
 
 		NodeTest.test('the host writes the port it was given, and is listening on it', async (t) => {
-			const record = await VerifyEndpointFile._requireTruthfulEndpoint('with one host running');
-			if (record.processId !== VerifyEndpointFile.firstHost?.pid) {
+			const record = await EndpointFileTest._requireTruthfulEndpoint('with one host running');
+			if (record.processId !== EndpointFileTest.firstHost?.pid) {
 				throw new Error(`endpoint.json names process ${record.processId}, not the host that was started`);
 			}
 			t.diagnostic(`endpoint.json names ${record.url}, answered by process ${record.processId}`);
@@ -249,13 +249,13 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 
 	NodeTest.describe('with a second host started while the first holds the port', () => {
 		NodeTest.before(async () => {
-			VerifyEndpointFile.secondHost = VerifyEndpointFile._startHost();
-			await VerifyEndpointFile._pause(3000);
+			EndpointFileTest.secondHost = EndpointFileTest._startHost();
+			await EndpointFileTest._pause(3000);
 		});
 
 		NodeTest.test('the second host takes the port rather than walking to another one', async (t) => {
-			const record = await VerifyEndpointFile._requireTruthfulEndpoint('with a second host started');
-			if (record.processId !== VerifyEndpointFile.secondHost?.pid) {
+			const record = await EndpointFileTest._requireTruthfulEndpoint('with a second host started');
+			if (record.processId !== EndpointFileTest.secondHost?.pid) {
 				throw new Error(
 					`endpoint.json names process ${record.processId}, not the host that started last; ` +
 						'a host that walks to another port leaves a recorded address pointing at nothing',
@@ -265,8 +265,8 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 		});
 
 		NodeTest.test('the host that gave the port up keeps running, so its browser starts no other', (t) => {
-			const first = VerifyEndpointFile.firstHost?.pid ?? 0;
-			if (VerifyEndpointFile._isRunning(first) === false) {
+			const first = EndpointFileTest.firstHost?.pid ?? 0;
+			if (EndpointFileTest._isRunning(first) === false) {
 				throw new Error(
 					`the host that gave the port up, process ${first}, stopped; ` +
 						'its extension would reconnect, Chrome would start another host, and that one would stop too',
@@ -278,13 +278,13 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 
 	NodeTest.describe('with the host holding the port stopped', () => {
 		NodeTest.before(async () => {
-			VerifyEndpointFile.secondHost?.kill('SIGTERM');
-			await VerifyEndpointFile._pause(WebmcpNativeHost.STANDBY_RETRY_DELAY + 2000);
+			EndpointFileTest.secondHost?.kill('SIGTERM');
+			await EndpointFileTest._pause(WebmcpNativeHost.STANDBY_RETRY_DELAY + 2000);
 		});
 
 		NodeTest.test('the host standing by takes the port back, and the file follows it', async (t) => {
-			const record = await VerifyEndpointFile._requireTruthfulEndpoint('after the serving host stopped');
-			if (record.processId !== VerifyEndpointFile.firstHost?.pid) {
+			const record = await EndpointFileTest._requireTruthfulEndpoint('after the serving host stopped');
+			if (record.processId !== EndpointFileTest.firstHost?.pid) {
 				throw new Error(
 					`endpoint.json names process ${record.processId}, not the host that was standing by`,
 				);
@@ -295,19 +295,19 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 
 	NodeTest.describe('with every host stopped', () => {
 		NodeTest.before(async () => {
-			VerifyEndpointFile.firstHost?.kill('SIGTERM');
-			await VerifyEndpointFile._pause(1500);
+			EndpointFileTest.firstHost?.kill('SIGTERM');
+			await EndpointFileTest._pause(1500);
 		});
 
 		NodeTest.test('the last host to stop takes the file with it', async (t) => {
-			const record = VerifyEndpointFile._readEndpoint();
+			const record = EndpointFileTest._readEndpoint();
 			if (record !== null) {
 				throw new Error(
 					`endpoint.json still names ${record.url} with no host running, ` +
 						'so every agent reading it is sent to a port nothing is listening on',
 				);
 			}
-			if ((await VerifyEndpointFile._health()) !== null) {
+			if ((await EndpointFileTest._health()) !== null) {
 				throw new Error('a host is still listening after every host was stopped');
 			}
 			t.diagnostic('no host, no file, and nothing listening');
@@ -328,23 +328,23 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 		let writeEnd = 0;
 
 		NodeTest.before(async () => {
-			pipePath = Path.join(VerifyEndpointFile.stateDir, 'host_standard_input');
+			pipePath = Path.join(EndpointFileTest.stateDir, 'host_standard_input');
 			ChildProcess.execFileSync('mkfifo', [pipePath]);
 			writeEnd = Fs.openSync(pipePath, Fs.constants.O_RDWR);
 
 			orphanMaker = ChildProcess.spawn(
 				process.execPath,
-				['--input-type=module', '-e', VerifyEndpointFile.ORPHAN_MAKER, pipePath, VerifyEndpointFile.HOST_SCRIPT],
+				['--input-type=module', '-e', EndpointFileTest.ORPHAN_MAKER, pipePath, EndpointFileTest.HOST_SCRIPT],
 				{
 					stdio: ['ignore', 'pipe', 'pipe'],
-					env: VerifyEndpointFile._environment(),
+					env: EndpointFileTest._environment(),
 				},
 			);
-			VerifyEndpointFile.started.push(orphanMaker);
+			EndpointFileTest.started.push(orphanMaker);
 			orphanMaker.stdout?.on('data', (chunk: Buffer) => {
 				orphanedHostId = Number(chunk.toString('utf8').trim());
 			});
-			await VerifyEndpointFile._pause(2500);
+			await EndpointFileTest._pause(2500);
 		});
 
 		NodeTest.after(() => {
@@ -358,7 +358,7 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 		});
 
 		NodeTest.test('that host is serving, and the file names it', async (t) => {
-			const record = await VerifyEndpointFile._requireTruthfulEndpoint('before the browser was killed');
+			const record = await EndpointFileTest._requireTruthfulEndpoint('before the browser was killed');
 			if (record.processId !== orphanedHostId) {
 				throw new Error(`endpoint.json names process ${record.processId}, not the host that was started`);
 			}
@@ -367,8 +367,8 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 
 		NodeTest.test('killing the browser stops the host, even with its standard input still open', async (t) => {
 			orphanMaker?.kill('SIGKILL');
-			await VerifyEndpointFile._pause(WebmcpNativeHost.PARENT_CHECK_INTERVAL + 2000);
-			if (VerifyEndpointFile._isRunning(orphanedHostId) === true) {
+			await EndpointFileTest._pause(WebmcpNativeHost.PARENT_CHECK_INTERVAL + 2000);
+			if (EndpointFileTest._isRunning(orphanedHostId) === true) {
 				throw new Error(
 					`process ${orphanedHostId} is still holding the port with its browser gone; ` +
 						'standard input never reached its end, so nothing else can notice',
@@ -378,7 +378,7 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 		});
 
 		NodeTest.test('and it takes the file with it, leaving nothing to send an agent to', async (t) => {
-			const record = VerifyEndpointFile._readEndpoint();
+			const record = EndpointFileTest._readEndpoint();
 			if (record !== null) {
 				throw new Error(`endpoint.json still names ${record.url}, and its host is gone`);
 			}
@@ -399,20 +399,20 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 			});
 			await new Promise<void>((resolve, reject) => {
 				squatter?.once('error', reject);
-				squatter?.listen(VerifyEndpointFile.port, '127.0.0.1', () => {
+				squatter?.listen(EndpointFileTest.port, '127.0.0.1', () => {
 					resolve();
 				});
 			});
-			waitingHost = VerifyEndpointFile._startHost();
-			await VerifyEndpointFile._pause(2500);
+			waitingHost = EndpointFileTest._startHost();
+			await EndpointFileTest._pause(2500);
 		});
 
 		NodeTest.test('the host writes no file at all rather than one naming a port it does not hold', (t) => {
-			const record = VerifyEndpointFile._readEndpoint();
+			const record = EndpointFileTest._readEndpoint();
 			if (record !== null) {
 				throw new Error(`endpoint.json names ${record.url}, which this host never took`);
 			}
-			if (VerifyEndpointFile._isRunning(waitingHost?.pid ?? 0) === false) {
+			if (EndpointFileTest._isRunning(waitingHost?.pid ?? 0) === false) {
 				throw new Error('the host stopped, so its extension would reconnect and Chrome would start another');
 			}
 			t.diagnostic('no file written, and the host is standing by rather than stopping');
@@ -425,8 +425,8 @@ NodeTest.describe('endpoint.json always names a host that is really listening', 
 					resolve();
 				});
 			});
-			await VerifyEndpointFile._pause(WebmcpNativeHost.STANDBY_RETRY_DELAY + 2000);
-			const record = await VerifyEndpointFile._requireTruthfulEndpoint('after the port was freed');
+			await EndpointFileTest._pause(WebmcpNativeHost.STANDBY_RETRY_DELAY + 2000);
+			const record = await EndpointFileTest._requireTruthfulEndpoint('after the port was freed');
 			if (record.processId !== waitingHost?.pid) {
 				throw new Error(`endpoint.json names process ${record.processId}, not the host that was waiting`);
 			}

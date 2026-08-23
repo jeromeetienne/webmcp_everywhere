@@ -80,16 +80,16 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Types and imports
 
-**`npm run verify:boundary` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) has a relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
+**`node --test tests/source_boundary.test.ts` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) has a relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
 **`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) directly and only strips types, so those files stay within erasable syntax.
 
 ## Telling an adapter fault from a delivery fault
 
-When `npm run verify:host` fails and you cannot tell where the fault is, narrow it.
+When `node --test tests/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
 
-1. Run the adapter's own runner — `npm run verify` or `npm run verify:caniuse`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
-2. Run `npm run verify:bridge`. The stdio bridge reaches the page over the Chrome DevTools Protocol, still bypassing the extension and the host. If it passes, WebMCP registration on the page is fine.
+1. Run the adapter's own runner — `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
+2. Run `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts`. The stdio bridge reaches the page over the Chrome DevTools Protocol, still bypassing the extension and the host. If it passes, WebMCP registration on the page is fine.
 3. What is left is the extension or the native messaging host. Read `~/.webmcp_everywhere/host.log`, and read the extension's errors on `chrome://extensions`.
 
 ## Useful places to look

@@ -7,7 +7,7 @@
 import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../tools/grant_acting.ts';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
-import type { FramedResultOf } from './verify_types.ts';
+import type { FramedResultOf } from './host_call_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
