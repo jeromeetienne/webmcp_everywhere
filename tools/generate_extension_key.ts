@@ -8,6 +8,7 @@ import Crypto from 'node:crypto';
 import Fs from 'node:fs';
 import Path from 'node:path';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 ///////////////////////////////////////////////////////////////////////////////

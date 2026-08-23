@@ -9,6 +9,7 @@ import Os from 'node:os';
 import Path from 'node:path';
 import { GenerateExtensionKey } from './generate_extension_key.ts';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 ///////////////////////////////////////////////////////////////////////////////

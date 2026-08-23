@@ -13,6 +13,7 @@ import NodeTest from 'node:test';
 import { WebmcpNativeHost } from '../src/native_messaging_host/webmcp_native_host.ts';
 import type { HostEndpointRecord, HostHealth } from '../src/native_messaging_host/webmcp_native_host.ts';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 /**

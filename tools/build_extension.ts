@@ -9,6 +9,7 @@ import Fs from 'node:fs';
 import Path from 'node:path';
 import ChildProcess from 'node:child_process';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 const sourceDir = Path.join(__dirname, '..', 'src', 'chrome_extension');

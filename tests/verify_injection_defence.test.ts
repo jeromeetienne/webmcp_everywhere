@@ -236,7 +236,10 @@ NodeTest.describe('Attacking the extension through a real page', () => {
 	NodeTest.before(async () => {
 		await LaunchChrome.run();
 		await VerifyInjectionDefence._pause(5000);
-		await GrantActing.run({ actingAllowed: true, globallyEnabled: true });
+		await GrantActing.run({
+			actingAllowed: true,
+			globallyEnabled: true,
+		});
 		await VerifyInjectionDefence._pause(2500);
 		VerifyInjectionDefence.endpoint = {
 			url: (JSON.parse(Fs.readFileSync(ENDPOINT_FILE, 'utf8')) as { url: string }).url,

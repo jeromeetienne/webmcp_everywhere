@@ -11,6 +11,7 @@ import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 ///////////////////////////////////////////////////////////////////////////////

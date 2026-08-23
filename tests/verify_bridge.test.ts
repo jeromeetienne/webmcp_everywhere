@@ -15,6 +15,7 @@ import type {
 	ListTodosResult,
 } from './verify_types.ts';
 
+const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 ///////////////////////////////////////////////////////////////////////////////

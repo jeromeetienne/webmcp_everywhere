@@ -79,8 +79,12 @@ class VerifyNativeHost {
 	 */
 	static async _get(endpoint: HostEndpoint, path: string, token: string | null): Promise<HttpOutcome> {
 		const base = new URL(endpoint.url);
+		const headers: Record<string, string> = {};
+		if (token !== null) {
+			headers.authorization = `Bearer ${token}`;
+		}
 		const response = await fetch(`${base.origin}${path}`, {
-			headers: token === null ? {} : { authorization: `Bearer ${token}` },
+			headers: headers,
 		});
 		return {
 			status: response.status,
