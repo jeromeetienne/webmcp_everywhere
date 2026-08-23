@@ -10,7 +10,7 @@ An adapter names its tools in plain `snake_case`, unique only within that adapte
 
 ## Stage two: the runtime qualifies it with the site slug
 
-Every adapter carries a `siteSlug`, a `snake_case` slug derived from its origin. `ToolNaming.slugFromOrigin` builds one: it drops the scheme and any port, then replaces every run of non-alphanumeric characters with a single underscore.
+Every adapter carries a `siteSlug`, which the adapter author writes by hand. It is the adapter's origin with the scheme and any port dropped, and every run of non-alphanumeric characters replaced by a single underscore. `AdapterSchema` requires it to match `ToolNaming.VALID_NAME` in the same way a tool name must.
 
 - `https://demo.playwright.dev` becomes `demo_playwright_dev`
 - `https://caniuse.com` becomes `caniuse_com`

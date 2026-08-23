@@ -12,6 +12,7 @@ Everything that exists only to check the product: the verification runners, and 
 - `verify_injection_defence.test.ts`: `VerifyInjectionDefence` — writes hostile content onto the page and attacks through it. `npm run verify:injection`
 - `verify_bridge.test.ts`: `VerifyBridge` — 4 checks through the stdio bridge. `npm run verify:bridge`
 - `verify_source_boundary.test.ts`: `VerifySourceBoundary` — refuses a relative import that leaves `src/`. `npm run verify:boundary`
+- `live_page_harness.ts`: `LivePageHarness` — the live browser the three site runners share: it launches Chrome, writes the opt-in, loads the page, names the registered tools, and calls one.
 - `verify_types.ts`: The result shapes the verification runners share.
 - `devtools_protocol_bridge/`: The stdio Model Context Protocol bridge — see its own CONTEXT.md.
 - Command to run this folder: `npm test`
@@ -21,7 +22,8 @@ Everything that exists only to check the product: the verification runners, and 
 - Verification asserts against state read back out of the live page. Nothing is mocked, and a check that cannot fail is not a check.
 - `verify_endpoint_file.test.ts` is the one runner that starts no browser: its subject is the host process and the file it writes, and the fault it covers is a host whose standard input never reached its end, which a browser cannot be asked for. It still starts the real host over a real pipe, into a throwaway `WEBMCP_EVERYWHERE_STATE_DIR`.
 - Every file holding checks ends in `.test.ts`, so `node --test` finds it with no file list. `verify_types.ts` holds no check and keeps its plain name.
-- One shape everywhere: `NodeTest.before` prepares the live browser into a static field, `NodeTest.after` closes it, and a check throws its own message rather than calling `node:assert`, because those messages are what the runner is for. Detail lines go to `t.diagnostic`.
+- One shape everywhere: `NodeTest.before` prepares the live browser, `NodeTest.after` closes it, and a check throws its own message rather than calling `node:assert`, because those messages are what the runner is for. Detail lines go to `t.diagnostic`.
+- A runner driving an adapted page uses `LivePageHarness` and writes no launch, opt-in, reload, tool list or tool call of its own, keeping only the helpers for its own site. It reaches extension storage through `GrantActing`, which is where the wait for the service worker lives.
 - Checks in one file run in the order written and share one live page, so a check may depend on the one before it. Anything that must happen between two checks belongs in the `NodeTest.before` of a nested `NodeTest.describe`, never in a check that does not own it.
 - `npm test` runs with `--test-concurrency=1`: every runner takes the same debugging port and throwaway profile.
 - Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks that.

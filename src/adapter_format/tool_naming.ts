@@ -19,17 +19,6 @@ export class ToolNaming {
 	static readonly VALID_NAME = /^[a-z0-9_]+$/;
 
 	/**
-	 * Derives a stable `snake_case` slug from an origin.
-	 *
-	 * @param origin - An origin such as `https://demo.playwright.dev`.
-	 * @returns A slug such as `demo_playwright_dev`.
-	 */
-	static slugFromOrigin(origin: string): string {
-		const host = origin.replace(/^https?:\/\//, '').replace(/:\d+$/, '');
-		return host.replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase();
-	}
-
-	/**
 	 * Joins a site slug and an unqualified tool name into the name actually registered with WebMCP.
 	 *
 	 * @param siteSlug - The adapter's site slug, for example `demo_playwright_dev`.

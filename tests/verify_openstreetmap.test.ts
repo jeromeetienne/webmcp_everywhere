@@ -4,14 +4,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
-import { LaunchChrome } from '../tools/launch_chrome.ts';
 import NodeTest from 'node:test';
-import type { FramedResultOf } from './verify_types.ts';
+import { LivePageHarness } from './live_page_harness.ts';
+import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 
 const TARGET_URL = 'https://www.openstreetmap.org/#map=18/48.8584/2.2945';
-
-const ORIGIN = 'https://www.openstreetmap.org';
 
 /** A node with a rich tag list, verified against the live site on 2026-08-21. */
 const SAMPLE_NODE_ID = 7982106824;
@@ -163,175 +160,29 @@ type RefusalResult = {
 	remedy: string;
 };
 
-/** The live browser every check works against, prepared once before the first of them. */
-type OpenStreetMapContext = {
-	/** The remote debugging port Chrome is listening on. */
-	port: number;
-	/** The installed extension's identifier. */
-	extensionId: string;
-	/** A client attached to the OpenStreetMap page. */
-	page: CdpClient;
-};
-
 /**
- * Runs every check for the OpenStreetMap adapter against the live site in a real Chrome.
+ * The live browser every check works against, prepared once before the first of them.
  *
  * Nothing here is mocked. Chrome is launched, the extension is installed, the live site is loaded, and
  * every assertion calls a tool through `document.modelContext` and compares the answer against what
  * the page itself renders, read back with a separate expression.
  */
-class VerifyOpenStreetMap {
-	/** The live browser, set before the first check and dropped after the last one. */
-	static context: OpenStreetMapContext | null = null;
+const harness = new LivePageHarness({
+	siteSlug: 'openstreetmap_org',
+	origin: 'https://www.openstreetmap.org',
+	url: TARGET_URL,
+	urlFragment: 'openstreetmap.org',
+});
 
+/**
+ * Drives OpenStreetMap itself, for the things only this site needs.
+ *
+ * Everything else these checks need — the browser, the opt-in, the tool list, the tool call — is the
+ * same for every site and lives in `LivePageHarness`.
+ */
+class VerifyOpenStreetMap {
 	/** The distance and instruction count of the driving route, kept to compare the walking one against. */
 	static carRoute = '';
-
-	/**
-	 * Returns the live browser the checks work against, refusing to continue when there is none.
-	 *
-	 * @returns The port, the extension identifier and the page.
-	 * @throws When the launch step never prepared them.
-	 */
-	static _requireContext(): OpenStreetMapContext {
-		if (VerifyOpenStreetMap.context === null) {
-			throw new Error('the browser was never launched');
-		}
-		return VerifyOpenStreetMap.context;
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//	Helpers
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Waits for a moment.
-	 *
-	 * @param milliseconds - How long to wait.
-	 * @returns Nothing.
-	 */
-	static async _pause(milliseconds: number): Promise<void> {
-		await new Promise((resolve) => setTimeout(resolve, milliseconds));
-	}
-
-	/**
-	 * Finds the extension's identifier, waiting for its service worker to start.
-	 *
-	 * @param port - The remote debugging port.
-	 * @returns The extension identifier.
-	 * @throws When the service worker never starts.
-	 */
-	static async _extensionId(port: number): Promise<string> {
-		for (let attempt = 0; attempt < 40; attempt += 1) {
-			const targets = await CdpClient.listTargets(port);
-			const worker = targets.find(
-				(target) =>
-					target.type === 'service_worker' &&
-					target.url.includes('dist/background_service_worker.js'),
-			);
-			if (worker !== undefined) {
-				return new URL(worker.url).host;
-			}
-			await VerifyOpenStreetMap._pause(250);
-		}
-		throw new Error('the extension service worker never started');
-	}
-
-	/**
-	 * Writes the user's settings straight into the extension's storage.
-	 *
-	 * @param port - The remote debugging port.
-	 * @param extensionId - The installed extension's identifier.
-	 * @param actingAllowed - Whether acting tools are opted in for this origin.
-	 * @param globallyEnabled - Whether the extension is switched on at all.
-	 * @returns Nothing.
-	 * @throws When the service worker is not running.
-	 */
-	static async _setGrant(
-		port: number,
-		extensionId: string,
-		actingAllowed: boolean,
-		globallyEnabled: boolean,
-	): Promise<void> {
-		const targets = await CdpClient.listTargets(port);
-		const worker = targets.find((target) =>
-			target.url.includes(`${extensionId}/dist/background_service_worker.js`),
-		);
-		if (worker === undefined) {
-			throw new Error('the extension service worker is not running');
-		}
-		const client = new CdpClient(port);
-		await client.connect(worker.webSocketDebuggerUrl);
-		const settings = {
-			globallyEnabled: globallyEnabled,
-			actingAllowedByOrigin: {
-				[ORIGIN]: actingAllowed,
-			},
-		};
-		await client.evaluate(
-			`chrome.storage.local.set({ webmcp_everywhere_settings: ${JSON.stringify(settings)} }).then(() => 'ok')`,
-		);
-		client.close();
-	}
-
-	/**
-	 * Loads the target page fresh and returns a client attached to it.
-	 *
-	 * @param port - The remote debugging port.
-	 * @param url - The address to load.
-	 * @returns A client attached to the page.
-	 */
-	static async _reload(port: number, url: string): Promise<CdpClient> {
-		const page = await CdpClient.connectToPage(port, 'openstreetmap.org');
-		await page.navigate(url, 6000);
-		return page;
-	}
-
-	/**
-	 * Names every tool the adapter has registered on the page.
-	 *
-	 * @param page - The page to ask.
-	 * @returns The qualified tool names.
-	 */
-	static async _toolNames(page: CdpClient): Promise<string[]> {
-		const json = await page.evaluate<string>(
-			'document.modelContext.getTools().then((tools) => JSON.stringify(tools.map((tool) => tool.name)))',
-		);
-		return JSON.parse(json) as string[];
-	}
-
-	/**
-	 * Calls one of the adapter's tools and unwraps the framed result.
-	 *
-	 * @param page - The page holding the tool.
-	 * @param shortName - The tool's unqualified name.
-	 * @param input - The tool's arguments.
-	 * @returns Whatever the tool returned, taken out of its frame.
-	 * @throws When the tool is not registered or its result was never framed.
-	 */
-	static async _callTool<ResultType = unknown>(
-		page: CdpClient,
-		shortName: string,
-		input: Record<string, unknown> = {},
-	): Promise<ResultType> {
-		const qualifiedName = `openstreetmap_org__${shortName}`;
-		const expression = `
-			(async () => {
-				const tools = await document.modelContext.getTools();
-				const tool = tools.find((candidate) => candidate.name === ${JSON.stringify(qualifiedName)});
-				if (tool === undefined) { throw new Error('tool not registered: ' + ${JSON.stringify(qualifiedName)}); }
-				return await document.modelContext.executeTool(tool, ${JSON.stringify(JSON.stringify(input))});
-			})()
-		`;
-		const raw = await page.evaluate<string>(expression);
-		const framed = JSON.parse(raw) as FramedResultOf<ResultType>;
-		if (framed?.webmcpEverywhere === undefined) {
-			throw new Error(`${shortName} returned an unframed result, so the untrusted content check was skipped`);
-		}
-		return framed.data;
-	}
 
 	/**
 	 * Drives the site to another panel through its own client-side router.
@@ -345,7 +196,24 @@ class VerifyOpenStreetMap {
 	 */
 	static async _route(page: CdpClient, path: string, settleMs = 3500): Promise<void> {
 		await page.evaluate(`window.OSM.router.route(${JSON.stringify(path)})`);
-		await VerifyOpenStreetMap._pause(settleMs);
+		await LivePageHarness.pause(settleMs);
+	}
+
+	/**
+	 * Moves the map, then leaves the event loop a turn to let the site act on it.
+	 *
+	 * Setting the fragment and routing in the same turn loses the move, because the router rewrites the
+	 * fragment before the `hashchange` handler runs.
+	 *
+	 * @param page - The page to drive.
+	 * @param zoom - The zoom to move to.
+	 * @param latitude - The latitude to move to.
+	 * @param longitude - The longitude to move to.
+	 * @returns Nothing.
+	 */
+	static async _moveMap(page: CdpClient, zoom: number, latitude: number, longitude: number): Promise<void> {
+		await page.evaluate(`window.location.hash = '#map=${zoom}/${latitude}/${longitude}'`);
+		await LivePageHarness.pause(2500);
 	}
 
 	/**
@@ -363,7 +231,7 @@ class VerifyOpenStreetMap {
 			if (present === true) {
 				return;
 			}
-			await VerifyOpenStreetMap._pause(200);
+			await LivePageHarness.pause(200);
 		}
 		throw new Error('the Query Features panel never appeared');
 	}
@@ -383,53 +251,9 @@ class VerifyOpenStreetMap {
 			if (settled === true) {
 				return;
 			}
-			await VerifyOpenStreetMap._pause(500);
+			await LivePageHarness.pause(500);
 		}
 		throw new Error('the Query Features lists never finished loading');
-	}
-
-	/**
-	 * Moves the map, then leaves the event loop a turn to let the site act on it.
-	 *
-	 * Setting the fragment and routing in the same turn loses the move, because the router rewrites the
-	 * fragment before the `hashchange` handler runs.
-	 *
-	 * @param page - The page to drive.
-	 * @param zoom - The zoom level to move to.
-	 * @param latitude - The latitude to centre on.
-	 * @param longitude - The longitude to centre on.
-	 * @returns Nothing.
-	 */
-	static async _moveMap(page: CdpClient, zoom: number, latitude: number, longitude: number): Promise<void> {
-		await page.evaluate(`window.location.hash = '#map=${zoom}/${latitude}/${longitude}'`);
-		await VerifyOpenStreetMap._pause(2500);
-	}
-
-	/**
-	 * Reads something back out of the page itself, so that a check compares two independent readings.
-	 *
-	 * @param page - The page to read.
-	 * @param expression - The expression to evaluate.
-	 * @returns Whatever the expression produced.
-	 */
-	static async _readPage<ValueType = unknown>(page: CdpClient, expression: string): Promise<ValueType> {
-		return await page.evaluate<ValueType>(expression);
-	}
-
-	/**
-	 * Refuses to continue unless two lists hold the same names.
-	 *
-	 * @param actual - What was found.
-	 * @param expected - What was wanted.
-	 * @returns Nothing.
-	 * @throws When the two differ.
-	 */
-	static _assertSameSet(actual: string[], expected: string[]): void {
-		const sortedActual = [...actual].sort().join(', ');
-		const sortedExpected = [...expected].sort().join(', ');
-		if (sortedActual !== sortedExpected) {
-			throw new Error(`expected ${sortedExpected} but found ${sortedActual}`);
-		}
 	}
 }
 
@@ -441,27 +265,17 @@ class VerifyOpenStreetMap {
 
 NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 	NodeTest.before(async () => {
-		const launched = await LaunchChrome.run({
-			url: TARGET_URL,
-		});
-		const extensionId = await VerifyOpenStreetMap._extensionId(launched.port);
-		await VerifyOpenStreetMap._setGrant(launched.port, extensionId, false, true);
-		VerifyOpenStreetMap.context = {
-			port: launched.port,
-			extensionId: extensionId,
-			page: await VerifyOpenStreetMap._reload(launched.port, TARGET_URL),
-		};
+		await harness.launch();
 	});
 
 	NodeTest.after(() => {
-		VerifyOpenStreetMap.context?.page.close();
-		VerifyOpenStreetMap.context = null;
+		harness.close();
 	});
 
 	NodeTest.describe('on the map itself', () => {
 		NodeTest.test('the six reading tools register with no opt-in', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const names = await VerifyOpenStreetMap._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			const expected = [
 				'get_map_view',
 				'get_selected_feature',
@@ -470,14 +284,14 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 				'get_changeset',
 				'list_search_results',
 			].map((name) => `openstreetmap_org__${name}`);
-			VerifyOpenStreetMap._assertSameSet(names, expected);
+			LivePageHarness.assertSameSet(names, expected);
 			t.diagnostic(`${names.length} registered: ${names.join(', ')}`);
 		});
 
 		NodeTest.test('get_map_view reports the position the address carries', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const view = await VerifyOpenStreetMap._callTool<MapViewResult>(page, 'get_map_view');
-			const fragment = await VerifyOpenStreetMap._readPage<string>(page, 'window.location.hash');
+			const { page } = harness.requireContext();
+			const view = await harness.callTool<MapViewResult>(page, 'get_map_view');
+			const fragment = await page.evaluate<string>('window.location.hash');
 			const matched = fragment.match(/#map=([\d.]+)\/([-\d.]+)\/([-\d.]+)/);
 			if (matched === null) {
 				throw new Error(`the address carried no map fragment: ${fragment}`);
@@ -492,9 +306,9 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_map_view follows the map when it moves', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			await VerifyOpenStreetMap._moveMap(page, 12, 51.5074, -0.1278);
-			const view = await VerifyOpenStreetMap._callTool<MapViewResult>(page, 'get_map_view');
+			const view = await harness.callTool<MapViewResult>(page, 'get_map_view');
 			if (Math.abs(view.latitude - 51.5074) > 0.01 || Math.abs(view.longitude + 0.1278) > 0.01) {
 				throw new Error(`the map was moved to London but the tool said ${view.latitude}, ${view.longitude}`);
 			}
@@ -502,8 +316,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_selected_feature refuses while no feature is open', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const refusal = await VerifyOpenStreetMap._callTool<RefusalResult>(page, 'get_selected_feature');
+			const { page } = harness.requireContext();
+			const refusal = await harness.callTool<RefusalResult>(page, 'get_selected_feature');
 			if (refusal.refused !== true) {
 				throw new Error('a feature was reported although none was open');
 			}
@@ -513,15 +327,14 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with a feature open', () => {
 		NodeTest.before(async () => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			await VerifyOpenStreetMap._route(page, `/node/${SAMPLE_NODE_ID}`);
 		});
 
 		NodeTest.test('get_selected_feature reads every tag the panel shows', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const feature = await VerifyOpenStreetMap._callTool<SelectedFeatureResult>(page, 'get_selected_feature');
-			const onPage = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const { page } = harness.requireContext();
+			const feature = await harness.callTool<SelectedFeatureResult>(page, 'get_selected_feature');
+			const onPage = await page.evaluate<number>(
 				'document.querySelectorAll("#sidebar_content table.browse-tag-list tr").length',
 			);
 			if (feature.tagCount !== onPage) {
@@ -537,10 +350,9 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_selected_feature reads the version, the mapper and the changeset', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const feature = await VerifyOpenStreetMap._callTool<SelectedFeatureResult>(page, 'get_selected_feature');
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const { page } = harness.requireContext();
+			const feature = await harness.callTool<SelectedFeatureResult>(page, 'get_selected_feature');
+			const onPage = await page.evaluate<string>(
 				'JSON.stringify({ user: document.querySelector("#sidebar_content a[href^=\\"/user/\\"]").textContent.trim(), changeset: document.querySelector("#sidebar_content a[href^=\\"/changeset/\\"]").textContent.trim() })',
 			);
 			const shown = JSON.parse(onPage) as { user: string; changeset: string };
@@ -561,15 +373,15 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with the Query Features panel open', () => {
 		NodeTest.before(async () => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			await VerifyOpenStreetMap._moveMap(page, 17, 48.8584, 2.2945);
 			await VerifyOpenStreetMap._route(page, '/query?lat=48.8584&lon=2.2945', 0);
 			await VerifyOpenStreetMap._waitForQueryPanel(page);
 		});
 
 		NodeTest.test('an unfinished list says so rather than reporting nothing', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const found = await VerifyOpenStreetMap._callTool<QueriedFeaturesResult>(page, 'list_queried_features');
+			const { page } = harness.requireContext();
+			const found = await harness.callTool<QueriedFeaturesResult>(page, 'list_queried_features');
 			for (const [label, list] of [
 				['nearby', found.nearby],
 				['enclosing', found.enclosing],
@@ -587,18 +399,17 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 		NodeTest.describe('once both lists have arrived', () => {
 			NodeTest.before(async () => {
-				const { page } = VerifyOpenStreetMap._requireContext();
+				const { page } = harness.requireContext();
 				await VerifyOpenStreetMap._waitForQueryLists(page);
 			});
 
 			NodeTest.test('list_queried_features matches both lists the panel holds', async (t) => {
-				const { page } = VerifyOpenStreetMap._requireContext();
-				const found = await VerifyOpenStreetMap._callTool<QueriedFeaturesResult>(
+				const { page } = harness.requireContext();
+				const found = await harness.callTool<QueriedFeaturesResult>(
 					page,
 					'list_queried_features',
 				);
-				const onPage = await VerifyOpenStreetMap._readPage<string>(
-					page,
+				const onPage = await page.evaluate<string>(
 					'JSON.stringify({ nearby: document.querySelectorAll("#query-nearby li").length, enclosing: document.querySelectorAll("#query-isin li").length, nearbyLoading: document.querySelector("#query-nearby .loader").style.display !== "none", enclosingLoading: document.querySelector("#query-isin .loader").style.display !== "none" })',
 				);
 				const shown = JSON.parse(onPage) as {
@@ -641,16 +452,15 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with the changeset list open', () => {
 		NodeTest.before(async () => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			await VerifyOpenStreetMap._moveMap(page, 14, 48.8584, 2.2945);
 			await VerifyOpenStreetMap._route(page, '/history');
 		});
 
 		NodeTest.test('list_recent_changesets matches the entries the panel shows', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const recent = await VerifyOpenStreetMap._callTool<RecentChangesetsResult>(page, 'list_recent_changesets');
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const { page } = harness.requireContext();
+			const recent = await harness.callTool<RecentChangesetsResult>(page, 'list_recent_changesets');
+			const onPage = await page.evaluate<string>(
 				'JSON.stringify([...document.querySelectorAll("#sidebar_content li[data-changeset]")].map((item) => JSON.parse(item.dataset.changeset).id))',
 			);
 			const shown = JSON.parse(onPage) as number[];
@@ -658,7 +468,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 				throw new Error(`the tool read ${recent.total} changesets but the panel shows ${shown.length}`);
 			}
 			const readIds = recent.changesets.map((changeset) => changeset.id);
-			VerifyOpenStreetMap._assertSameSet(
+			LivePageHarness.assertSameSet(
 				readIds.map(String),
 				shown.slice(0, readIds.length).map(String),
 			);
@@ -675,19 +485,17 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with a changeset open', () => {
 		NodeTest.before(async () => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const openable = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const { page } = harness.requireContext();
+			const openable = await page.evaluate<number>(
 				'JSON.parse(document.querySelector("#sidebar_content li[data-changeset]").dataset.changeset).id',
 			);
 			await VerifyOpenStreetMap._route(page, `/changeset/${openable}`);
 		});
 
 		NodeTest.test('get_changeset reads the changeset the panel is showing', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const changeset = await VerifyOpenStreetMap._callTool<ChangesetResult>(page, 'get_changeset');
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const { page } = harness.requireContext();
+			const changeset = await harness.callTool<ChangesetResult>(page, 'get_changeset');
+			const onPage = await page.evaluate<string>(
 				'document.querySelector("#sidebar_content h2").textContent.trim()',
 			);
 			if (onPage.includes(String(changeset.id)) === false) {
@@ -705,8 +513,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with the acting tools withheld', () => {
 		NodeTest.test('the seven acting tools are withheld until the user opts in', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const names = await VerifyOpenStreetMap._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			const withheld = [
 				'set_map_view',
 				'search_places',
@@ -727,15 +535,14 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with search results open', () => {
 		NodeTest.before(async () => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			await VerifyOpenStreetMap._route(page, `/search?query=${encodeURIComponent('Eiffel Tower')}`);
 		});
 
 		NodeTest.test('list_search_results matches the results the panel shows', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const results = await VerifyOpenStreetMap._callTool<SearchResultsResult>(page, 'list_search_results');
-			const onPage = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const { page } = harness.requireContext();
+			const results = await harness.callTool<SearchResultsResult>(page, 'list_search_results');
+			const onPage = await page.evaluate<number>(
 				'document.querySelectorAll("#sidebar_content a.set_position[data-lat]").length',
 			);
 			if (results.total !== onPage) {
@@ -757,15 +564,13 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 
 	NodeTest.describe('with the acting tools granted', () => {
 		NodeTest.before(async () => {
-			const context = VerifyOpenStreetMap._requireContext();
-			await VerifyOpenStreetMap._setGrant(context.port, context.extensionId, true, true);
-			context.page.close();
-			context.page = await VerifyOpenStreetMap._reload(context.port, TARGET_URL);
+			await harness.setGrant(true, true);
+			await harness.reload();
 		});
 
 		NodeTest.test('all thirteen tools register once the origin is opted in', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const names = await VerifyOpenStreetMap._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			if (names.length !== 13) {
 				throw new Error(`expected 13 tools but found ${names.length}: ${names.join(', ')}`);
 			}
@@ -773,13 +578,13 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('set_map_view moves the map where it was asked', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const view = await VerifyOpenStreetMap._callTool<MapViewResult>(page, 'set_map_view', {
+			const { page } = harness.requireContext();
+			const view = await harness.callTool<MapViewResult>(page, 'set_map_view', {
 				latitude: 51.5074,
 				longitude: -0.1278,
 				zoom: 15,
 			});
-			const fragment = await VerifyOpenStreetMap._readPage<string>(page, 'window.location.hash');
+			const fragment = await page.evaluate<string>('window.location.hash');
 			if (fragment.includes('51.507') === false) {
 				throw new Error(`the map was asked to move to London but the address says ${fragment}`);
 			}
@@ -790,18 +595,17 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('set_map_view fits a rectangle it is given', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			const boundingBox = {
 				minLatitude: 48.85,
 				minLongitude: 2.28,
 				maxLatitude: 48.87,
 				maxLongitude: 2.31,
 			};
-			const view = await VerifyOpenStreetMap._callTool<MapViewResult>(page, 'set_map_view', {
+			const view = await harness.callTool<MapViewResult>(page, 'set_map_view', {
 				boundingBox: boundingBox,
 			});
-			const width = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const width = await page.evaluate<number>(
 				'document.getElementById("map").clientWidth',
 			);
 			const visibleLongitudeSpan = (360 * width) / (256 * Math.pow(2, view.zoom));
@@ -823,15 +627,14 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('search_places finds a place and fills the results panel', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const results = await VerifyOpenStreetMap._callTool<SearchResultsResult>(page, 'search_places', {
+			const { page } = harness.requireContext();
+			const results = await harness.callTool<SearchResultsResult>(page, 'search_places', {
 				query: 'Eiffel Tower',
 			});
 			if (results.total === 0) {
 				throw new Error('searching for the Eiffel Tower found nothing');
 			}
-			const onPage = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const onPage = await page.evaluate<number>(
 				'document.querySelectorAll("#sidebar_content a.set_position[data-lat]").length',
 			);
 			if (results.total !== onPage) {
@@ -841,9 +644,9 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('search_places reports an empty answer rather than hanging on it', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
+			const { page } = harness.requireContext();
 			const started = Date.now();
-			const results = await VerifyOpenStreetMap._callTool<SearchResultsResult>(page, 'search_places', {
+			const results = await harness.callTool<SearchResultsResult>(page, 'search_places', {
 				query: 'qwertzuiop asdfghjkl yxcvbnm nowhere',
 			});
 			const elapsed = Date.now() - started;
@@ -857,13 +660,12 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_feature opens the object and reads its tags', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const feature = await VerifyOpenStreetMap._callTool<SelectedFeatureResult>(page, 'show_feature', {
+			const { page } = harness.requireContext();
+			const feature = await harness.callTool<SelectedFeatureResult>(page, 'show_feature', {
 				kind: 'node',
 				id: SAMPLE_NODE_ID,
 			});
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const onPage = await page.evaluate<string>(
 				'document.querySelector("#sidebar_content h2").textContent.trim()',
 			);
 			if (onPage.includes(String(SAMPLE_NODE_ID)) === false) {
@@ -876,8 +678,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_feature refuses an object OpenStreetMap does not have', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const refusal = await VerifyOpenStreetMap._callTool<RefusalResult>(page, 'show_feature', {
+			const { page } = harness.requireContext();
+			const refusal = await harness.callTool<RefusalResult>(page, 'show_feature', {
 				kind: 'node',
 				id: 999999999999,
 			});
@@ -888,8 +690,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('query_features_at answers with both lists finished', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const found = await VerifyOpenStreetMap._callTool<QueryAtPointResultShape>(
+			const { page } = harness.requireContext();
+			const found = await harness.callTool<QueryAtPointResultShape>(
 				page,
 				'query_features_at',
 				{
@@ -916,8 +718,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_recent_changes opens the list for the area it was given', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const recent = await VerifyOpenStreetMap._callTool<RecentChangesInViewResult>(
+			const { page } = harness.requireContext();
+			const recent = await harness.callTool<RecentChangesInViewResult>(
 				page,
 				'show_recent_changes',
 				{
@@ -932,8 +734,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			if (recent.mapView === null || Math.abs(recent.mapView.latitude + 36.8485) > 0.05) {
 				throw new Error(`the map was asked for Auckland but reported ${JSON.stringify(recent.mapView)}`);
 			}
-			const onPage = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const onPage = await page.evaluate<number>(
 				'document.querySelectorAll("#sidebar_content li[data-changeset]").length',
 			);
 			if (recent.total !== onPage) {
@@ -946,19 +747,17 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_changeset opens a changeset from that list', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const wanted = await VerifyOpenStreetMap._readPage<number>(
-				page,
+			const { page } = harness.requireContext();
+			const wanted = await page.evaluate<number>(
 				'JSON.parse(document.querySelector("#sidebar_content li[data-changeset]").dataset.changeset).id',
 			);
-			const changeset = await VerifyOpenStreetMap._callTool<ChangesetResult>(page, 'show_changeset', {
+			const changeset = await harness.callTool<ChangesetResult>(page, 'show_changeset', {
 				id: wanted,
 			});
 			if (changeset.id !== wanted) {
 				throw new Error(`asked for changeset ${wanted} but the tool returned ${changeset.id}`);
 			}
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const onPage = await page.evaluate<string>(
 				'document.querySelector("#sidebar_content h2").textContent.trim()',
 			);
 			if (onPage.includes(String(wanted)) === false) {
@@ -968,8 +767,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_directions works out a route', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const answer = await VerifyOpenStreetMap._callTool<RouteResultShape>(page, 'get_directions', {
+			const { page } = harness.requireContext();
+			const answer = await harness.callTool<RouteResultShape>(page, 'get_directions', {
 				fromLatitude: 48.8584,
 				fromLongitude: 2.2945,
 				toLatitude: 48.8606,
@@ -979,8 +778,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			if (answer.route.turnCount === 0) {
 				throw new Error('the route came back with no instructions');
 			}
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const onPage = await page.evaluate<string>(
 				'document.getElementById("directions_route_distance").textContent.trim()',
 			);
 			if (answer.route.distance !== onPage) {
@@ -994,8 +792,8 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_directions recomputes rather than returning the previous route', async (t) => {
-			const { page } = VerifyOpenStreetMap._requireContext();
-			const answer = await VerifyOpenStreetMap._callTool<RouteResultShape>(page, 'get_directions', {
+			const { page } = harness.requireContext();
+			const answer = await harness.callTool<RouteResultShape>(page, 'get_directions', {
 				fromLatitude: 48.8584,
 				fromLongitude: 2.2945,
 				toLatitude: 48.8606,
@@ -1006,8 +804,7 @@ NodeTest.describe('The OpenStreetMap adapter, on the live site', () => {
 			if (signature === VerifyOpenStreetMap.carRoute) {
 				throw new Error(`walking returned the same route as driving: ${signature}`);
 			}
-			const onPage = await VerifyOpenStreetMap._readPage<string>(
-				page,
+			const onPage = await page.evaluate<string>(
 				'document.getElementById("directions_route_distance").textContent.trim()',
 			);
 			if (answer.route.distance !== onPage) {

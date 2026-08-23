@@ -356,55 +356,40 @@ export class NativeBridge {
 			};
 		}
 
-		if (message.kind === 'listPages') {
-			const pages = await NativeBridge.listPages();
-			return pages.map((page) => ({
-				tabId: page.tabId,
-				url: page.url,
-				title: page.title,
-				adapter: page.siteSlug,
-				toolCount: page.tools.length,
-			}));
-		}
-
-		if (message.kind === 'openPage') {
-			const page = await NativeBridge.openPage(String(message.args?.['url'] ?? ''));
-			return {
-				tabId: page.tabId,
-				url: page.url,
-				title: page.title,
-				adapter: page.siteSlug,
-				tools: page.tools.map((tool) => tool.name),
-			};
-		}
-
-		if (message.kind === 'closePage') {
-			const tabId = Number(message.args?.['tabId']);
-			if (Number.isInteger(tabId) === false) {
-				throw new Error('closing a page needs the tabId that list_pages or open_page reported');
-			}
-			return await NativeBridge.closePage(tabId);
-		}
-
 		if (message.kind === 'callTool') {
+			const args = message.args ?? {};
+
 			if (message.name === NativeBridge.LIST_PAGES_TOOL) {
-				return await NativeBridge._serve({
-					kind: 'listPages',
-				});
+				const pages = await NativeBridge.listPages();
+				return pages.map((page) => ({
+					tabId: page.tabId,
+					url: page.url,
+					title: page.title,
+					adapter: page.siteSlug,
+					toolCount: page.tools.length,
+				}));
 			}
+
 			if (message.name === NativeBridge.OPEN_PAGE_TOOL) {
-				return await NativeBridge._serve({
-					kind: 'openPage',
-					args: message.args ?? {},
-				});
+				const page = await NativeBridge.openPage(String(args['url'] ?? ''));
+				return {
+					tabId: page.tabId,
+					url: page.url,
+					title: page.title,
+					adapter: page.siteSlug,
+					tools: page.tools.map((tool) => tool.name),
+				};
 			}
+
 			if (message.name === NativeBridge.CLOSE_PAGE_TOOL) {
-				return await NativeBridge._serve({
-					kind: 'closePage',
-					args: message.args ?? {},
-				});
+				const tabId = Number(args['tabId']);
+				if (Number.isInteger(tabId) === false) {
+					throw new Error('closing a page needs the tabId that list_pages or open_page reported');
+				}
+				return await NativeBridge.closePage(tabId);
 			}
-			return await NativeBridge.callTool(message.name ?? '', message.args ?? {});
+
+			return await NativeBridge.callTool(message.name ?? '', args);
 		}
 
 		throw new Error(`unknown request kind ${message.kind}`);

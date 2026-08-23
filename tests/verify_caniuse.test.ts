@@ -4,14 +4,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
-import { LaunchChrome } from '../tools/launch_chrome.ts';
 import NodeTest from 'node:test';
-import type { FramedResultOf } from './verify_types.ts';
+import { LivePageHarness } from './live_page_harness.ts';
+import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
 
 const TARGET_URL = 'https://caniuse.com/css-grid';
-
-const ORIGIN = 'https://caniuse.com';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,163 +95,27 @@ type RefusalResult = {
 	remedy: string;
 };
 
-/** The live browser every check works against, prepared once before the first of them. */
-type CaniuseContext = {
-	/** The remote debugging port Chrome is listening on. */
-	port: number;
-	/** The installed extension's identifier. */
-	extensionId: string;
-	/** A client attached to the Can I use... page. */
-	page: CdpClient;
-};
-
 /**
- * Runs every check for the Can I use... adapter against the live site in a real Chrome.
+ * The live browser every check works against, prepared once before the first of them.
  *
  * Nothing here is mocked and nothing is read out of a fixture. Chrome is launched, the extension is
  * installed, `https://caniuse.com/` is loaded, and every assertion calls a tool through
  * `document.modelContext` and compares the answer against what the page itself shows.
  */
+const harness = new LivePageHarness({
+	siteSlug: 'caniuse_com',
+	origin: 'https://caniuse.com',
+	url: TARGET_URL,
+	urlFragment: 'caniuse.com',
+});
+
+/**
+ * Reads Can I use... out of its own rendering, for the numbers a tool's claim is checked against.
+ *
+ * Everything else these checks need — the browser, the opt-in, the tool list, the tool call — is the
+ * same for every site and lives in `LivePageHarness`.
+ */
 class VerifyCaniuse {
-	/** The live browser, set before the first check and dropped after the last one. */
-	static context: CaniuseContext | null = null;
-
-	/**
-	 * Returns the live browser the checks work against, refusing to continue when there is none.
-	 *
-	 * @returns The port, the extension identifier and the page.
-	 * @throws When the launch step never prepared them.
-	 */
-	static _requireContext(): CaniuseContext {
-		if (VerifyCaniuse.context === null) {
-			throw new Error('the browser was never launched');
-		}
-		return VerifyCaniuse.context;
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//	Helpers
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Finds the identifier Chrome gave the installed extension.
-	 *
-	 * @param port - The remote debugging port.
-	 * @returns The extension identifier.
-	 * @throws When the extension's service worker is not running.
-	 */
-	static async _extensionId(port: number): Promise<string> {
-		for (let attempt = 0; attempt < 40; attempt += 1) {
-			const targets = await CdpClient.listTargets(port);
-			const worker = targets.find(
-				(target) =>
-					target.type === 'service_worker' &&
-					target.url.includes('dist/background_service_worker.js'),
-			);
-			if (worker !== undefined) {
-				return new URL(worker.url).host;
-			}
-			await VerifyCaniuse._pause(250);
-		}
-		throw new Error('the extension service worker never started');
-	}
-
-	/**
-	 * Writes the user's settings straight into extension storage, standing in for the popup.
-	 *
-	 * @param port - The remote debugging port.
-	 * @param extensionId - The installed extension's identifier.
-	 * @param actingAllowed - Whether acting tools are allowed on this origin.
-	 * @param globallyEnabled - Whether the extension is on at all.
-	 * @returns Nothing.
-	 */
-	static async _setGrant(
-		port: number,
-		extensionId: string,
-		actingAllowed: boolean,
-		globallyEnabled: boolean,
-	): Promise<void> {
-		const targets = await CdpClient.listTargets(port);
-		const worker = targets.find((target) =>
-			target.url.includes(`${extensionId}/dist/background_service_worker.js`),
-		);
-		if (worker === undefined) {
-			throw new Error('the extension service worker is not running');
-		}
-		const client = new CdpClient(port);
-		await client.connect(worker.webSocketDebuggerUrl);
-		const settings = {
-			globallyEnabled: globallyEnabled,
-			actingAllowedByOrigin: {
-				[ORIGIN]: actingAllowed,
-			},
-		};
-		await client.evaluate(
-			`chrome.storage.local.set({ webmcp_everywhere_settings: ${JSON.stringify(settings)} }).then(() => 'ok')`,
-		);
-		client.close();
-	}
-
-	/**
-	 * Loads the target page again, so the runtime re-reads the grant.
-	 *
-	 * @param port - The remote debugging port.
-	 * @param url - The page to load.
-	 * @returns A client attached to the reloaded page.
-	 */
-	static async _reload(port: number, url: string): Promise<CdpClient> {
-		const page = await CdpClient.connectToPage(port, 'caniuse.com');
-		await page.navigate(url, 6000);
-		return page;
-	}
-
-	/**
-	 * Lists the tool names currently registered on the page.
-	 *
-	 * @param page - A client attached to the page.
-	 * @returns The registered names.
-	 */
-	static async _toolNames(page: CdpClient): Promise<string[]> {
-		const json = await page.evaluate<string>(
-			'document.modelContext.getTools().then((tools) => JSON.stringify(tools.map((tool) => tool.name)))',
-		);
-		return JSON.parse(json) as string[];
-	}
-
-	/**
-	 * Calls one registered tool the way an agent would, and parses its reply.
-	 *
-	 * @param page - A client attached to the page.
-	 * @param shortName - The unqualified tool name, such as `search_features`.
-	 * @param input - The tool's input.
-	 * @returns The tool's parsed result.
-	 * @throws When the tool is not registered, or when the tool itself threw. A tool that throws makes
-	 *         `executeTool` reject, which makes the evaluation throw, carrying the tool's own message.
-	 */
-	static async _callTool<ResultType = unknown>(
-		page: CdpClient,
-		shortName: string,
-		input: Record<string, unknown> = {},
-	): Promise<ResultType> {
-		const qualifiedName = `caniuse_com__${shortName}`;
-		const expression = `
-			(async () => {
-				const tools = await document.modelContext.getTools();
-				const tool = tools.find((candidate) => candidate.name === ${JSON.stringify(qualifiedName)});
-				if (tool === undefined) { throw new Error('tool not registered: ' + ${JSON.stringify(qualifiedName)}); }
-				return await document.modelContext.executeTool(tool, ${JSON.stringify(JSON.stringify(input))});
-			})()
-		`;
-		const raw = await page.evaluate<string>(expression);
-		const framed = JSON.parse(raw) as FramedResultOf<ResultType>;
-		if (framed?.webmcpEverywhere === undefined) {
-			throw new Error(`${shortName} returned an unframed result, so the untrusted content check was skipped`);
-		}
-		return framed.data;
-	}
-
 	/**
 	 * Reads the usage percentage the page itself prints above a feature's support table.
 	 *
@@ -277,34 +138,6 @@ class VerifyCaniuse {
 			})()
 		`);
 	}
-
-	/**
-	 * Waits.
-	 *
-	 * @param milliseconds - How long to wait.
-	 * @returns Nothing.
-	 */
-	static async _pause(milliseconds: number): Promise<void> {
-		await new Promise((resolve) => {
-			setTimeout(resolve, milliseconds);
-		});
-	}
-
-	/**
-	 * Asserts two lists hold the same names.
-	 *
-	 * @param actual - What was found.
-	 * @param expected - What was wanted.
-	 * @returns Nothing.
-	 * @throws When the two lists differ.
-	 */
-	static _assertSameSet(actual: string[], expected: string[]): void {
-		const sortedActual = [...actual].sort().join(', ');
-		const sortedExpected = [...expected].sort().join(', ');
-		if (sortedActual !== sortedExpected) {
-			throw new Error(`expected ${sortedExpected} but found ${sortedActual}`);
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -315,27 +148,17 @@ class VerifyCaniuse {
 
 NodeTest.describe('The Can I use... adapter, on the live site', () => {
 	NodeTest.before(async () => {
-		const launched = await LaunchChrome.run({
-			url: TARGET_URL,
-		});
-		const extensionId = await VerifyCaniuse._extensionId(launched.port);
-		await VerifyCaniuse._setGrant(launched.port, extensionId, false, true);
-		VerifyCaniuse.context = {
-			port: launched.port,
-			extensionId: extensionId,
-			page: await VerifyCaniuse._reload(launched.port, TARGET_URL),
-		};
+		await harness.launch();
 	});
 
 	NodeTest.after(() => {
-		VerifyCaniuse.context?.page.close();
-		VerifyCaniuse.context = null;
+		harness.close();
 	});
 
 	NodeTest.describe('with the acting tools withheld', () => {
 		NodeTest.test('the five reading tools register with no opt-in', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const names = await VerifyCaniuse._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			const expected = [
 				'search_features',
 				'list_page_features',
@@ -343,13 +166,13 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 				'get_feature_support',
 				'check_support',
 			].map((name) => `caniuse_com__${name}`);
-			VerifyCaniuse._assertSameSet(names, expected);
+			LivePageHarness.assertSameSet(names, expected);
 			t.diagnostic(`${names.length} registered: ${names.join(', ')}`);
 		});
 
 		NodeTest.test('the two acting tools are withheld until the user opts in', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const names = await VerifyCaniuse._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			for (const withheld of ['caniuse_com__show_feature', 'caniuse_com__search_on_page']) {
 				if (names.includes(withheld) === true) {
 					throw new Error(`${withheld} was registered without an opt-in`);
@@ -359,8 +182,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('search_features finds a feature across the whole site index', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<SearchFeaturesResult>(page, 'search_features', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<SearchFeaturesResult>(page, 'search_features', {
 				query: 'subgrid',
 			});
 			const found = result.matches.find((match) => match.id === 'css-subgrid');
@@ -376,8 +199,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('list_browsers reports every browser with its share of global browsing', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<ListBrowsersResult>(page, 'list_browsers', {});
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<ListBrowsersResult>(page, 'list_browsers', {});
 			const chrome = result.browsers.find((browser) => browser.id === 'chrome');
 			if (chrome === undefined) {
 				throw new Error('chrome was not in the list');
@@ -391,8 +214,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('list_page_features reports the feature the page was opened on', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'list_page_features', {});
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<PageFeaturesResult>(page, 'list_page_features', {});
 			const ids = result.features.map((feature) => feature.id);
 			if (ids.includes('css-grid') === false) {
 				throw new Error(`the page showed ${ids.join(', ')} rather than css-grid`);
@@ -401,8 +224,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_feature_support agrees with the percentage the page prints', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'css-grid',
 			});
 			const shown = await VerifyCaniuse._usagePrintedOnPage(page, 'css-grid');
@@ -414,8 +237,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_feature_support names the version support has held from', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'css-grid',
 			});
 			const chrome = result.browsers.find((browser) => browser.browserId === 'chrome');
@@ -436,8 +259,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('check_support reads one old version rather than the current one', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<CheckSupportResult>(page, 'check_support', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<CheckSupportResult>(page, 'check_support', {
 				browserId: 'ie',
 				featureId: 'css-grid',
 				version: '11',
@@ -452,8 +275,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('a reading tool refuses a feature that is not on the page', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<RefusalResult>(page, 'get_feature_support', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<RefusalResult>(page, 'get_feature_support', {
 				featureId: 'webgpu',
 			});
 			if (result.refused !== true) {
@@ -468,19 +291,13 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 
 	NodeTest.describe('with the acting tools granted', () => {
 		NodeTest.before(async () => {
-			const { port, extensionId, page } = VerifyCaniuse._requireContext();
-			await VerifyCaniuse._setGrant(port, extensionId, true, true);
-			page.close();
-			VerifyCaniuse.context = {
-				port: port,
-				extensionId: extensionId,
-				page: await VerifyCaniuse._reload(port, TARGET_URL),
-			};
+			await harness.setGrant(true, true);
+			await harness.reload();
 		});
 
 		NodeTest.test('the acting tools register once the user opts in', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const names = await VerifyCaniuse._toolNames(page);
+			const { page } = harness.requireContext();
+			const names = await harness.toolNames(page);
 			for (const wanted of ['caniuse_com__show_feature', 'caniuse_com__search_on_page']) {
 				if (names.includes(wanted) === false) {
 					throw new Error(`${wanted} is still withheld after the opt-in`);
@@ -490,9 +307,9 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_feature brings a feature onto the page without reloading it', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
+			const { page } = harness.requireContext();
 			await page.evaluate('window.__verifyCaniuseMarker = "alive", "set"');
-			const result = await VerifyCaniuse._callTool<ShowFeatureResult>(page, 'show_feature', {
+			const result = await harness.callTool<ShowFeatureResult>(page, 'show_feature', {
 				featureId: 'webgpu',
 			});
 			if (result.supportDataLoaded === false) {
@@ -506,8 +323,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('get_feature_support then answers for the feature show_feature brought on', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<FeatureSupportResult>(page, 'get_feature_support', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<FeatureSupportResult>(page, 'get_feature_support', {
 				featureId: 'webgpu',
 			});
 			const shown = await VerifyCaniuse._usagePrintedOnPage(page, 'webgpu');
@@ -519,8 +336,8 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('search_on_page loads several features at once', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const result = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'search_on_page', {
+			const { page } = harness.requireContext();
+			const result = await harness.callTool<PageFeaturesResult>(page, 'search_on_page', {
 				query: 'container queries',
 			});
 			if (result.featureCount < 2) {
@@ -534,15 +351,15 @@ NodeTest.describe('The Can I use... adapter, on the live site', () => {
 		});
 
 		NodeTest.test('show_feature refuses a feature identifier the site does not have', async (t) => {
-			const { page } = VerifyCaniuse._requireContext();
-			const before = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'list_page_features', {});
-			const result = await VerifyCaniuse._callTool<RefusalResult>(page, 'show_feature', {
+			const { page } = harness.requireContext();
+			const before = await harness.callTool<PageFeaturesResult>(page, 'list_page_features', {});
+			const result = await harness.callTool<RefusalResult>(page, 'show_feature', {
 				featureId: 'https://example.com/not-a-feature',
 			});
 			if (result.refused !== true) {
 				throw new Error('it accepted an identifier that is not a feature');
 			}
-			const after = await VerifyCaniuse._callTool<PageFeaturesResult>(page, 'list_page_features', {});
+			const after = await harness.callTool<PageFeaturesResult>(page, 'list_page_features', {});
 			if (after.url !== before.url) {
 				throw new Error(`it refused but still moved the page from ${before.url} to ${after.url}`);
 			}

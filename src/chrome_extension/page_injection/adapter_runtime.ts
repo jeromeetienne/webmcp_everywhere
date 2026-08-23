@@ -44,9 +44,6 @@ export class AdapterRuntime {
 	/** Aborting this unregisters everything the runtime registered on this page. */
 	static _registration: AbortController | null = null;
 
-	/** The most recent report, exposed on `window` so verification can read it without a message round trip. */
-	static _lastReport: RuntimeReport | null = null;
-
 	/**
 	 * Registers an adapter's tools, subject to the user's grant and the site's own tools.
 	 *
@@ -273,13 +270,15 @@ export class AdapterRuntime {
 	}
 
 	/**
-	 * Records a report, publishes it to the isolated world, and returns it.
+	 * Publishes a report to the isolated world, and returns it.
+	 *
+	 * The report is also left on `window`, so a verification runner can read it straight out of the page
+	 * without a message round trip.
 	 *
 	 * @param report - The report to finish with.
 	 * @returns The same report.
 	 */
 	static _finish(report: RuntimeReport): RuntimeReport {
-		AdapterRuntime._lastReport = report;
 		(window as unknown as Record<string, unknown>).__webmcpEverywhereReport = report;
 		document.dispatchEvent(
 			new CustomEvent(AdapterRuntime.REPORT_EVENT, {

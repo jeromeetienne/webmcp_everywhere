@@ -16,9 +16,6 @@ import { PageQuery } from './page_query.js';
  * instructions from the page.
  */
 class ContentIsolated {
-	/** The last report the main world published, kept for the popup to read. */
-	static _lastReport: unknown = null;
-
 	/**
 	 * Wires up both directions and answers the first request.
 	 *
@@ -30,7 +27,6 @@ class ContentIsolated {
 		});
 
 		document.addEventListener(AdapterRuntime.REPORT_EVENT, ((event: CustomEvent) => {
-			ContentIsolated._lastReport = event.detail;
 			void chrome.runtime
 				.sendMessage({
 					kind: 'report',
@@ -53,11 +49,6 @@ class ContentIsolated {
 		});
 
 		chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-			if (message?.kind === 'getReport') {
-				sendResponse(ContentIsolated._lastReport);
-				return undefined;
-			}
-
 			if (message?.kind === 'page:listTools') {
 				void PageQuery.ask({
 					kind: 'listTools',
