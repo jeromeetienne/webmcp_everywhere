@@ -6,6 +6,8 @@ The native messaging host: Chrome starts it on demand, it holds the HTTP port th
 ## Key Exports & Entry Points
 - `webmcp_native_host.ts`: `WebmcpNativeHost` — the program named in the installed host manifest.
 - `native_messaging_codec.ts`: `NativeMessagingCodec` — Chrome's four-byte length-prefixed framing.
+- `host_state_files.ts`: `HostStateFiles` — the bearer token and `endpoint.json` in the state directory.
+- `webmcp_native_host_types.ts`: the messages the extension and the host exchange.
 - Commands to check this folder: `npm run verify:host` and `npm run verify:endpoint`.
 
 ## Rules

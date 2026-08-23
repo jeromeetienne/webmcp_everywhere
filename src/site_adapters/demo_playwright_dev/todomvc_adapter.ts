@@ -1,250 +1,10 @@
 import type { Adapter } from '../../adapter_format/adapter_types.js';
+import type { TodoFilter } from './todomvc_page.js';
+import { TodomvcPage } from './todomvc_page.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	TodomvcAdapter — WebMCP tools for https://demo.playwright.dev/todomvc/
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-/** One todo item as the application stores it. */
-export type TodoItem = {
-	/** A stable identifier that survives filtering, re-ordering, and renaming. */
-	id: string;
-	/** The todo's text. */
-	title: string;
-	/** Whether the todo is done. */
-	completed: boolean;
-};
-
-/** Which subset of the todos the page is showing. */
-export type TodoFilter = 'all' | 'active' | 'completed';
-
-/**
- * Drives the React TodoMVC demonstration page and exposes it as WebMCP tools.
- *
- * Two facts about this page shape everything below, and both were established by probing the live site
- * rather than by reading its source:
- *
- * - The page is React, so assigning to `input.value` is ignored. Text must be written through the
- *   native `HTMLInputElement` value setter followed by an `input` event, or React never sees it.
- * - The filter links hide items rather than re-order them, so a position in the list is not a stable
- *   identifier. Every tool here identifies a todo by the identifier the application itself stores.
- */
-export class TodomvcAdapter {
-	/** Where the application keeps its state. Read for identifiers, never written to directly. */
-	static readonly STORAGE_KEY = 'react-todos';
-
-	/** How long to wait for React to re-render and persist after an interaction, in milliseconds. */
-	static readonly SETTLE_TIMEOUT = 2000;
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//	Reading the page
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Reads every todo the application holds, including ones the active filter is hiding.
-	 *
-	 * @returns The todos in application order.
-	 */
-	static _readStore(): TodoItem[] {
-		const raw = window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY);
-		if (raw === null) {
-			return [];
-		}
-		try {
-			const parsed = JSON.parse(raw);
-			if (Array.isArray(parsed) === false) {
-				return [];
-			}
-			return parsed as TodoItem[];
-		} catch {
-			return [];
-		}
-	}
-
-	/**
-	 * Reads which filter the page is currently showing.
-	 *
-	 * @returns The active filter.
-	 */
-	static _readActiveFilter(): TodoFilter {
-		const hash = window.location.hash;
-		if (hash === '#/active') {
-			return 'active';
-		}
-		if (hash === '#/completed') {
-			return 'completed';
-		}
-		return 'all';
-	}
-
-	/**
-	 * Lists the identifiers currently rendered, in the order they appear on screen.
-	 *
-	 * @returns The visible identifiers, matching the order of the list items in the page.
-	 */
-	static _visibleIdsInOrder(): string[] {
-		const filter = TodomvcAdapter._readActiveFilter();
-		const todos = TodomvcAdapter._readStore();
-		if (filter === 'active') {
-			return todos.filter((todo) => todo.completed === false).map((todo) => todo.id);
-		}
-		if (filter === 'completed') {
-			return todos.filter((todo) => todo.completed === true).map((todo) => todo.id);
-		}
-		return todos.map((todo) => todo.id);
-	}
-
-	/**
-	 * Finds the list item element for a todo, when the active filter is showing it.
-	 *
-	 * @param id - The todo's stable identifier.
-	 * @returns The list item element, or `null` when the todo is hidden or gone.
-	 */
-	static _listItemForId(id: string): HTMLElement | null {
-		const position = TodomvcAdapter._visibleIdsInOrder().indexOf(id);
-		if (position === -1) {
-			return null;
-		}
-		const items = document.querySelectorAll<HTMLElement>('.todo-list li');
-		return items[position] ?? null;
-	}
-
-	/**
-	 * Looks a todo up by identifier.
-	 *
-	 * @param id - The todo's stable identifier.
-	 * @returns The todo, or `null` when no todo has that identifier.
-	 */
-	static _todoForId(id: string): TodoItem | null {
-		return TodomvcAdapter._readStore().find((todo) => todo.id === id) ?? null;
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//	Driving the page
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Writes into a React-controlled input the only way React notices.
-	 *
-	 * @param element - The input to write into.
-	 * @param value - The text to write.
-	 * @returns Nothing.
-	 */
-	static _setReactInputValue(element: HTMLInputElement, value: string): void {
-		const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-		if (descriptor === undefined || descriptor.set === undefined) {
-			throw new Error('cannot reach the native input value setter');
-		}
-		descriptor.set.call(element, value);
-		element.dispatchEvent(
-			new Event('input', {
-				bubbles: true,
-			}),
-		);
-	}
-
-	/**
-	 * Presses Enter on an element, the way the page's key handlers expect.
-	 *
-	 * @param element - The element to press Enter on.
-	 * @returns Nothing.
-	 */
-	static _pressEnter(element: HTMLElement): void {
-		element.dispatchEvent(
-			new KeyboardEvent('keydown', {
-				key: 'Enter',
-				keyCode: 13,
-				which: 13,
-				bubbles: true,
-			}),
-		);
-	}
-
-	/**
-	 * Waits until the stored state stops matching what it was, so a tool reports the result of its own
-	 * interaction rather than the state from before it.
-	 *
-	 * @param previousRaw - The stored state as it was before the interaction.
-	 * @returns Nothing. Returns early on timeout rather than throwing, so a no-op interaction still reports.
-	 */
-	static async _waitForChange(previousRaw: string | null): Promise<void> {
-		const deadline = Date.now() + TodomvcAdapter.SETTLE_TIMEOUT;
-		while (Date.now() < deadline) {
-			if (window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY) !== previousRaw) {
-				return;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 25));
-		}
-	}
-
-	/**
-	 * Waits for the page to finish re-rendering after a change that does not touch stored state, such as
-	 * switching filters.
-	 *
-	 * @returns Nothing.
-	 */
-	static async _settle(): Promise<void> {
-		await new Promise((resolve) => setTimeout(resolve, 150));
-	}
-
-	/**
-	 * Runs an interaction with a todo guaranteed to be on screen, restoring the filter afterwards.
-	 *
-	 * The filter links hide items, and a hidden item has no element to interact with. Rather than fail,
-	 * this shows every todo for the duration of the interaction and then puts the filter back, so the
-	 * page the user returns to looks the way they left it.
-	 *
-	 * @param id - The todo's stable identifier.
-	 * @param interaction - What to do with the todo's list item element.
-	 * @returns Nothing.
-	 * @throws When no todo has that identifier.
-	 */
-	static async _withItemVisible(id: string, interaction: (item: HTMLElement) => void): Promise<void> {
-		if (TodomvcAdapter._todoForId(id) === null) {
-			throw new Error(`no todo has the identifier ${id}`);
-		}
-		const originalFilter = TodomvcAdapter._readActiveFilter();
-		const needsAllFilter = TodomvcAdapter._listItemForId(id) === null;
-		if (needsAllFilter === true) {
-			await TodomvcAdapter._setFilter('all');
-		}
-		const item = TodomvcAdapter._listItemForId(id);
-		if (item === null) {
-			throw new Error(`the todo ${id} is not on the page even with every todo shown`);
-		}
-		const previousRaw = window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY);
-		interaction(item);
-		await TodomvcAdapter._waitForChange(previousRaw);
-		if (needsAllFilter === true) {
-			await TodomvcAdapter._setFilter(originalFilter);
-		}
-	}
-
-	/**
-	 * Switches which todos the page shows.
-	 *
-	 * @param filter - The filter to show.
-	 * @returns Nothing.
-	 */
-	static async _setFilter(filter: TodoFilter): Promise<void> {
-		const hashForFilter: Record<TodoFilter, string> = {
-			all: '#/',
-			active: '#/active',
-			completed: '#/completed',
-		};
-		window.location.hash = hashForFilter[filter];
-		await TodomvcAdapter._settle();
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//	The adapter
+//	todomvcAdapter — the WebMCP tool surface for https://demo.playwright.dev/todomvc/
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -282,15 +42,15 @@ export const todomvcAdapter: Adapter = {
 			inputSchema: NO_INPUT,
 			permissionClass: 'readOnly',
 			execute: () => {
-				const visible = new Set(TodomvcAdapter._visibleIdsInOrder());
-				const todos = TodomvcAdapter._readStore().map((todo) => ({
+				const visible = new Set(TodomvcPage._visibleIdsInOrder());
+				const todos = TodomvcPage._readStore().map((todo) => ({
 					id: todo.id,
 					title: todo.title,
 					completed: todo.completed,
 					visibleUnderActiveFilter: visible.has(todo.id),
 				}));
 				return {
-					activeFilter: TodomvcAdapter._readActiveFilter(),
+					activeFilter: TodomvcPage._readActiveFilter(),
 					todos: todos,
 				};
 			},
@@ -304,7 +64,7 @@ export const todomvcAdapter: Adapter = {
 			inputSchema: NO_INPUT,
 			permissionClass: 'readOnly',
 			execute: () => {
-				const todos = TodomvcAdapter._readStore();
+				const todos = TodomvcPage._readStore();
 				const completed = todos.filter((todo) => todo.completed === true).length;
 				return {
 					total: todos.length,
@@ -322,7 +82,7 @@ export const todomvcAdapter: Adapter = {
 			permissionClass: 'readOnly',
 			execute: () => {
 				return {
-					activeFilter: TodomvcAdapter._readActiveFilter(),
+					activeFilter: TodomvcPage._readActiveFilter(),
 				};
 			},
 		},
@@ -352,17 +112,17 @@ export const todomvcAdapter: Adapter = {
 				if (field === null) {
 					throw new Error('the new todo field is not on this page');
 				}
-				const previousRaw = window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY);
-				TodomvcAdapter._setReactInputValue(field, title);
-				TodomvcAdapter._pressEnter(field);
-				await TodomvcAdapter._waitForChange(previousRaw);
-				const added = TodomvcAdapter._readStore().find((todo) => todo.title === title);
+				const previousRaw = window.localStorage.getItem(TodomvcPage.STORAGE_KEY);
+				TodomvcPage._setReactInputValue(field, title);
+				TodomvcPage._pressEnter(field);
+				await TodomvcPage._waitForChange(previousRaw);
+				const added = TodomvcPage._readStore().find((todo) => todo.title === title);
 				if (added === undefined) {
 					throw new Error(`the todo "${title}" did not appear after being entered`);
 				}
 				return {
 					added: added,
-					total: TodomvcAdapter._readStore().length,
+					total: TodomvcPage._readStore().length,
 				};
 			},
 		},
@@ -390,7 +150,7 @@ export const todomvcAdapter: Adapter = {
 			execute: async (input) => {
 				const id = String(input.id ?? '');
 				const wanted = input.completed === true;
-				const before = TodomvcAdapter._todoForId(id);
+				const before = TodomvcPage._todoForId(id);
 				if (before === null) {
 					throw new Error(`no todo has the identifier ${id}`);
 				}
@@ -400,7 +160,7 @@ export const todomvcAdapter: Adapter = {
 						changed: false,
 					};
 				}
-				await TodomvcAdapter._withItemVisible(id, (item) => {
+				await TodomvcPage._withItemVisible(id, (item) => {
 					const toggle = item.querySelector<HTMLInputElement>('input.toggle');
 					if (toggle === null) {
 						throw new Error('the todo has no completion checkbox');
@@ -408,7 +168,7 @@ export const todomvcAdapter: Adapter = {
 					toggle.click();
 				});
 				return {
-					todo: TodomvcAdapter._todoForId(id),
+					todo: TodomvcPage._todoForId(id),
 					changed: true,
 				};
 			},
@@ -440,7 +200,7 @@ export const todomvcAdapter: Adapter = {
 				if (title.length === 0) {
 					throw new Error('a todo needs a title');
 				}
-				await TodomvcAdapter._withItemVisible(id, (item) => {
+				await TodomvcPage._withItemVisible(id, (item) => {
 					const label = item.querySelector('label');
 					if (label === null) {
 						throw new Error('the todo has no label to open for editing');
@@ -456,11 +216,11 @@ export const todomvcAdapter: Adapter = {
 					if (field === null) {
 						throw new Error('the todo did not open for editing');
 					}
-					TodomvcAdapter._setReactInputValue(field, title);
-					TodomvcAdapter._pressEnter(field);
+					TodomvcPage._setReactInputValue(field, title);
+					TodomvcPage._pressEnter(field);
 				});
 				return {
-					todo: TodomvcAdapter._todoForId(id),
+					todo: TodomvcPage._todoForId(id),
 				};
 			},
 		},
@@ -482,11 +242,11 @@ export const todomvcAdapter: Adapter = {
 			permissionClass: 'acting',
 			execute: async (input) => {
 				const id = String(input.id ?? '');
-				const before = TodomvcAdapter._todoForId(id);
+				const before = TodomvcPage._todoForId(id);
 				if (before === null) {
 					throw new Error(`no todo has the identifier ${id}`);
 				}
-				await TodomvcAdapter._withItemVisible(id, (item) => {
+				await TodomvcPage._withItemVisible(id, (item) => {
 					const button = item.querySelector<HTMLButtonElement>('button.destroy');
 					if (button === null) {
 						throw new Error('the todo has no delete button');
@@ -495,7 +255,7 @@ export const todomvcAdapter: Adapter = {
 				});
 				return {
 					deleted: before,
-					total: TodomvcAdapter._readStore().length,
+					total: TodomvcPage._readStore().length,
 				};
 			},
 		},
@@ -506,7 +266,7 @@ export const todomvcAdapter: Adapter = {
 			inputSchema: NO_INPUT,
 			permissionClass: 'acting',
 			execute: async () => {
-				const before = TodomvcAdapter._readStore();
+				const before = TodomvcPage._readStore();
 				const completed = before.filter((todo) => todo.completed === true);
 				if (completed.length === 0) {
 					return {
@@ -518,12 +278,12 @@ export const todomvcAdapter: Adapter = {
 				if (button === null) {
 					throw new Error('the clear completed button is not on this page');
 				}
-				const previousRaw = window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY);
+				const previousRaw = window.localStorage.getItem(TodomvcPage.STORAGE_KEY);
 				button.click();
-				await TodomvcAdapter._waitForChange(previousRaw);
+				await TodomvcPage._waitForChange(previousRaw);
 				return {
 					cleared: completed.length,
-					remaining: TodomvcAdapter._readStore().length,
+					remaining: TodomvcPage._readStore().length,
 				};
 			},
 		},
@@ -545,7 +305,7 @@ export const todomvcAdapter: Adapter = {
 			permissionClass: 'acting',
 			execute: async (input) => {
 				const wanted = input.completed === true;
-				const todos = TodomvcAdapter._readStore();
+				const todos = TodomvcPage._readStore();
 				if (todos.length === 0) {
 					return {
 						changed: 0,
@@ -562,10 +322,10 @@ export const todomvcAdapter: Adapter = {
 				if (toggleAll === null) {
 					throw new Error('the mark all as complete control is not on this page');
 				}
-				const previousRaw = window.localStorage.getItem(TodomvcAdapter.STORAGE_KEY);
+				const previousRaw = window.localStorage.getItem(TodomvcPage.STORAGE_KEY);
 				toggleAll.click();
-				await TodomvcAdapter._waitForChange(previousRaw);
-				const after = TodomvcAdapter._readStore();
+				await TodomvcPage._waitForChange(previousRaw);
+				const after = TodomvcPage._readStore();
 				return {
 					changed: after.filter((todo, index) => todo.completed !== todos[index]?.completed).length,
 					total: after.length,
@@ -596,10 +356,10 @@ export const todomvcAdapter: Adapter = {
 				if (['all', 'active', 'completed'].includes(filter) === false) {
 					throw new Error(`unknown filter ${filter}`);
 				}
-				await TodomvcAdapter._setFilter(filter);
+				await TodomvcPage._setFilter(filter);
 				return {
-					activeFilter: TodomvcAdapter._readActiveFilter(),
-					showing: TodomvcAdapter._visibleIdsInOrder().length,
+					activeFilter: TodomvcPage._readActiveFilter(),
+					showing: TodomvcPage._visibleIdsInOrder().length,
 				};
 			},
 		},

@@ -108,7 +108,7 @@ These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhe
 
 The audit is a lint, not a proof: it reads only the handler's own source, so a handler that calls a mutating helper defeats it. The no-network rule is the defence that does not depend on reading source.
 
-One consequence catches adapter authors out. `PermissionAudit` cannot tell reading `location` apart from assigning to it, so a read-only handler that even names `location` is rejected. An adapter that needs the current address reads it through a helper outside the handler — the Can I use... adapter uses `CaniuseAdapter._currentUrl` for exactly this.
+One consequence catches adapter authors out. `PermissionAudit` cannot tell reading `location` apart from assigning to it, so a read-only handler that even names `location` is rejected. An adapter that needs the current address reads it through a helper outside the handler — the Can I use... adapter uses `CaniusePage._currentUrl` for exactly this.
 
 ## Registration is by hand
 

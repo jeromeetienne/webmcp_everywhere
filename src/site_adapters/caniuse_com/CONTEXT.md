@@ -5,7 +5,9 @@ The adapter for `https://caniuse.com/`, which turns the browser support tables i
 
 ## Key Exports & Entry Points
 - `README.md`: What Codex can do with this site, and the workflows worth asking for.
-- `caniuse_adapter.ts`: `caniuseAdapter`, the adapter itself, and `CaniuseAdapter`, the class holding the page-reading helpers.
+- `caniuse_adapter.ts`: `caniuseAdapter`, the adapter itself.
+- `caniuse_page.ts`: `CaniusePage`, the class holding the page-reading helpers.
+- `caniuse_types.ts`: the shapes the tools read and return.
 - Command to exercise this folder: `npm run verify:caniuse`
 
 ## Rules
@@ -14,7 +16,7 @@ The adapter for `https://caniuse.com/`, which turns the browser support tables i
 - Never read `window.initialFeatData`. It holds only the feature the page was loaded on and it is not updated when the page routes to another one, so it is silently stale after the first navigation.
 - Move the page with `history.pushState` followed by a `popstate` event, never with `location.assign`. A real navigation tears down the script context and the pending tool call dies with it.
 - Return a `ToolRefusal` when the request is reasonable but this page cannot serve it yet, per the refusal rule in the parent [CONTEXT.md](../CONTEXT.md).
-- Read the page's address through `CaniuseAdapter._currentUrl`, not `location.href` inside a handler. `PermissionAudit` reads handler source and cannot tell reading `location` apart from assigning to it, so a read-only handler that names it is rejected.
+- Read the page's address through `CaniusePage._currentUrl`, not `location.href` inside a handler. `PermissionAudit` reads handler source and cannot tell reading `location` apart from assigning to it, so a read-only handler that names it is rejected.
 
 ## Background
 - Every fact above was established by probing the live site on 2026-08-21, and every rule is a failure that the probe or the verification found first. The support percentages this adapter computes were checked against the ones the page prints for `css-grid`, `flexbox`, `css-variables`, `avif`, and `webgpu`.

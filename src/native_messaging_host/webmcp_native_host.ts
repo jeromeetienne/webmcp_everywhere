@@ -1,102 +1,20 @@
 import Crypto from 'node:crypto';
 import Fs from 'node:fs';
 import Http from 'node:http';
-import Os from 'node:os';
 import Path from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { HostStateFiles } from './host_state_files.ts';
 import { NativeMessagingCodec } from './native_messaging_codec.ts';
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//	Types
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-/** One tool as the extension describes it. */
-export type ExtensionTool = {
-	/** The tool's name, already carrying its adapter and tab namespacing. */
-	name: string;
-	/** What the tool does, shown to an agent. */
-	description: string;
-	/** The tool's JSON Schema, absent when the tool takes no arguments. */
-	inputSchema?: Record<string, unknown>;
-	/** A short human-readable name, when the adapter gave one. */
-	title?: string;
-	/** Whether the tool only reads the page. */
-	readOnly?: boolean;
-};
-
-/** What the host asks the extension to do. */
-export type ExtensionRequest =
-	| {
-		/** Ask for every tool the extension currently offers. */
-		kind: 'listTools';
-	}
-	| {
-		/** Ask the extension to run one tool. */
-		kind: 'callTool';
-		/** The tool's name, as `listTools` reported it. */
-		name: string;
-		/** The tool's arguments. */
-		args: Record<string, unknown>;
-	};
-
-/** One answer coming back from the extension. */
-export type ExtensionAnswer = {
-	/** The identifier of the request this answers. */
-	id?: number;
-	/** Whether the extension carried the request out. */
-	ok?: boolean;
-	/** Why the extension refused, when it did. */
-	error?: string;
-	/** Whatever the request produced. */
-	result?: unknown;
-};
-
-/** One caller waiting for the extension to answer. */
-type PendingRequest = {
-	/** Hands the extension's result to the caller. */
-	resolve: (result: unknown) => void;
-	/** Tells the caller the request failed. */
-	reject: (error: Error) => void;
-	/** The timer that gives up on a silent extension. */
-	timer: NodeJS.Timeout;
-};
-
-/** How to run the host. */
-export type WebmcpNativeHostOptions = {
-	/** The port to serve Model Context Protocol on. */
-	port?: number;
-};
-
-/** What `GET /health` answers, which is how one host recognises another. */
-export type HostHealth = {
-	/** Always true, because a host that cannot answer does not answer at all. */
-	ok: boolean;
-	/** The program answering, always `WebmcpNativeHost.SERVER_NAME` for a host of ours. */
-	server: string;
-	/** Whether the extension is connected to the host answering. */
-	extensionConnected: boolean;
-	/** The operating system process identifier of the host answering. */
-	processId: number;
-};
-
-/**
- * What `~/.webmcp_everywhere/endpoint.json` holds.
- *
- * The bearer token is deliberately not among them. It lives in `~/.webmcp_everywhere/token` and only
- * there — see `WebmcpNativeHost._writeEndpoint`.
- */
-export type HostEndpointRecord = {
-	/** The Model Context Protocol address an agent posts to. */
-	url: string;
-	/** The operating system process identifier of the host that wrote the file and holds the port. */
-	processId: number;
-	/** When the host took the port. */
-	startedAt: string;
-};
+import type {
+	ExtensionAnswer,
+	ExtensionRequest,
+	ExtensionTool,
+	HostHealth,
+	PendingRequest,
+	WebmcpNativeHostOptions,
+} from './webmcp_native_host_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -116,8 +34,6 @@ export type HostEndpointRecord = {
  * tabs have adapters and what the user has allowed. The host itself decides nothing about permissions.
  */
 export class WebmcpNativeHost {
-	/** Where the endpoint details, the token, and the log are kept, for an agent to read. */
-	static STATE_DIR = process.env.WEBMCP_EVERYWHERE_STATE_DIR ?? Path.join(Os.homedir(), '.webmcp_everywhere');
 
 	/**
 	 * The one port a host serves on. It never walks to another port.
@@ -266,7 +182,7 @@ export class WebmcpNativeHost {
 		this.nextId = 1;
 		this.pending = new Map();
 		this.extensionConnected = false;
-		this.token = WebmcpNativeHost._readOrCreateToken();
+		this.token = HostStateFiles._readOrCreateToken();
 		this.httpServer = null;
 		this.serving = false;
 		this.standbyTimer = null;
@@ -677,7 +593,7 @@ export class WebmcpNativeHost {
 			clearInterval(this.standbyTimer);
 			this.standbyTimer = null;
 		}
-		WebmcpNativeHost._writeEndpoint(this.port);
+		HostStateFiles._writeEndpoint(this.port);
 		WebmcpNativeHost._log(`serving Model Context Protocol on http://127.0.0.1:${this.port}/mcp`);
 	}
 
@@ -711,7 +627,7 @@ export class WebmcpNativeHost {
 	 * @returns Nothing.
 	 */
 	_standDown(): void {
-		WebmcpNativeHost._removeEndpointIfOurs();
+		HostStateFiles._removeEndpointIfOurs();
 		this.serving = false;
 		if (this.httpServer !== null) {
 			this.httpServer.closeAllConnections();
@@ -728,7 +644,7 @@ export class WebmcpNativeHost {
 	 */
 	_shutDown(reason: string): void {
 		WebmcpNativeHost._log(`${reason}, shutting down`);
-		WebmcpNativeHost._removeEndpointIfOurs();
+		HostStateFiles._removeEndpointIfOurs();
 		process.exit(0);
 	}
 
@@ -768,7 +684,7 @@ export class WebmcpNativeHost {
 			});
 		}
 		process.on('exit', () => {
-			WebmcpNativeHost._removeEndpointIfOurs();
+			HostStateFiles._removeEndpointIfOurs();
 		});
 	}
 
@@ -860,103 +776,6 @@ export class WebmcpNativeHost {
 		});
 	}
 
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//	The State Directory
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Names the one file the bearer token is kept in.
-	 *
-	 * @returns The path of `token` inside the state directory.
-	 */
-	static _tokenPath(): string {
-		return Path.join(WebmcpNativeHost.STATE_DIR, 'token');
-	}
-
-	/**
-	 * Reads the stored token, creating one on first run.
-	 *
-	 * The token persists so an agent configured once keeps working across restarts. This file is the only
-	 * place it is kept, and every reader is sent here for it.
-	 *
-	 * @returns The token.
-	 */
-	static _readOrCreateToken(): string {
-		Fs.mkdirSync(WebmcpNativeHost.STATE_DIR, {
-			recursive: true,
-			mode: 0o700,
-		});
-		const tokenPath = WebmcpNativeHost._tokenPath();
-		if (Fs.existsSync(tokenPath) === true) {
-			return Fs.readFileSync(tokenPath, 'utf8').trim();
-		}
-		const token = Crypto.randomBytes(32).toString('hex');
-		Fs.writeFileSync(tokenPath, token, {
-			mode: 0o600,
-		});
-		return token;
-	}
-
-	/**
-	 * Names the file that tells an agent where to go.
-	 *
-	 * @returns The path of `endpoint.json` inside the state directory.
-	 */
-	static _endpointPath(): string {
-		return Path.join(WebmcpNativeHost.STATE_DIR, 'endpoint.json');
-	}
-
-	/**
-	 * Records where the host is listening, so an agent can be pointed at it.
-	 *
-	 * Only a host that holds the port writes this file, and it records which process holds it, so the file
-	 * can be removed by the host that wrote it and by no other.
-	 *
-	 * The bearer token is not written here. It never changes, and putting a correct token on the line
-	 * beside an address that can go stale made the whole file read as authoritative: readers followed it
-	 * to a port nothing was listening on. The token has one home, `~/.webmcp_everywhere/token`, and this
-	 * file carries only what is true of the host writing it right now.
-	 *
-	 * @param port - The bound port.
-	 * @returns Nothing.
-	 */
-	static _writeEndpoint(port: number): void {
-		const record: HostEndpointRecord = {
-			url: `http://127.0.0.1:${port}/mcp`,
-			processId: process.pid,
-			startedAt: new Date().toISOString(),
-		};
-		Fs.writeFileSync(WebmcpNativeHost._endpointPath(), JSON.stringify(record, null, '\t') + '\n', {
-			mode: 0o600,
-		});
-	}
-
-	/**
-	 * Removes `endpoint.json`, but only when it is this host's own.
-	 *
-	 * A host that stopped used to leave the file behind, so it went on naming a port nothing was listening
-	 * on and every agent following the README was pointed at nothing. Checking the process identifier
-	 * first means a host that has already given the port up to a newer one never removes the newer one's
-	 * file.
-	 *
-	 * @returns Nothing.
-	 */
-	static _removeEndpointIfOurs(): void {
-		try {
-			const record = JSON.parse(
-				Fs.readFileSync(WebmcpNativeHost._endpointPath(), 'utf8'),
-			) as HostEndpointRecord;
-			if (record.processId !== process.pid) {
-				return;
-			}
-			Fs.unlinkSync(WebmcpNativeHost._endpointPath());
-		} catch {
-			// The file is already gone or unreadable, which is the state this is trying to reach anyway.
-		}
-	}
-
 	/**
 	 * Writes a line to standard error and to a log file.
 	 *
@@ -969,7 +788,7 @@ export class WebmcpNativeHost {
 		const stamped = `${new Date().toISOString()} ${line}\n`;
 		process.stderr.write(stamped);
 		try {
-			Fs.appendFileSync(Path.join(WebmcpNativeHost.STATE_DIR, 'host.log'), stamped);
+			Fs.appendFileSync(Path.join(HostStateFiles.STATE_DIR, 'host.log'), stamped);
 		} catch {
 			// Logging must never take the host down.
 		}

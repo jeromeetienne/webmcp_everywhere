@@ -7,158 +7,24 @@
 import NodeTest from 'node:test';
 import { LivePageHarness } from './live_page_harness.ts';
 import type { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
+import type {
+	ChangesetResult,
+	MapViewResult,
+	QueriedFeatureList,
+	QueriedFeaturesResult,
+	QueryAtPointResultShape,
+	RecentChangesInViewResult,
+	RecentChangesetsResult,
+	RefusalResult,
+	RouteResultShape,
+	SearchResultsResult,
+	SelectedFeatureResult,
+} from './verify_openstreetmap_types.ts';
 
 const TARGET_URL = 'https://www.openstreetmap.org/#map=18/48.8584/2.2945';
 
 /** A node with a rich tag list, verified against the live site on 2026-08-21. */
 const SAMPLE_NODE_ID = 7982106824;
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-//	Types
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-/** What `get_map_view` returns. */
-type MapViewResult = {
-	/** The latitude at the centre of the map. */
-	latitude: number;
-	/** The longitude at the centre of the map. */
-	longitude: number;
-	/** The zoom level. */
-	zoom: number;
-	/** The path of the panel that is open. */
-	path: string;
-};
-
-/** What `get_selected_feature` returns. */
-type SelectedFeatureResult = {
-	/** Whether the object is a node, a way, or a relation. */
-	kind: string;
-	/** The object's identifier. */
-	id: number;
-	/** The value of the `name` tag. */
-	name: string | null;
-	/** Every tag on the object. */
-	tags: Record<string, string>;
-	/** How many tags the object carries. */
-	tagCount: number;
-	/** Which version is shown. */
-	version: number | null;
-	/** The mapper who saved that version. */
-	lastEditedBy: string | null;
-	/** The changeset that version belongs to. */
-	changesetId: number | null;
-	/** The latitude of a node. */
-	latitude: number | null;
-};
-
-/** One of the two lists `list_queried_features` returns. */
-type QueriedFeatureList = {
-	/** The entries the list holds. */
-	features: Array<{ kind: string; id: number; name: string | null; category: string | null }>;
-	/** How many entries the list holds in total. */
-	total: number;
-	/** Whether the list is still being fetched. */
-	stillLoading: boolean;
-};
-
-/** What `list_queried_features` returns. */
-type QueriedFeaturesResult = {
-	/** The features near the queried point. */
-	nearby: QueriedFeatureList;
-	/** The areas containing the queried point. */
-	enclosing: QueriedFeatureList;
-};
-
-/** What `list_recent_changesets` returns. */
-type RecentChangesetsResult = {
-	/** The changesets the panel is showing. */
-	changesets: Array<{
-		id: number;
-		comment: string | null;
-		author: string | null;
-		closedAt: string | null;
-		createdCount: number | null;
-		modifiedCount: number | null;
-		deletedCount: number | null;
-		boundingBox: { minLatitude: number; maxLatitude: number } | null;
-	}>;
-	/** How many the panel holds. */
-	total: number;
-	/** How many were returned. */
-	returned: number;
-};
-
-/** What `get_changeset` returns. */
-type ChangesetResult = {
-	/** The changeset's identifier. */
-	id: number;
-	/** What the mapper wrote. */
-	comment: string | null;
-	/** Who made the change. */
-	author: string | null;
-	/** The changeset's own tags. */
-	tags: Record<string, string>;
-	/** The objects the panel is listing. */
-	objects: Array<{ kind: string; id: number; label: string }>;
-	/** The panel's section headings. */
-	objectSections: string[];
-};
-
-/** What `list_search_results` returns. */
-type SearchResultsResult = {
-	/** The results the panel is showing. */
-	results: Array<{
-		kind: string;
-		id: number;
-		name: string;
-		category: string | null;
-		latitude: number;
-		longitude: number;
-	}>;
-	/** How many the panel holds. */
-	total: number;
-	/** How many were returned. */
-	returned: number;
-};
-
-/** What `show_recent_changes` returns. */
-type RecentChangesInViewResult = RecentChangesetsResult & {
-	/** Where the map was when the list was read. */
-	mapView: { latitude: number; longitude: number; zoom: number } | null;
-};
-
-/** What `query_features_at` returns. */
-type QueryAtPointResultShape = QueriedFeaturesResult & {
-	/** Where the map was when the query ran. */
-	mapView: { latitude: number; longitude: number; zoom: number } | null;
-};
-
-/** What `get_directions` returns. */
-type RouteResultShape = {
-	/** The routing provider that answered. */
-	engine: string;
-	/** The way of travelling that was asked for. */
-	mode: string;
-	/** The route itself. */
-	route: {
-		distance: string;
-		time: string;
-		turnCount: number;
-		turns: Array<{ step: number; instruction: string; distance: string }>;
-	};
-};
-
-/** What a tool returns instead of throwing when it cannot serve a reasonable request. */
-type RefusalResult = {
-	/** Always `true` on a refusal. */
-	refused: true;
-	/** What went wrong. */
-	reason: string;
-	/** What has to happen first. */
-	remedy: string;
-};
 
 /**
  * The live browser every check works against, prepared once before the first of them.

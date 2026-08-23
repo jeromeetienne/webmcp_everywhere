@@ -88,8 +88,16 @@ class VerifyMilestones {
 				void document.modelContext.registerTool({
 					name: 'todomvc_first_party_search',
 					description: 'A pretend first-party tool, used to check that the adapter stands down.',
-					inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-					execute: async () => ({ pretend: true }),
+					inputSchema: {
+						type: 'object',
+						properties: {},
+						additionalProperties: false,
+					},
+					execute: async () => {
+						return {
+							pretend: true,
+						};
+					},
 				});
 			`,
 		});

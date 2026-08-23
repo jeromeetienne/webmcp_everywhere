@@ -7,6 +7,9 @@ The adapter for `https://www.openstreetmap.org/`, aimed at a mapper: what is in 
 - `README.md`: What an agent can do with this site, and the workflows worth asking for.
 - `openstreetmap_page.ts`: `OpenStreetMapPage`, which reads the panels and drives the site's own router.
 - `openstreetmap_adapter.ts`: `openStreetMapAdapter`, the thirteen tools built on top of it.
+- `openstreetmap_reading_tools.ts` and `openstreetmap_driving_tools.ts`: the two halves of that tool list.
+- `openstreetmap_tool_input.ts`: `OpenStreetMapToolInput` and the schema fragments the tools share.
+- `openstreetmap_types.ts`: the shapes the tools read and return.
 - Command to exercise this folder: `npm run verify:openstreetmap`
 
 ## Rules
