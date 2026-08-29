@@ -38,7 +38,7 @@ You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 14
 npx webmcp_everywhere
 ```
 
-It copies the extension and the native messaging host into `~/.webmcp_everywhere/installation`, registers the host with Chrome, and ends by naming the one step only you can take, because Chrome loads an unpacked extension by hand. `npx webmcp_everywhere status` says at any time whether tools are reaching your agent and which step to fix when they are not, and `npx webmcp_everywhere uninstall` takes it all back out. Until the first version is on npmjs, take the archive from [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest) and run `node webmcp_everywhere.mjs` inside the folder, which is the same command.
+It copies the extension and the native messaging host into `~/.webmcp_everywhere/installation`, registers the host with Chrome, and ends by naming the one step only you can take, because Chrome loads an unpacked extension by hand. `npx webmcp_everywhere status` says at any time whether tools are reaching your agent and which step to fix when they are not, and `npx webmcp_everywhere uninstall` takes it all back out. The archive on [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest) holds the same folder for anybody who would rather not use npm: unzip it and run `node webmcp_everywhere.mjs` inside it, which is the same command doing the same thing.
 
 **To write an adapter**, or to change anything here, work from the repository, which is everything below.
 
