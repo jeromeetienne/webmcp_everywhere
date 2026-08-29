@@ -126,7 +126,7 @@ NodeTest.test('every adapter folder has a verification runner named after it', a
 
 	for (const adapter of adapters) {
 		const adapterFile = Path.basename(adapter.importPath).replace(/\.js$/, '');
-		const runnerName = `${adapterFile.replace(/_adapter$/, '')}.test.ts`;
+		const runnerName = SyncAdapterRegistry.runnerFileNameFor(adapterFile);
 		const runnerPath = Path.join(AdapterRegistrySyncTest.SITE_RUNNERS_DIR, runnerName);
 		if (Fs.existsSync(runnerPath) === false) {
 			missing.push(`${adapter.siteSlug} has no tests/site_adapters/${runnerName}`);

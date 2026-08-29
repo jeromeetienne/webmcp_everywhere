@@ -9,8 +9,9 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { GrantActing } from './grant_acting.ts';
+import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
 import { InstallNativeHost } from './install_native_host.ts';
+import type { InstallNativeHostOptions } from './install_native_host.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -36,6 +37,15 @@ export type LaunchChromeOptions = {
 	keepProfile?: boolean;
 	/** Whether to put a window on the screen. Falls back to the environment, then to hidden. */
 	visibility?: ChromeVisibility;
+	/** The extension folder to install, when it is not this working copy's build. */
+	extensionDir?: string;
+	/**
+	 * Where the native messaging host comes from, when it is not this working copy's.
+	 *
+	 * A packaged release carries its own launcher, its own bundled host, and its own copy of the
+	 * manifest template. Naming them here is what lets a check prove the packaged host really runs.
+	 */
+	nativeHost?: Pick<InstallNativeHostOptions, 'launcherPath' | 'templateDir' | 'extensionManifestPath'>;
 };
 
 /** How to reach the Chrome that was launched. */
@@ -84,8 +94,23 @@ type ChromePreferences = {
  * does not bring it back. Installing over the Chrome DevTools Protocol is the only path that works.
  */
 export class LaunchChrome {
-	/** Where Chrome lives on macOS. */
-	static CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+	/**
+	 * Where Chrome lives, in the order these paths are tried.
+	 *
+	 * The first is macOS, and the rest are Linux, which is what a continuous integration runner is.
+	 * `WEBMCP_EVERYWHERE_CHROME_PATH` overrides the whole list, for a Chrome installed somewhere else.
+	 */
+	static CHROME_PATHS = [
+		'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+		'/usr/bin/google-chrome',
+		'/usr/bin/google-chrome-stable',
+		'/opt/google/chrome/chrome',
+		'/usr/bin/chromium',
+		'/usr/bin/chromium-browser',
+	];
+
+	/** The environment variable naming a Chrome to use instead of searching for one. */
+	static CHROME_PATH_VARIABLE = 'WEBMCP_EVERYWHERE_CHROME_PATH';
 
 	/** The remote debugging port everything else in this repository expects. */
 	static PORT = 9333;
@@ -123,7 +148,7 @@ export class LaunchChrome {
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
 		const visibility = options.visibility ?? LaunchChrome._visibilityFromEnvironment() ?? 'hidden';
-		const extensionDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
+		const extensionDir = options.extensionDir ?? Path.join(__dirname, '..', 'build', 'chrome_extension');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
@@ -138,6 +163,7 @@ export class LaunchChrome {
 		}
 		LaunchChrome._prepareProfile(profileDir);
 		InstallNativeHost.run({
+			...(options.nativeHost ?? {}),
 			userDataDirs: [profileDir],
 			isEverydayChromeCovered: false,
 		});
@@ -155,7 +181,7 @@ export class LaunchChrome {
 		}
 		args.push('about:blank');
 
-		const childProcess = ChildProcess.spawn(LaunchChrome.CHROME_PATH, args, {
+		const childProcess = ChildProcess.spawn(LaunchChrome.chromePath(), args, {
 			detached: true,
 			stdio: 'ignore',
 		});
@@ -182,6 +208,92 @@ export class LaunchChrome {
 		};
 	}
 
+	/**
+	 * Waits until one named adapter's scripts are registered, whichever kind of adapter it is.
+	 *
+	 * Switching an adapter on writes extension storage, and the registrar re-applies when it notices
+	 * that write. Nothing about that is instant, so a page loaded straight after the switch can still
+	 * be running under the old set. The page then has no tools and the failure names the adapter,
+	 * which is the one thing that was working.
+	 *
+	 * @param port - The remote debugging port.
+	 * @param siteSlug - The adapter to wait for.
+	 * @param timeoutMs - How long to wait before giving up.
+	 * @returns Nothing.
+	 * @throws When the adapter's scripts are still not registered when the time runs out.
+	 */
+	static async waitUntilAdapterRegistered(
+		port: number,
+		siteSlug: string,
+		timeoutMs = LaunchChrome.REGISTRATION_TIMEOUT,
+	): Promise<void> {
+		const expression = `
+			(async () => {
+				const content = await chrome.scripting.getRegisteredContentScripts();
+				const user = typeof chrome.userScripts === 'undefined'
+					? []
+					: await chrome.userScripts.getScripts();
+				return [...content, ...user]
+					.map((script) => script.id)
+					.filter((id) => id.endsWith(${JSON.stringify(siteSlug)}))
+					.length;
+			})()
+		`;
+		const deadline = Date.now() + timeoutMs;
+		while (Date.now() < deadline) {
+			const registered = await ServiceWorkerEvaluation.evaluate<number>(port, expression);
+			if (registered > 0) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		throw new Error(`nothing was registered for the adapter ${siteSlug} within ${timeoutMs}ms`);
+	}
+
+	/**
+	 * Finds the Chrome to launch.
+	 *
+	 * This repository was written on macOS, where there is one path and it is always right. A
+	 * continuous integration runner is Linux, where Chrome sits in one of several places and may be
+	 * Chromium instead, so the path is searched for rather than named.
+	 *
+	 * @returns The path of the first Chrome found.
+	 * @throws When no Chrome is at any of the paths, naming every path tried.
+	 */
+	static chromePath(): string {
+		const named = process.env[LaunchChrome.CHROME_PATH_VARIABLE];
+		if (named !== undefined && named !== '') {
+			if (Fs.existsSync(named) === false) {
+				throw new Error(`${LaunchChrome.CHROME_PATH_VARIABLE} names ${named}, which does not exist`);
+			}
+			return named;
+		}
+		for (const candidate of LaunchChrome.CHROME_PATHS) {
+			if (Fs.existsSync(candidate) === true) {
+				return candidate;
+			}
+		}
+		throw new Error(
+			`no Chrome found at any of: ${LaunchChrome.CHROME_PATHS.join(', ')}. ` +
+				`Set ${LaunchChrome.CHROME_PATH_VARIABLE} to name one.`,
+		);
+	}
+
+	/**
+	 * Reports the version of the Chrome that would be launched.
+	 *
+	 * WebMCP is an origin trial that runs from Chrome 149 to Chrome 156, so a check that fails on an
+	 * older Chrome has found the browser, not a fault in this repository, and has to say so.
+	 *
+	 * @returns The version string Chrome prints, such as `Google Chrome 151.0.7710.0`.
+	 */
+	static chromeVersion(): string {
+		const result = ChildProcess.spawnSync(LaunchChrome.chromePath(), ['--version'], {
+			encoding: 'utf8',
+		});
+		return (result.stdout ?? '').trim();
+	}
+
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 	//	Helpers
@@ -196,33 +308,31 @@ export class LaunchChrome {
 	 * and takes a moment, and a page opened during that moment gets no adapter at all — the tool list
 	 * comes back empty and every check after it fails for a reason that looks nothing like the cause.
 	 *
+	 * The waiting is done here rather than inside the worker. A loop running in a service worker is a
+	 * loop running in something Chrome may stop at any moment, and it took a slow runner to show it:
+	 * one long evaluation never came back, while short ones that can be retried always do.
+	 *
 	 * @param port - The remote debugging port.
 	 * @returns Nothing.
 	 * @throws When the extension registers nothing within `REGISTRATION_TIMEOUT`.
 	 */
 	static async _waitUntilAdaptersRegistered(port: number): Promise<void> {
-		const worker = await GrantActing.waitForServiceWorker(port);
-		const client = new CdpClient(port);
-		await client.connect(worker.webSocketDebuggerUrl);
 		const expression = `
-			(async () => {
-				const deadline = Date.now() + ${LaunchChrome.REGISTRATION_TIMEOUT};
-				while (Date.now() < deadline) {
-					const scripts = await chrome.scripting.getRegisteredContentScripts();
-					const ours = scripts.filter((script) => script.id.startsWith(${JSON.stringify(LaunchChrome.REGISTRATION_PREFIX)}));
-					if (ours.length > 0) {
-						return ours.length;
-					}
-					await new Promise((resolve) => setTimeout(resolve, 100));
-				}
-				return 0;
-			})()
+			chrome.scripting.getRegisteredContentScripts().then(
+				(scripts) => scripts.filter(
+					(script) => script.id.startsWith(${JSON.stringify(LaunchChrome.REGISTRATION_PREFIX)})
+				).length
+			)
 		`;
-		const registered = await client.evaluate<number>(expression);
-		client.close();
-		if (registered === 0) {
-			throw new Error('the extension registered no content scripts, so no adapter would run');
+		const deadline = Date.now() + LaunchChrome.REGISTRATION_TIMEOUT;
+		while (Date.now() < deadline) {
+			const registered = await ServiceWorkerEvaluation.evaluate<number>(port, expression);
+			if (registered > 0) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
 		}
+		throw new Error('the extension registered no content scripts, so no adapter would run');
 	}
 
 	/**

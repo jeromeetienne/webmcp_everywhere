@@ -76,6 +76,21 @@ type PendingCommand = {
  * replies by identifier, so callers can issue overlapping commands.
  */
 export class CdpClient {
+	/**
+	 * How long one command may wait for its reply, in milliseconds.
+	 *
+	 * Every command used to wait for ever. A reply that never came — a target that went away, a page
+	 * that never finished, a socket that closed without raising an error — left the promise pending
+	 * and the whole program stopped, with nothing printed and nothing to read. On a laptop that looks
+	 * like a slow check; on a shared continuous integration runner it holds a job until the six-hour
+	 * limit. Six seconds of work took twenty minutes and then had to be cancelled by hand, which is
+	 * what put this figure here.
+	 */
+	static readonly SEND_TIMEOUT = 30000;
+
+	/** How long to wait for the socket to open, in milliseconds. */
+	static readonly CONNECT_TIMEOUT = 15000;
+
 	/** The remote debugging port. */
 	port: number;
 
@@ -167,15 +182,23 @@ export class CdpClient {
 		const socket = new WebSocket(webSocketDebuggerUrl);
 		this.socket = socket;
 		await new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => {
+				reject(new Error(`${webSocketDebuggerUrl} did not open within ${CdpClient.CONNECT_TIMEOUT}ms`));
+			}, CdpClient.CONNECT_TIMEOUT);
 			socket.onopen = () => {
+				clearTimeout(timer);
 				resolve();
 			};
 			socket.onerror = () => {
+				clearTimeout(timer);
 				reject(new Error(`could not connect to ${webSocketDebuggerUrl}`));
 			};
 		});
 		socket.onmessage = (event) => {
 			this._onMessage(JSON.parse(String(event.data)) as CdpMessage);
+		};
+		socket.onclose = () => {
+			this._rejectPending(new Error('the Chrome DevTools Protocol socket closed'));
 		};
 	}
 
@@ -223,9 +246,19 @@ export class CdpClient {
 		}
 		const id = this.nextId++;
 		const reply = new Promise<unknown>((resolve, reject) => {
+			const timer = setTimeout(() => {
+				this.pending.delete(id);
+				reject(new Error(`${method} got no reply within ${CdpClient.SEND_TIMEOUT}ms`));
+			}, CdpClient.SEND_TIMEOUT);
 			this.pending.set(id, {
-				resolve: resolve,
-				reject: reject,
+				resolve: (result: unknown) => {
+					clearTimeout(timer);
+					resolve(result);
+				},
+				reject: (error: Error) => {
+					clearTimeout(timer);
+					reject(error);
+				},
 			});
 		});
 		this.socket.send(JSON.stringify({
@@ -281,9 +314,11 @@ export class CdpClient {
 	 */
 	close(): void {
 		if (this.socket !== null) {
+			this.socket.onclose = null;
 			this.socket.close();
 			this.socket = null;
 		}
+		this._rejectPending(new Error('the Chrome DevTools Protocol connection was closed'));
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -291,6 +326,23 @@ export class CdpClient {
 	//	Helpers
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Tells every waiting caller the connection will not answer them.
+	 *
+	 * A closed socket used to leave every pending command waiting for a reply that could no longer
+	 * arrive, which is the same silent stop a lost reply causes.
+	 *
+	 * @param error - What to tell each waiting caller.
+	 * @returns Nothing.
+	 */
+	_rejectPending(error: Error): void {
+		const waiting = [...this.pending.values()];
+		this.pending.clear();
+		for (const waiter of waiting) {
+			waiter.reject(error);
+		}
+	}
 
 	/**
 	 * Routes one incoming message to whoever is waiting for it.

@@ -44,6 +44,16 @@ export type DiscoveredAdapter = {
 	siteName: string;
 	/** The match patterns that activate it, which the service worker registers its scripts for. */
 	matchPatterns: string[];
+	/** Its verification runner under `tests/site_adapters/`, such as `caniuse.test.ts`. */
+	runnerFileName: string;
+	/** How many of its tools are read-only. */
+	readOnly: number;
+	/** How many of its tools act on the page. */
+	acting: number;
+	/** How many of its tools are sensitive. */
+	sensitive: number;
+	/** The date its author last checked it against the live site, from `metadata.targetSiteVerifiedOn`. */
+	targetSiteVerifiedOn: string;
 };
 
 /** What the generated file should hold, given the folders that exist right now. */
@@ -117,10 +127,29 @@ export class SyncAdapterRegistry {
 				siteSlug: entry.siteSlug,
 				siteName: entry.siteName,
 				matchPatterns: entry.matchPatterns,
+				runnerFileName: SyncAdapterRegistry.runnerFileNameFor(entry.file),
+				readOnly: entry.readOnly,
+				acting: entry.acting,
+				sensitive: entry.sensitive,
+				targetSiteVerifiedOn: entry.targetSiteVerifiedOn,
 			});
 		}
 
 		return discovered;
+	}
+
+	/**
+	 * Names the verification runner that belongs to one adapter file.
+	 *
+	 * The rule is one line, and it had three separate copies of that line: the check that refuses an
+	 * adapter with no runner, the scaffold that writes one, and the nightly job that runs one each.
+	 *
+	 * @param adapterFile - The adapter's path, such as `src/site_adapters/caniuse_com/caniuse_adapter.ts`.
+	 * @returns The runner's file name, such as `caniuse.test.ts`.
+	 */
+	static runnerFileNameFor(adapterFile: string): string {
+		const baseName = Path.basename(adapterFile).replace(/\.[tj]s$/, '');
+		return `${baseName.replace(/_adapter$/, '')}.test.ts`;
 	}
 
 	/**
@@ -209,7 +238,8 @@ export class SyncAdapterRegistry {
 	}
 
 	/**
-	 * Reads the slug, the name, the export name, and the match patterns out of every adapter.
+	 * Reads what every adapter says about itself: its slug, its name, its export name, its match
+	 * patterns, how many tools it carries in each permission class, and when its author last checked it.
 	 *
 	 * The adapters are bundled and then run, rather than imported, for the same reason the review checks
 	 * are: they import each other with a `.js` extension for the browser, and Node.js cannot resolve
@@ -219,9 +249,17 @@ export class SyncAdapterRegistry {
 	 * @returns What each adapter says about itself.
 	 * @throws When a file exports nothing that looks like an adapter.
 	 */
-	static _probe(
-		adapterFiles: string[],
-	): Array<{ file: string; exportName: string; siteSlug: string; siteName: string; matchPatterns: string[] }> {
+	static _probe(adapterFiles: string[]): Array<{
+		file: string;
+		exportName: string;
+		siteSlug: string;
+		siteName: string;
+		matchPatterns: string[];
+		readOnly: number;
+		acting: number;
+		sensitive: number;
+		targetSiteVerifiedOn: string;
+	}> {
 		const imports = adapterFiles
 			.map((file, index) => `import * as module${index} from ${JSON.stringify(Path.join(repositoryRoot, file))};`)
 			.join('\n');
@@ -239,12 +277,17 @@ export class SyncAdapterRegistry {
 			'\t\tthrow new Error(`${entry.file} exports nothing that looks like an adapter`);',
 			'\t}',
 			'\tconst [exportName, adapter] = named;',
+			"\tconst inClass = (name) => adapter.tools.filter((tool) => tool.permissionClass === name).length;",
 			'\tfound.push({',
 			'\t\tfile: entry.file,',
 			'\t\texportName: exportName,',
 			'\t\tsiteSlug: adapter.siteSlug,',
 			'\t\tsiteName: adapter.siteName,',
 			'\t\tmatchPatterns: adapter.matchPatterns,',
+			"\t\treadOnly: inClass('readOnly'),",
+			"\t\tacting: inClass('acting'),",
+			"\t\tsensitive: inClass('sensitive'),",
+			"\t\ttargetSiteVerifiedOn: adapter.metadata?.targetSiteVerifiedOn ?? 'unknown',",
 			'\t});',
 			'}',
 			'console.log(JSON.stringify(found));',

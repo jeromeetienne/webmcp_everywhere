@@ -1,0 +1,167 @@
+name: Live checks
+
+# Every adapter, against its real site, every night.
+#
+# A site changes and an adapter breaks. Nothing here refuses a merge, because the usual cause is the
+# site rather than the pull request in front of it. What this does instead is write what it found
+# into the freshness table in README.md, so a stale adapter is visible before a user finds it.
+
+on:
+  schedule:
+    # 04:20 UTC, chosen away from the top of the hour, where every scheduled job on GitHub queues.
+    - cron: '20 4 * * *'
+  workflow_dispatch:
+
+# Two runs writing the freshness table at once would conflict on the same file.
+concurrency:
+  group: live_checks
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  list_the_adapters:
+    name: List the adapters to check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      adapters: ${{ steps.read_the_folders.outputs.adapters }}
+    steps:
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      # The list comes from the folders under src/site_adapters/, never from a list written here.
+      # Adding an adapter has to stay one folder, and a workflow naming each adapter by hand would
+      # make it one folder and one hand edit somebody forgets.
+      - name: Read the folders under src/site_adapters/
+        id: read_the_folders
+        run: echo "adapters=$(node tools/adapter_freshness.ts matrix)" >> "$GITHUB_OUTPUT"
+
+  check_one_adapter:
+    name: ${{ matrix.adapter.siteSlug }}
+    needs: list_the_adapters
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: ${{ fromJson(needs.list_the_adapters.outputs.adapters) }}
+    steps:
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      - name: Check every adapter, then bundle the extension
+        run: npm run build
+
+      # This runs before the adapter's own runner so that a runner failing to start says which of the
+      # two it was. A runner reports the same failure when the adapter broke and when this machine
+      # cannot run a browser at all, and those are opposite conclusions.
+      - name: Say whether this machine can run a live check at all
+        timeout-minutes: 5
+        run: node tools/environment_reports/report_browser_environment.ts
+
+      - name: Drive the real site
+        id: drive_the_real_site
+        timeout-minutes: 15
+        run: node --test ${{ matrix.adapter.runnerPath }}
+
+      # An adapter that failed and a site that refused this runner look identical from the runner's
+      # own output, so the site is asked directly whenever the runner failed.
+      - name: Ask the site directly, now that the runner has failed
+        if: failure() && steps.drive_the_real_site.outcome == 'failure'
+        timeout-minutes: 8
+        run: node tools/environment_reports/report_site_reachability.ts
+
+      - name: Say what happened, for the freshness table
+        if: always()
+        run: |
+          mkdir -p live_check_results
+          passing=${{ steps.drive_the_real_site.outcome == 'success' }}
+          printf '{"siteSlug":"%s","isPassing":%s}' "${{ matrix.adapter.siteSlug }}" "$passing" \
+            > "live_check_results/${{ matrix.adapter.siteSlug }}.json"
+
+      - name: Keep what happened for the job that writes the table
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: live_check_result_${{ matrix.adapter.siteSlug }}
+          path: live_check_results/
+
+  write_the_freshness_table:
+    name: Write the freshness table into README.md
+    needs: check_one_adapter
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # The branch is named rather than left to default, because this job commits and a detached
+      # HEAD has nothing to push.
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      - name: Collect what every adapter's job said
+        uses: actions/download-artifact@v8
+        with:
+          pattern: live_check_result_*
+          path: live_check_results
+          merge-multiple: true
+
+      - name: Put the results into one file
+        run: |
+          if ! ls live_check_results/*.json >/dev/null 2>&1; then
+            echo "no adapter job reported anything, so there is nothing to write"
+            exit 1
+          fi
+          jq -s '.' live_check_results/*.json > all_results.json
+          cat all_results.json
+
+      - name: Write the table
+        run: node tools/adapter_freshness.ts table all_results.json "$(date -u +%Y-%m-%d)"
+
+      # The table is committed rather than published elsewhere, because README.md is the one page
+      # everybody already reads, and a freshness report nobody opens is not a report.
+      - name: Commit the table when it changed
+        run: |
+          rm -f all_results.json
+          rm -rf live_check_results
+          if git diff --quiet -- README.md; then
+            echo "the table already said this; nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Record what the nightly live checks found"
+          git push

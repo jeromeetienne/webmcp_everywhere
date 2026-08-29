@@ -112,9 +112,10 @@ export class GenerateExtensionKey {
 	 * @returns The extension identifier.
 	 * @throws When the manifest carries no key.
 	 */
-	static currentIdentifier(): string {
-		const manifestPath = Path.join(__dirname, '..', 'src', 'chrome_extension', 'manifest.json');
-		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8')) as ExtensionManifest;
+	static currentIdentifier(manifestPath?: string): string {
+		const readFrom =
+			manifestPath ?? Path.join(__dirname, '..', 'src', 'chrome_extension', 'manifest.json');
+		const manifest = JSON.parse(Fs.readFileSync(readFrom, 'utf8')) as ExtensionManifest;
 		if (manifest.key === undefined) {
 			throw new Error('the manifest has no key; run "node tools/generate_extension_key.ts" first');
 		}

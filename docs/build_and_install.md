@@ -1,6 +1,6 @@
 # Building, installing, and launching
 
-Six commands, each doing one thing.
+Seven commands, each doing one thing.
 
 ```bash
 npm run build           # checks every adapter, then bundles the extension
@@ -8,6 +8,7 @@ npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
 npm run load-adapter    # checks an adapter folder, and installs it without a rebuild
 npm run unload-adapter  # takes an installed adapter back out again
+npm run package:release # packages a folder somebody can install without cloning anything
 npm run uninstall:host  # takes the registration back out of Chrome
 ```
 
@@ -140,6 +141,31 @@ Run with no site slug, it prints what is installed instead of guessing.
 
 Writing the adapter in the first place is [write_a_site_adapter.md](write_a_site_adapter.md). What you are agreeing to by loading one is [permissions_and_trust.md](permissions_and_trust.md).
 
+## `npm run package:release`
+
+Everything above assumes a working copy on disk: the launcher walks up from its own location to find [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and Node.js runs the TypeScript with no build step. That is right for somebody writing an adapter and wrong for everybody else, because it means cloning a repository to use a browser extension.
+
+```bash
+npm run package:release
+```
+
+[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) writes `build/release/` and an archive beside it, holding:
+
+| What | Why it is there |
+| --- | --- |
+| `chrome_extension/` | The built extension, loaded at `chrome://extensions` |
+| `webmcp_native_host.mjs` | The host, bundled with its dependencies inlined, so no `node_modules` is needed |
+| `webmcp_native_host.sh` | The launcher, which finds the bundle beside itself and searches for a Node.js |
+| `install_the_native_messaging_host.mjs` | The installer, which announces every file before writing it |
+| `native_messaging_template/` | The host manifest template, because the release carries no repository |
+| `README.md` and `LICENSE` | What to do with the folder, and under what terms |
+
+Node.js is still needed, because bundling removes the repository rather than the runtime. The launcher searches for one exactly as the repository's does, since Chrome starts it with a very small environment.
+
+`node --test tests/packaged_release.test.ts` copies that folder out of the repository, registers its host with a throwaway Chrome, and asks the endpoint for its tools. It is the only check that proves the host works with nothing above it, and the release workflow attaches no archive until it has passed.
+
+That runner needs port 8765, which serves one browser at a time on purpose, so it skips with its reason when your everyday Chrome already owns the port. Continuous integration has no other browser, which is where it really runs.
+
 ## What the native messaging host writes
 
 When Chrome starts the host, it writes three files under `~/.webmcp_everywhere/`.
@@ -174,6 +200,7 @@ Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what
 
 | Variable | Values | Default | What it changes |
 | --- | --- | --- | --- |
+| `WEBMCP_EVERYWHERE_CHROME_PATH` | a path | the first Chrome found | Which Chrome to launch. Without it the paths are tried in order: the macOS one, then `/usr/bin/google-chrome`, `google-chrome-stable`, `/opt/google/chrome/chrome`, and Chromium. |
 | `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. |
 | `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | The one port the native messaging host serves Model Context Protocol over HTTP on. It never moves to another port; a host that cannot have this one waits for it. |
 | `WEBMCP_EVERYWHERE_STATE_DIR` | a directory | `~/.webmcp_everywhere` | Where the native messaging host keeps `endpoint.json`, `token`, and `host.log`. `node --test tests/endpoint_file.test.ts` sets it to a throwaway directory so its hosts never touch the one you are really using. |

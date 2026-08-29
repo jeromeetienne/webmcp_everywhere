@@ -34,6 +34,8 @@ type AdapterSummary = {
 	matchPatterns: string[];
 	/** How many tools it carries. */
 	toolCount: number;
+	/** The date its author last checked it against the live site, as `YYYY-MM-DD`. */
+	targetSiteVerifiedOn: string;
 	/** The folder it was read from. Only a loaded adapter has one. */
 	sourceFolder?: string;
 	/** Who wrote it. Only a loaded adapter reports this here. */
@@ -248,7 +250,40 @@ class Popup {
 		detail.textContent = withheldReason === undefined ? source : `${source} — ${withheldReason}`;
 		row.append(detail);
 
+		const checked = document.createElement('div');
+		checked.className = 'slug';
+		checked.textContent = Popup._describeAge(adapter.targetSiteVerifiedOn);
+		row.append(checked);
+
 		return row;
+	}
+
+	/**
+	 * Says how long ago an adapter was last checked against its site, in words.
+	 *
+	 * A site changes and an adapter goes wrong quietly, so the age of the last check is part of how
+	 * much a tool list is worth. The same date is in the freshness table in the repository README.md,
+	 * which the nightly run writes; this puts it in front of the person actually using the tools.
+	 *
+	 * @param verifiedOn - The date the author last checked it, as `YYYY-MM-DD`.
+	 * @returns A sentence naming the date, and how long ago it was.
+	 */
+	static _describeAge(verifiedOn: string): string {
+		const checkedAt = Date.parse(`${verifiedOn}T00:00:00Z`);
+		if (Number.isNaN(checkedAt) === true) {
+			return 'never checked against its site';
+		}
+		const days = Math.floor((Date.now() - checkedAt) / 86400000);
+		if (days < 0) {
+			return `checked against its site on ${verifiedOn}`;
+		}
+		if (days === 0) {
+			return `checked against its site today`;
+		}
+		if (days === 1) {
+			return `checked against its site yesterday`;
+		}
+		return `checked against its site on ${verifiedOn}, ${days} days ago`;
 	}
 
 	/**
