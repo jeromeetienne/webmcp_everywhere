@@ -9,7 +9,7 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { GrantActing } from './grant_acting.ts';
+import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 
 const __filename = import.meta.filename;
@@ -255,33 +255,31 @@ export class LaunchChrome {
 	 * and takes a moment, and a page opened during that moment gets no adapter at all — the tool list
 	 * comes back empty and every check after it fails for a reason that looks nothing like the cause.
 	 *
+	 * The waiting is done here rather than inside the worker. A loop running in a service worker is a
+	 * loop running in something Chrome may stop at any moment, and it took a slow runner to show it:
+	 * one long evaluation never came back, while short ones that can be retried always do.
+	 *
 	 * @param port - The remote debugging port.
 	 * @returns Nothing.
 	 * @throws When the extension registers nothing within `REGISTRATION_TIMEOUT`.
 	 */
 	static async _waitUntilAdaptersRegistered(port: number): Promise<void> {
-		const worker = await GrantActing.waitForServiceWorker(port);
-		const client = new CdpClient(port);
-		await client.connect(worker.webSocketDebuggerUrl);
 		const expression = `
-			(async () => {
-				const deadline = Date.now() + ${LaunchChrome.REGISTRATION_TIMEOUT};
-				while (Date.now() < deadline) {
-					const scripts = await chrome.scripting.getRegisteredContentScripts();
-					const ours = scripts.filter((script) => script.id.startsWith(${JSON.stringify(LaunchChrome.REGISTRATION_PREFIX)}));
-					if (ours.length > 0) {
-						return ours.length;
-					}
-					await new Promise((resolve) => setTimeout(resolve, 100));
-				}
-				return 0;
-			})()
+			chrome.scripting.getRegisteredContentScripts().then(
+				(scripts) => scripts.filter(
+					(script) => script.id.startsWith(${JSON.stringify(LaunchChrome.REGISTRATION_PREFIX)})
+				).length
+			)
 		`;
-		const registered = await client.evaluate<number>(expression);
-		client.close();
-		if (registered === 0) {
-			throw new Error('the extension registered no content scripts, so no adapter would run');
+		const deadline = Date.now() + LaunchChrome.REGISTRATION_TIMEOUT;
+		while (Date.now() < deadline) {
+			const registered = await ServiceWorkerEvaluation.evaluate<number>(port, expression);
+			if (registered > 0) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
 		}
+		throw new Error('the extension registered no content scripts, so no adapter would run');
 	}
 
 	/**

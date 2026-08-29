@@ -46,7 +46,13 @@ jobs:
         timeout-minutes: 6
         run: node --test tests/site_adapters/todomvc.test.ts
 
+      - name: Run the largest adapter's live runner
+        if: always()
+        timeout-minutes: 12
+        run: node --test tests/site_adapters/openstreetmap.test.ts
+
       - name: Say whether each adapted site answers this runner at all
+        if: always()
         timeout-minutes: 3
         run: |
           for site in https://demo.playwright.dev/todomvc/ https://caniuse.com/ https://www.openstreetmap.org/; do
@@ -55,5 +61,6 @@ jobs:
           done
 
       - name: Load each adapted site in the real Chrome and say what came back
+        if: always()
         timeout-minutes: 8
         run: node tools/report_site_reachability.ts
