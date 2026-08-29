@@ -63,6 +63,24 @@ class WorkspacePackagesTest {
 	/** The one package npmjs carries, which is what `npx webmcp_everywhere` fetches. */
 	static readonly PUBLISHED_PACKAGE = 'webmcp_everywhere';
 
+	/**
+	 * Every package this workspace has, which is a decision rather than a list that grew.
+	 *
+	 * Milestone 4 of [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) stopped
+	 * the split here. `src/chrome_extension/`, `src/native_messaging_host/` and `src/site_adapters/`
+	 * stayed folders because nothing installs any of them, one build reads all of them, and one version
+	 * covers all of them — and each move spends every document that names a path again.
+	 *
+	 * A fourth package is not forbidden. It is asked about: this list is what a new one has to be added
+	 * to, beside the reason, so that growing the workspace is something somebody decided rather than
+	 * something that happened. What would reopen the decision is written in `packages/CONTEXT.md`.
+	 */
+	static readonly DECIDED_PACKAGES = [
+		'@webmcp_everywhere/adapter_format',
+		'@webmcp_everywhere/adapter_toolkit',
+		'webmcp_everywhere',
+	];
+
 	/** Where everything this runner writes goes, well away from the repository. */
 	static readonly WORKING_DIR = Path.join(Os.tmpdir(), 'webmcp_everywhere_workspace_packages');
 
@@ -207,6 +225,30 @@ class WorkspacePackagesTest {
 ///////////////////////////////////////////////////////////////////////////////
 
 NodeTest.describe('The packages an adapter author installs', () => {
+	NodeTest.test('the workspace holds the packages milestone 4 decided on, and no others', (t) => {
+		const found = WorkspacePackagesTest.packages()
+			.map(({ manifest }) => manifest.name)
+			.sort();
+		const decided = [...WorkspacePackagesTest.DECIDED_PACKAGES].sort();
+		const added = found.filter((name) => decided.includes(name) === false);
+		const gone = decided.filter((name) => found.includes(name) === false);
+		if (added.length > 0 || gone.length > 0) {
+			throw new Error(
+				[
+					added.length > 0 ? `${added.join(' and ')} is a package nobody decided on` : '',
+					gone.length > 0 ? `${gone.join(' and ')} is decided on but not there` : '',
+					'The split stopped at three in milestone 4 of',
+					'https://github.com/jeromeetienne/webmcp_everywhere/issues/11, and packages/CONTEXT.md says',
+					'what would reopen it. Add the package to WorkspacePackagesTest.DECIDED_PACKAGES with the',
+					'reason, or take it back out.',
+				]
+					.filter((line) => line.length > 0)
+					.join(' '),
+			);
+		}
+		t.diagnostic(`${found.length} packages, the three decided on: ${found.join(', ')}`);
+	});
+
 	NodeTest.test('a package is imported by one entry point, or run by a bin, and never both', (t) => {
 		const wrong: string[] = [];
 		for (const { folderName, manifest } of WorkspacePackagesTest.packages()) {
