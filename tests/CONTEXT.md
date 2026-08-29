@@ -9,7 +9,7 @@ Everything that exists only to check the product: the runners, the live browser 
 - `adapter_registry_sync.test.ts`: `AdapterRegistrySyncTest` — 5 checks that the registry and the runners match the folders under `src/site_adapters/`, and the manifest names no site.
 - `loaded_adapter.test.ts`: `LoadedAdapterTest` — 5 checks that an adapter written outside this repository is refused when dishonest, and otherwise installed, registered, and run with no rebuild.
 - `packaged_release.test.ts`: `PackagedReleaseTest` — 3 checks that a release copied out of the repository installs its host and serves an agent, with nothing above it.
-- `npm_package.test.ts`: `NpmPackageTest` — 6 checks that the published package installs into a home folder of its own, outlives the folder npm unpacked it into, and comes back out.
+- `npm_package.test.ts`: `NpmPackageTest` — 11 checks that the published package installs into a home of its own, says whether it is working, outlives npm's folder, and comes back out.
 - `native_host.test.ts`: `NativeHostTest` — 10 checks over the delivery path, endpoint to page.
 - `endpoint_file.test.ts`: `EndpointFileTest` — 10 checks that `endpoint.json` names a host really listening.
 - `native_host_install.test.ts`: `NativeHostInstallTest` — 7 checks that installing announces every file first and uninstalling removes each.
@@ -23,7 +23,7 @@ Everything that exists only to check the product: the runners, the live browser 
 - `package.json` holds no script for a single runner, except `npm run test:no_browser`, which names the five starting no browser.
 - Imports run one way only: `tests/` from `tools/` and `src/`, `tools/` from `src/`, `src/` from neither. `tests/source_boundary.test.ts` checks the last.
 - Verification asserts against state read back out of the live page. Nothing is mocked, and a check that cannot fail is not a check.
-- The five starting no browser are what `npm run test:no_browser` names, and none of them mocks anything: `endpoint_file.test.ts` starts the real host over a real pipe, and `npm_package.test.ts` really packs, installs and runs the published command.
+- The five starting no browser are what `npm run test:no_browser` names, and none mocks anything: `endpoint_file.test.ts` starts the real host over a real pipe, and `npm_package.test.ts` really packs, installs and runs the published command.
 - Nothing here writes into the browser the user installed, which [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4) refuses: `native_host_install.test.ts` passes `isEverydayChromeCovered: false`, and `npm_package.test.ts` sets `HOME` to a throwaway directory, so the everyday Chrome it covers is one inside that home.
 - `loaded_adapter.test.ts` writes its adapter folder into the system temporary directory and removes what it installed afterwards. An adapter left in `~/.webmcp_everywhere/adapters/` would run in the browser of whoever ran the checks.
 - `packaged_release.test.ts` copies the release out of the repository before driving it: one still inside `build/` has a repository above it, so a path reaching for one would resolve while the thing it checks was broken. It needs port 8765, which serves one browser at a time, so it says why and skips when the everyday Chrome owns the port.

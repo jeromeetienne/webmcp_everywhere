@@ -362,6 +362,17 @@ One step is left, and only you can take it. Chrome loads an unpacked extension b
 Then point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from
 \`~/.webmcp_everywhere/token\`.
 
+## Check it is working
+
+\`\`\`bash
+npx webmcp_everywhere status
+\`\`\`
+
+It asks the running system rather than looking for the extension in Chrome's own files, so it answers
+about what an agent would really receive: whether a browser is holding the port, whether the extension
+is connected to it, and which adapters are offering tools in which tabs. It exits 1 when no tools are
+reaching your agent, and says which step to go and fix. Installing ends with the same answer.
+
 ## Take it back out
 
 \`\`\`bash

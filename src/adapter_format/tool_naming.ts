@@ -15,6 +15,16 @@ export class ToolNaming {
 	/** Separates the site slug from the unqualified tool name. Two underscores, so single ones are free. */
 	static readonly SEPARATOR = '__';
 
+	/**
+	 * The site slug the browser's own tools are qualified with, which belongs to no adapter.
+	 *
+	 * `list_pages`, `open_page` and `close_page` are answered by the bridge rather than by any page, so
+	 * anything counting adapters has to tell them apart from an adapter's tools. The qualified names
+	 * themselves are spelled out in `native_bridge.ts` and in `webmcp_native_host.ts`, which is where they
+	 * are offered from.
+	 */
+	static readonly BROWSER_SLUG = 'webmcp_everywhere';
+
 	/** Names WebMCP accepts. Anything outside this set is rejected before registration is attempted. */
 	static readonly VALID_NAME = /^[a-z0-9_]+$/;
 

@@ -249,28 +249,3 @@ export class InstallNativeHost {
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	const throwaway = Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
-	const options: InstallNativeHostOptions = {
-		userDataDirs: [throwaway],
-	};
-
-	const planned = InstallNativeHost.plan(options);
-	console.log('This registers WebMCP Everywhere with Google Chrome. It is about to write:');
-	for (const manifestPath of planned.manifests) {
-		console.log(`  ${manifestPath}`);
-	}
-	console.log('');
-	console.log('Each of those files tells Google Chrome to start this program when the extension asks:');
-	console.log(`  ${planned.launcher}`);
-	console.log('Chrome starts it outside the browser sandbox, with your full rights.');
-	console.log('To undo all of this later, run: npm run uninstall:host');
-	console.log('');
-
-	const result = InstallNativeHost.run(options);
-	console.log(`extension identifier: ${result.identifier}`);
-	console.log(`launcher: ${result.launcher}`);
-	for (const manifest of result.manifests) {
-		console.log(`wrote: ${manifest}`);
-	}
-}

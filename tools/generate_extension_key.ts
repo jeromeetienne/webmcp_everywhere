@@ -117,14 +117,9 @@ export class GenerateExtensionKey {
 			manifestPath ?? Path.join(__dirname, '..', 'src', 'chrome_extension', 'manifest.json');
 		const manifest = JSON.parse(Fs.readFileSync(readFrom, 'utf8')) as ExtensionManifest;
 		if (manifest.key === undefined) {
-			throw new Error('the manifest has no key; run "node tools/generate_extension_key.ts" first');
+			throw new Error('the manifest has no key; run "node tools/generate_extension_key_entry.ts" first');
 		}
 		return GenerateExtensionKey.identifierFromPublicKey(Buffer.from(manifest.key, 'base64'));
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	const result = GenerateExtensionKey.run();
-	console.log(`extension identifier: ${result.identifier}`);
-	console.log(`private key: ${result.privateKeyPath}`);
-}

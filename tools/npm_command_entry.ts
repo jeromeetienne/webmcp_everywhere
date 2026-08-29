@@ -1,7 +1,9 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
+import { InstallationStatus } from './installation_status.ts';
 import { PackagedReleaseInstallation } from './packaged_release_installation.ts';
 import { ReleaseLayout } from './release_layout.ts';
+import type { InstallationStatusReport } from './installation_status.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -19,7 +21,7 @@ const __dirname = import.meta.dirname;
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Installs the packaged release sitting beside this file, or takes that installation back out.
+ * Installs the packaged release sitting beside this file, says whether it is working, or removes it.
  *
  * This is the command the `bin` field of the published manifest names, so `npx webmcp_everywhere`
  * starts it. It never installs from the folder it is running in: an npx run unpacks the package under
@@ -28,8 +30,8 @@ const __dirname = import.meta.dirname;
  * everything Chrome is told about names the copy.
  *
  * One step is left for the person, and cannot be taken away here: Chrome loads an unpacked extension
- * only when somebody turns on Developer mode and picks the folder. So the command ends by naming the
- * folder to pick.
+ * only when somebody turns on Developer mode and picks the folder. So installing ends by asking the
+ * running system whether that step has been taken, which is the same answer `status` gives on its own.
  */
 export class NpmCommandEntry {
 	/** The path segments that name a folder npm fills for one run and empties whenever it decides to. */
@@ -38,7 +40,7 @@ export class NpmCommandEntry {
 	/** The issue holding the plan this command is a milestone of. */
 	static readonly PLAN_URL = 'https://github.com/jeromeetienne/webmcp_everywhere/issues/12';
 
-	/** What an agent is pointed at once the extension is loaded and Chrome has started the host. */
+	/** Where an agent is pointed once the extension is loaded and Chrome has started the host. */
 	static readonly ENDPOINT_URL = 'http://127.0.0.1:8765/mcp';
 
 	/**
@@ -47,11 +49,21 @@ export class NpmCommandEntry {
 	 * @param argv - The arguments after the command name, which is `process.argv.slice(2)`.
 	 * @returns Nothing.
 	 */
-	static run(argv: string[]): void {
+	static async run(argv: string[]): Promise<void> {
 		const subcommand = argv[0] ?? 'install';
 
 		if (subcommand === 'install') {
 			NpmCommandEntry._install();
+			await NpmCommandEntry._reportStatus(true);
+			return;
+		}
+		if (subcommand === 'status') {
+			const report = await NpmCommandEntry._reportStatus(false);
+
+			// The exit code is set here and not after an install. A status is asked in order to be acted
+			// on, by a person or by a script, so "no tools are reaching your agent" is a failure. The same
+			// answer a moment after installing is not: nobody has had the chance to load the extension yet.
+			process.exitCode = report.isReady === true ? 0 : 1;
 			return;
 		}
 		if (subcommand === 'uninstall') {
@@ -79,7 +91,7 @@ export class NpmCommandEntry {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Names every path the installation is about to write, writes them, then names the step left over.
+	 * Names every path the installation is about to write, then writes them.
 	 *
 	 * The announcement comes first for the same reason the installer inside a release announces: from
 	 * the moment the host manifest exists, Chrome starts a program outside the browser sandbox with the
@@ -128,15 +140,52 @@ export class NpmCommandEntry {
 		for (const manifestPath of installed.nativeHost.manifests) {
 			console.log(`wrote     ${manifestPath}`);
 		}
+	}
+
+	/**
+	 * Asks the running system whether the extension is loaded and reaching an agent, and says so.
+	 *
+	 * @param isAfterInstall - Whether this follows an installation, which changes what is left to say.
+	 * @returns What the check found, so a caller can act on it.
+	 */
+	static async _reportStatus(isAfterInstall: boolean): Promise<InstallationStatusReport> {
+		const report = await InstallationStatus.read();
+
 		console.log('');
-		console.log('One step is left, and only you can take it. Chrome loads an unpacked extension by hand:');
-		console.log('');
-		console.log('  1. Open chrome://extensions and turn on Developer mode.');
-		console.log('  2. Choose Load unpacked, and select this folder:');
-		console.log(`     ${installed.extensionDir}`);
-		console.log('');
-		console.log(`Then point your agent at ${NpmCommandEntry.ENDPOINT_URL}, with the bearer token from`);
-		console.log(`  ${Path.join(installed.stateDir, 'token')}`);
+		console.log(report.summary);
+
+		if (report.remedy.length > 0) {
+			console.log('');
+			for (const line of report.remedy) {
+				console.log(line);
+			}
+		}
+
+		if (report.adapters.length > 0) {
+			console.log('');
+			const widest = Math.max(...report.adapters.map((adapter) => adapter.siteSlug.length));
+			for (const adapter of report.adapters) {
+				const tabs =
+					adapter.tabIds.length === 0
+						? ''
+						: `   in ${adapter.tabIds.length === 1 ? 'tab' : 'tabs'} ${adapter.tabIds.join(', ')}`;
+				const count = `${adapter.toolCount}`.padStart(2);
+				console.log(`  ${adapter.siteSlug.padEnd(widest)}  ${count} tools${tabs}`);
+			}
+		}
+
+		const tokenPath = Path.join(report.stateDir, 'token');
+		if (report.isReady === true && report.endpoint !== null) {
+			console.log('');
+			console.log(`Point your agent at ${report.endpoint.url}, with the bearer token from`);
+			console.log(`  ${tokenPath}`);
+		} else if (isAfterInstall === true) {
+			console.log('');
+			console.log(`Once it is loaded, point your agent at ${NpmCommandEntry.ENDPOINT_URL}, with the`);
+			console.log(`bearer token from ${tokenPath}`);
+		}
+
+		return report;
 	}
 
 	/**
@@ -180,7 +229,8 @@ export class NpmCommandEntry {
 	 */
 	static _usage(write: (line: string) => void): void {
 		write('');
-		write('  npx webmcp_everywhere              install it, and say what is left to do by hand');
+		write('  npx webmcp_everywhere              install it, then say whether it is working');
+		write('  npx webmcp_everywhere status       say whether it is working, and exit 1 when it is not');
 		write('  npx webmcp_everywhere uninstall    take the installation and the registration back out');
 		write('  npx webmcp_everywhere --version    print the version of the extension it carries');
 		write('');
@@ -223,4 +273,4 @@ export class NpmCommandEntry {
 	}
 }
 
-NpmCommandEntry.run(process.argv.slice(2));
+await NpmCommandEntry.run(process.argv.slice(2));

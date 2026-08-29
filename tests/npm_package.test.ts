@@ -11,6 +11,7 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { GenerateExtensionKey } from '../tools/generate_extension_key.ts';
 import { InstallNativeHost } from '../tools/install_native_host.ts';
+import { InstallationStatus } from '../tools/installation_status.ts';
 import { PackageRelease } from '../tools/package_release.ts';
 import { PackagedReleaseInstallation } from '../tools/packaged_release_installation.ts';
 import { ReleaseLayout } from '../tools/release_layout.ts';
@@ -142,10 +143,15 @@ class NpmPackageTest {
 	 * Runs the installed command against the throwaway home folder.
 	 *
 	 * @param args - The subcommand and its arguments, or nothing for the install.
+	 * @param isFailureExpected - Whether a code other than zero is part of what is being checked.
 	 * @returns What the command printed and the code it exited with.
-	 * @throws When the command exited with a code other than zero.
+	 * @throws When the command failed and the caller did not expect it to.
 	 */
-	static runTheCommand(args: string[] = []): { stdout: string; stderr: string } {
+	static runTheCommand(args: string[] = [], isFailureExpected: boolean = false): {
+		stdout: string;
+		stderr: string;
+		code: number | null;
+	} {
 		const environment: NodeJS.ProcessEnv = {
 			...process.env,
 			HOME: NpmPackageTest.HOME_DIR,
@@ -156,12 +162,13 @@ class NpmPackageTest {
 			encoding: 'utf8',
 			env: environment,
 		});
-		if (ran.status !== 0) {
+		if (ran.status !== 0 && isFailureExpected === false) {
 			throw new Error(`the command failed with code ${ran.status}:\n${ran.stdout}\n${ran.stderr}`);
 		}
 		return {
 			stdout: ran.stdout,
 			stderr: ran.stderr,
+			code: ran.status,
 		};
 	}
 
@@ -227,6 +234,18 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 		t.diagnostic(`${commandPath} answered ${version}`);
 	});
 
+	NodeTest.test('asked before anything is installed, it says so and exits 1', (t) => {
+		const asked = NpmPackageTest.runTheCommand(['status'], true);
+
+		if (asked.code === 0) {
+			throw new Error('status exited 0 with nothing installed, so no script could act on it');
+		}
+		if (asked.stdout.includes('Nothing is installed') === false) {
+			throw new Error(`status said: ${asked.stdout}`);
+		}
+		t.diagnostic(`exit code ${asked.code}, and it named the command to run`);
+	});
+
 	NodeTest.test('installing copies the release out of the folder npm owns', (t) => {
 		const output = NpmPackageTest.runTheCommand().stdout;
 		const installationDir = NpmPackageTest.installationDir();
@@ -254,6 +273,60 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			throw new Error('the command never named the folder it wrote, so nothing was announced');
 		}
 		t.diagnostic(`installed into ${installationDir}`);
+	});
+
+	NodeTest.test('installing ends by saying the one step nobody else can take', (t) => {
+		const output = NpmPackageTest.runTheCommand().stdout;
+		const extensionDir = Path.join(NpmPackageTest.installationDir(), ReleaseLayout.EXTENSION_DIR);
+
+		if (output.includes('No browser is holding the port') === false) {
+			throw new Error(`the install never said whether it is working:\n${output}`);
+		}
+		if (output.includes(extensionDir) === false) {
+			throw new Error('the install never named the folder to load at chrome://extensions');
+		}
+		t.diagnostic('the last thing a person reads is why no tools are reaching their agent');
+	});
+
+	NodeTest.test('the copied command runs on its own, with no npm around it', (t) => {
+		const bundle = Path.join(NpmPackageTest.installationDir(), ReleaseLayout.COMMAND);
+		const ran = ChildProcess.spawnSync(process.execPath, [bundle, '--version'], {
+			encoding: 'utf8',
+		});
+
+		// The release README tells anybody who unzipped an archive to run exactly this. It once crashed,
+		// because a bundle shares one `import.meta.filename` across every module inlined into it, so the
+		// `import.meta.filename === process.argv[1]` test at the foot of an imported tool fired as well.
+		if (ran.status !== 0) {
+			throw new Error(`running the bundle directly failed:\n${ran.stdout}\n${ran.stderr}`);
+		}
+		if (/^\d+\.\d+\.\d+$/.test(ran.stdout.trim()) === false) {
+			throw new Error(`running the bundle directly printed: ${ran.stdout}${ran.stderr}`);
+		}
+		t.diagnostic(`node ${ReleaseLayout.COMMAND} answered ${ran.stdout.trim()} and did nothing else`);
+	});
+
+	NodeTest.test('an endpoint file naming an address nothing answers on is called out as that', (t) => {
+		const endpointPath = Path.join(NpmPackageTest.HOME_DIR, '.webmcp_everywhere', 'endpoint.json');
+		Fs.writeFileSync(
+			endpointPath,
+			JSON.stringify({
+				url: 'http://127.0.0.1:1/mcp',
+				processId: 999999,
+				startedAt: '2026-08-29T00:00:00.000Z',
+			}),
+		);
+
+		const asked = NpmPackageTest.runTheCommand(['status'], true);
+		Fs.rmSync(endpointPath);
+
+		if (asked.code === 0) {
+			throw new Error('status exited 0 while nothing was listening');
+		}
+		if (asked.stdout.includes('nothing answers there') === false) {
+			throw new Error(`status said: ${asked.stdout}`);
+		}
+		t.diagnostic('a recorded address with nothing behind it reads as that, not as a missing extension');
 	});
 
 	NodeTest.test('the registration names the copy, and the extension identifier is the pinned one', (t) => {
@@ -311,6 +384,29 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			throw new Error(`there are ${installations.length} installations: ${installations.join(', ')}`);
 		}
 		t.diagnostic(`one installation, and ${Path.basename(leftover)} is gone`);
+	});
+
+	NodeTest.test('the browser own tools are not counted as a site adapter', (t) => {
+		const adapters = InstallationStatus._groupByAdapter([
+			'webmcp_everywhere__list_pages',
+			'webmcp_everywhere__open_page',
+			'webmcp_everywhere__close_page',
+			'caniuse_com__check_support',
+			'demo_playwright_dev__list_todos__tab7',
+			'demo_playwright_dev__list_todos__tab12',
+		]);
+
+		if (adapters.length !== 2) {
+			throw new Error(`counted ${adapters.length} adapters: ${adapters.map((one) => one.siteSlug).join(', ')}`);
+		}
+		const [caniuse, playwright] = adapters;
+		if (caniuse.siteSlug !== 'caniuse_com' || caniuse.toolCount !== 1) {
+			throw new Error(`the first adapter is ${caniuse.siteSlug} with ${caniuse.toolCount} tools`);
+		}
+		if (playwright.tabIds.join(',') !== '7,12') {
+			throw new Error(`the tabs read back as ${playwright.tabIds.join(',')}`);
+		}
+		t.diagnostic('three browser tools left out, two adapters counted, two tabs told apart');
 	});
 
 	NodeTest.test('uninstalling removes both, and leaves the token alone', (t) => {
