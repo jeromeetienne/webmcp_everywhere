@@ -14,6 +14,12 @@ Three sites are covered by adapters bundled into this build, as examples of what
 - Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](src/site_adapters/caniuse_com/README.md).
 - Thirteen tools on `https://www.openstreetmap.org/` — six read-only and seven acting, aimed at a mapper: the tags on a feature, the areas containing a point, what changed in the view, and routing used as a test of the road network. See [the adapter's own README.md](src/site_adapters/openstreetmap_org/README.md).
 
+A site changes and an adapter breaks. A run every night drives each of these against its real site and writes what it found here, so a stale adapter is visible before somebody's agent gets a wrong answer.
+
+<!-- adapter_freshness begin -->
+The nightly run has not written here yet.
+<!-- adapter_freshness end -->
+
 On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. An adapter loaded from a folder is switched off until you switch it on, because nobody here reviewed it. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
 
 ## Try it
