@@ -1,5 +1,5 @@
-import type { AdapterToolDefinition } from '../../adapter_format/adapter_types.js';
-import { PageWaiting } from '../../adapter_toolkit/page_waiting.js';
+import { PageWaiting } from '@webmcp_everywhere/adapter_toolkit';
+import type { AdapterToolDefinition } from '@webmcp_everywhere/adapter_format';
 import type { FeatureKind } from './openstreetmap_types.js';
 import { OpenStreetMapPage } from './openstreetmap_page.js';
 import {

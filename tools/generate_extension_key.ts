@@ -1,12 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	GenerateExtensionKey — pins the extension identifier so native messaging can name it
+//	GenerateExtensionKey — generates the key pair that pins the extension identifier, once
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 import Crypto from 'node:crypto';
 import Fs from 'node:fs';
-import Path from 'node:path';
+import { ExtensionIdentifier } from '../packages/npm_package/src/extension_identifier.ts';
+import { WorkingCopyLayout } from './working_copy_layout.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -43,35 +44,16 @@ export type GeneratedExtensionKey = {
  */
 export class GenerateExtensionKey {
 	/**
-	 * Derives Chrome's extension identifier from a public key.
-	 *
-	 * Chrome takes the SHA-256 of the DER-encoded public key, keeps the first sixteen bytes, and maps
-	 * each of the thirty-two nibbles onto the letters `a` to `p`.
-	 *
-	 * @param publicKeyDer - The DER-encoded SubjectPublicKeyInfo.
-	 * @returns The thirty-two character extension identifier.
-	 */
-	static identifierFromPublicKey(publicKeyDer: Buffer): string {
-		const digest = Crypto.createHash('sha256').update(publicKeyDer).digest();
-		let identifier = '';
-		for (const byte of digest.subarray(0, 16)) {
-			identifier += String.fromCharCode(97 + (byte >> 4));
-			identifier += String.fromCharCode(97 + (byte & 0x0f));
-		}
-		return identifier;
-	}
-
-	/**
 	 * Generates a key pair, writes the public half into the manifest, and reports the identifier.
 	 *
 	 * @returns What was generated and where the private half went.
 	 */
 	static run(): GeneratedExtensionKey {
-		const manifestPath = Path.join(__dirname, '..', 'src', 'chrome_extension', 'manifest.json');
+		const manifestPath = WorkingCopyLayout.EXTENSION_MANIFEST;
 		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8')) as ExtensionManifest;
 
 		if (manifest.key !== undefined) {
-			const identifier = GenerateExtensionKey.identifierFromPublicKey(
+			const identifier = ExtensionIdentifier.fromPublicKey(
 				Buffer.from(manifest.key, 'base64'),
 			);
 			return {
@@ -91,7 +73,7 @@ export class GenerateExtensionKey {
 		manifest.key = publicKeyDer.toString('base64');
 		Fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, '\t') + '\n');
 
-		const privateKeyPath = Path.join(__dirname, '..', 'extension_private_key.pem');
+		const privateKeyPath = WorkingCopyLayout.EXTENSION_PRIVATE_KEY;
 		Fs.writeFileSync(
 			privateKeyPath,
 			privateKey.export({
@@ -101,25 +83,10 @@ export class GenerateExtensionKey {
 		);
 
 		return {
-			identifier: GenerateExtensionKey.identifierFromPublicKey(publicKeyDer),
+			identifier: ExtensionIdentifier.fromPublicKey(publicKeyDer),
 			privateKeyPath: privateKeyPath,
 		};
 	}
 
-	/**
-	 * Reads the extension identifier the manifest currently pins.
-	 *
-	 * @returns The extension identifier.
-	 * @throws When the manifest carries no key.
-	 */
-	static currentIdentifier(manifestPath?: string): string {
-		const readFrom =
-			manifestPath ?? Path.join(__dirname, '..', 'src', 'chrome_extension', 'manifest.json');
-		const manifest = JSON.parse(Fs.readFileSync(readFrom, 'utf8')) as ExtensionManifest;
-		if (manifest.key === undefined) {
-			throw new Error('the manifest has no key; run "node tools/generate_extension_key_entry.ts" first');
-		}
-		return GenerateExtensionKey.identifierFromPublicKey(Buffer.from(manifest.key, 'base64'));
-	}
 }
 

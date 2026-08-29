@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
@@ -15,6 +16,9 @@ import { LaunchChrome } from '../tools/launch_chrome.ts';
 import { LoadAdapter } from '../tools/load_adapter.ts';
 import { LoadedAdapterStore } from '../src/native_messaging_host/loaded_adapter_store.ts';
 import { UnloadAdapter } from '../tools/unload_adapter.ts';
+
+const __filename = import.meta.filename;
+const __dirname = import.meta.dirname;
 
 /**
  * Drives the whole path an adapter takes when nobody merged it here.
@@ -37,8 +41,18 @@ class LoadedAdapterTest {
 	/** A folder outside this repository, standing in for somebody else's working copy. */
 	static readonly FOLDER = Path.join(Os.tmpdir(), 'webmcp_everywhere_outside_adapter');
 
-	/** The adapter that folder holds. It imports nothing, because a folder elsewhere can import nothing here. */
+	/**
+	 * The adapter that folder holds.
+	 *
+	 * It imports both packages by name. Until milestone 2 of
+	 * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) an adapter in a folder
+	 * elsewhere could import nothing from here and was told to copy the helpers it needed, so this
+	 * source is what checks that the instruction was really replaced rather than only rewritten.
+	 */
 	static readonly SOURCE = `
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/adapter_format';
+import { PageWaiting } from '@webmcp_everywhere/adapter_toolkit';
+
 export class ExamplePage {
 	static _address(): string {
 		return window.location.href;
@@ -60,7 +74,7 @@ export const exampleAdapter = {
 	metadata: {
 		author: 'somebody who never opened a pull request here',
 		version: '0.1.0',
-		adapterFormatVersion: '0.1.0',
+		adapterFormatVersion: ADAPTER_FORMAT_VERSION,
 		targetSiteVerifiedOn: '2026-08-29',
 	},
 	yieldCondition: (firstPartyToolNames: string[]) => firstPartyToolNames.length > 0,
@@ -77,7 +91,10 @@ export const exampleAdapter = {
 				additionalProperties: false,
 			},
 			permissionClass: 'readOnly',
-			execute: () => {
+			execute: async () => {
+				await PageWaiting.waitUntil(() => document.querySelector('h1'), {
+					timeoutMs: 2000,
+				});
 				return {
 					address: ExamplePage._address(),
 					title: document.title,
@@ -106,17 +123,17 @@ export const exampleAdapter = {
 	/**
 	 * Writes the adapter folder, standing in for somebody else's working copy.
 	 *
+	 * The folder gets a manifest and the two packages installed into it the first time, because that is
+	 * what an adapter author does before writing a line, and because the source below imports both by
+	 * name. Afterwards only the adapter file is rewritten, so the two checks share one installation.
+	 *
 	 * @param source - The adapter source to write.
 	 * @returns The folder written.
 	 */
 	static writeFolder(source: string): string {
-		Fs.rmSync(LoadedAdapterTest.FOLDER, {
-			recursive: true,
-			force: true,
-		});
-		Fs.mkdirSync(LoadedAdapterTest.FOLDER, {
-			recursive: true,
-		});
+		if (Fs.existsSync(Path.join(LoadedAdapterTest.FOLDER, 'node_modules')) === false) {
+			LoadedAdapterTest._installThePackages();
+		}
 		Fs.writeFileSync(Path.join(LoadedAdapterTest.FOLDER, 'example_adapter.ts'), source);
 		return LoadedAdapterTest.FOLDER;
 	}
@@ -132,6 +149,62 @@ export const exampleAdapter = {
 			throw new Error('the browser was never launched');
 		}
 		return LoadedAdapterTest.port;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	//	Helpers
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Makes the folder and installs `adapter_format` and `adapter_toolkit` into it, out of this clone.
+	 *
+	 * npm installs a folder as a symbolic link, so nothing is copied and nothing is fetched. Neither
+	 * package is on npmjs yet, which is the decision still open in milestone 2 of
+	 * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11); when it is taken this
+	 * becomes an ordinary install by name and this comment goes.
+	 *
+	 * @returns Nothing.
+	 * @throws When npm refused to install either package, with whatever npm said.
+	 */
+	static _installThePackages(): void {
+		Fs.rmSync(LoadedAdapterTest.FOLDER, {
+			recursive: true,
+			force: true,
+		});
+		Fs.mkdirSync(LoadedAdapterTest.FOLDER, {
+			recursive: true,
+		});
+		Fs.writeFileSync(
+			Path.join(LoadedAdapterTest.FOLDER, 'package.json'),
+			`${JSON.stringify(
+				{
+					name: 'an_adapter_of_my_own',
+					version: '0.1.0',
+					private: true,
+					type: 'module',
+				},
+				null,
+				'\t',
+			)}\n`,
+		);
+		const packagesDir = Path.join(__dirname, '..', 'packages');
+		const installed = ChildProcess.spawnSync(
+			'npm',
+			[
+				'install',
+				Path.join(packagesDir, 'adapter_format'),
+				Path.join(packagesDir, 'adapter_toolkit'),
+			],
+			{
+				cwd: LoadedAdapterTest.FOLDER,
+				encoding: 'utf8',
+			},
+		);
+		if (installed.status !== 0) {
+			throw new Error(`the two packages would not install into the adapter folder:\n${installed.stderr}`);
+		}
 	}
 }
 

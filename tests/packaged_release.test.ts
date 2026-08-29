@@ -11,8 +11,8 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
 import { PackageRelease } from '../tools/package_release.ts';
-import { PackagedReleaseInstallation } from '../tools/packaged_release_installation.ts';
-import { ReleaseLayout } from '../tools/release_layout.ts';
+import { PackagedReleaseInstallation } from '../packages/npm_package/src/packaged_release_installation.ts';
+import { ReleaseLayout } from '../packages/npm_package/src/release_layout.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

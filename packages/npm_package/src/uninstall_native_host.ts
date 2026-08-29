@@ -5,9 +5,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import Fs from 'node:fs';
-import { HostStateFiles } from '../src/native_messaging_host/host_state_files.ts';
+import { HostStateFiles } from '../../../src/native_messaging_host/host_state_files.ts';
 import { InstallNativeHost } from './install_native_host.ts';
-import type { InstallNativeHostOptions } from './install_native_host.ts';
+import type { ManifestDirectoryOptions } from './install_native_host.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ import type { InstallNativeHostOptions } from './install_native_host.ts';
 ///////////////////////////////////////////////////////////////////////////////
 
 /** Where to uninstall from. The same shape as the installation, so the two cover the same places. */
-export type UninstallNativeHostOptions = InstallNativeHostOptions;
+export type UninstallNativeHostOptions = ManifestDirectoryOptions;
 
 /** One manifest file the uninstallation looked at. */
 export type InspectedNativeHostManifest = {

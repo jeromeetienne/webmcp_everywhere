@@ -1,3 +1,4 @@
+import { WorkingCopyLayout } from './working_copy_layout.ts';
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	LaunchChrome — brings up a Chrome that speaks WebMCP with the extension installed
@@ -10,8 +11,8 @@ import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
 import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
-import { InstallNativeHost } from './install_native_host.ts';
-import type { InstallNativeHostOptions } from './install_native_host.ts';
+import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
+import type { InstallNativeHostOptions } from '../packages/npm_package/src/install_native_host.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -45,7 +46,7 @@ export type LaunchChromeOptions = {
 	 * A packaged release carries its own launcher, its own bundled host, and its own copy of the
 	 * manifest template. Naming them here is what lets a check prove the packaged host really runs.
 	 */
-	nativeHost?: Pick<InstallNativeHostOptions, 'launcherPath' | 'templateDir' | 'extensionManifestPath'>;
+	nativeHost?: Partial<Pick<InstallNativeHostOptions, 'launcherPath' | 'templateDir' | 'extensionManifestPath'>>;
 };
 
 /** How to reach the Chrome that was launched. */
@@ -163,6 +164,7 @@ export class LaunchChrome {
 		}
 		LaunchChrome._prepareProfile(profileDir);
 		InstallNativeHost.run({
+			...WorkingCopyLayout.nativeHostPaths(),
 			...(options.nativeHost ?? {}),
 			userDataDirs: [profileDir],
 			isEverydayChromeCovered: false,

@@ -7,6 +7,9 @@
 		"node": ">=22.18.0"
 	},
 	"type": "module",
+	"workspaces": [
+		"packages/*"
+	],
 	"description": "A community-maintained library of WebMCP adapters that register tools into sites that have not shipped their own.",
 	"keywords": [
 		"webmcp",
@@ -26,14 +29,14 @@
 	"scripts": {
 		"build": "node tools/build_extension.ts",
 		"package:release": "node tools/package_release.ts",
-		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build ./build/release",
+		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build --workspace webmcp_everywhere",
 		"sync:adapters": "node tools/sync_adapter_registry.ts",
 		"new-adapter": "node tools/new_adapter.ts",
 		"load-adapter": "node tools/load_adapter.ts",
 		"unload-adapter": "node tools/unload_adapter.ts",
 		"test": "node --test --test-concurrency=1",
 		"test:visible": "WEBMCP_EVERYWHERE_CHROME_VISIBILITY=visible node --test --test-concurrency=1",
-		"test:no_browser": "node --test --test-concurrency=1 tests/adapter_registry_sync.test.ts tests/endpoint_file.test.ts tests/native_host_install.test.ts tests/npm_package.test.ts tests/source_boundary.test.ts",
+		"test:no_browser": "node --test --test-concurrency=1 tests/adapter_registry_sync.test.ts tests/endpoint_file.test.ts tests/native_host_install.test.ts tests/npm_package.test.ts tests/source_boundary.test.ts tests/workspace_packages.test.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"check:versions": "node tools/version_agreement.ts",
 		"chrome": "node tools/launch_chrome.ts",
@@ -45,6 +48,8 @@
 		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
 	},
 	"devDependencies": {
+		"@webmcp_everywhere/adapter_format": "0.1.0",
+		"@webmcp_everywhere/adapter_toolkit": "0.1.0",
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@types/chrome": "0.2.6",
 		"@types/node": "26.2.0",

@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import type { AdapterMetadata, PermissionClass } from './adapter_types.js';
+import type { AdapterMetadata, PermissionClass } from './adapter_types.ts';
 
 /**
  * One tool of a loaded adapter, described without its handler.

@@ -1,8 +1,7 @@
 import { z } from 'zod';
-import { ADAPTER_FORMAT_VERSION } from '../../src/adapter_format/adapter_format_version.js';
-import { ToolNaming } from '../../src/adapter_format/tool_naming.js';
+import { ADAPTER_FORMAT_VERSION, ToolNaming } from '@webmcp_everywhere/adapter_format';
+import type { Adapter } from '@webmcp_everywhere/adapter_format';
 import { PermissionAudit } from './permission_audit.js';
-import type { Adapter } from '../../src/adapter_format/adapter_types.js';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

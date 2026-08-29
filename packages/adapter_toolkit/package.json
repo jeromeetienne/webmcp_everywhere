@@ -1,0 +1,15 @@
+{
+	"name": "@webmcp_everywhere/adapter_toolkit",
+	"version": "0.1.0",
+	"private": true,
+	"license": "MIT",
+	"type": "module",
+	"sideEffects": false,
+	"description": "The page helpers every WebMCP Everywhere adapter shares: waiting on a page, and driving it.",
+	"files": [
+		"src"
+	],
+	"exports": {
+		".": "./src/index.ts"
+	}
+}

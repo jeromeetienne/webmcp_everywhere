@@ -1,6 +1,6 @@
 # What a site adapter is
 
-An adapter is a plain TypeScript object describing one site: which pages it applies to, what tools it contributes, and when it stands down. The type lives in [`src/adapter_format/adapter_types.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/adapter_format/adapter_types.ts). To write one, read [write_a_site_adapter.md](write_a_site_adapter.md); this document says what the format is and what it is checked against.
+An adapter is a plain TypeScript object describing one site: which pages it applies to, what tools it contributes, and when it stands down. The type lives in [`@webmcp_everywhere/adapter_format`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/adapter_format), which you install into a folder of your own rather than copy. To write one, read [write_a_site_adapter.md](write_a_site_adapter.md); this document says what the format is and what it is checked against.
 
 ## The shape
 

@@ -177,14 +177,15 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`.
+`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, and the one npmjs carries.
 
-- `src/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed.
-- `src/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it.
+- `packages/npm_package/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it.
+- `packages/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed. Imported as `@webmcp_everywhere/adapter_format`.
+- `packages/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it. Imported as `@webmcp_everywhere/adapter_toolkit`.
 - `src/site_adapters/` — one folder per target site this build ships.
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads.
-- `tools/` — build, launch, install, the commands that write a new adapter and register it, the commands that load and unload an adapter written elsewhere, plus the adapter checks and the Chrome DevTools Protocol connection.
+- `tools/` — build, launch, register the host in this working copy, the commands that write a new adapter, load one and unload one, plus the adapter checks and the Chrome DevTools Protocol connection. Nothing here ships.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.
@@ -206,7 +207,7 @@ npm run test:visible    # the same checks, with Chrome on screen
 npm run test:no_browser # only the checks that start no browser
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The four exceptions are the ones `npm run test:no_browser` names: `tests/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `tests/source_boundary.test.ts`, which reads the source folder off disk. Those four are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The six exceptions are the ones `npm run test:no_browser` names: `tests/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, `tests/npm_package.test.ts`, whose subject is the package npm publishes, `tests/source_boundary.test.ts`, which reads the source folders off disk, and `tests/workspace_packages.test.ts`, whose subject is the two packages an adapter author installs. Those six are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

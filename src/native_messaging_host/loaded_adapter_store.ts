@@ -1,7 +1,7 @@
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import type { LoadedAdapter } from '../adapter_format/loaded_adapter_types.js';
+import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

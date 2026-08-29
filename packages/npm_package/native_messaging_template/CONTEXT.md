@@ -1,10 +1,10 @@
-# Directory Context: `/data/native_messaging_template`
+# Directory Context: `/packages/npm_package/native_messaging_template`
 
 ## Purpose
 Holds the template for the Chrome native messaging host manifest, the JSON file that tells Chrome which program to start and which extension may connect to it.
 
 ## Key Exports & Entry Points
-- `com.webmcp_everywhere.host.json`: the template. `tools/install_native_host.ts` reads it, replaces the placeholders, and writes the result into every Chrome native messaging host directory.
+- `com.webmcp_everywhere.host.json`: the template. `packages/npm_package/src/install_native_host.ts` reads it, replaces the placeholders, and writes the result into every Chrome native messaging host directory. It sits inside the package because the package publishes it: a release carries this template and no repository.
 - Command to write the manifests: `npm run install:host`
 
 ## Rules

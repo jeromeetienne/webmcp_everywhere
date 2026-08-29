@@ -1,4 +1,4 @@
-import type { Adapter, AdapterToolDefinition, PermissionClass } from '../../src/adapter_format/adapter_types.js';
+import type { Adapter, AdapterToolDefinition, PermissionClass } from '@webmcp_everywhere/adapter_format';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,7 +33,7 @@ export class PermissionAudit {
 	/**
 	 * Source patterns that mean the handler changes the page or the user's data on the site.
 	 *
-	 * `PageDriving` is in this list because every helper in `src/adapter_toolkit/page_driving.ts`
+	 * `PageDriving` is in this list because every helper in `packages/adapter_toolkit/src/page_driving.ts`
 	 * changes the page. That is the rule that folder is held to, and it is what lets a handler keep its
 	 * mutation inside a shared helper without escaping this audit. `PageWaiting` is deliberately absent:
 	 * nothing in it changes anything.

@@ -2,9 +2,9 @@ import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
 import ChildProcess from 'node:child_process';
+import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/adapter_format';
+import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
 import { LoadedAdapterStore } from '../src/native_messaging_host/loaded_adapter_store.ts';
-import { LOADED_ADAPTER_GLOBAL } from '../src/adapter_format/loaded_adapter_types.ts';
-import type { LoadedAdapter } from '../src/adapter_format/loaded_adapter_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

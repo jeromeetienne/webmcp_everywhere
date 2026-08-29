@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import type { FramedResult } from '../src/adapter_format/untrusted_content.ts';
+import type { FramedResult } from '@webmcp_everywhere/adapter_format';
 
 /**
  * How the verification runners reach the native messaging host.
