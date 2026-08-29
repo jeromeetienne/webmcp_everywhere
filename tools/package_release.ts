@@ -22,6 +22,31 @@ const releaseDir = Path.join(repositoryRoot, 'build', 'release');
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The fields of this repository's `package.json` that the published package inherits.
+ *
+ * They are read rather than restated, so the description, the keywords and the links have one
+ * authoritative place and cannot drift into two versions that disagree.
+ */
+type RepositoryManifest = {
+	/** The package name on npmjs, which is the name of this repository. */
+	name: string;
+	/** The version, which has to equal the one in the extension manifest. */
+	version: string;
+	/** The licence identifier. */
+	license: string;
+	/** The one sentence npmjs shows under the name. */
+	description: string;
+	/** The words npmjs indexes the package under. */
+	keywords: string[];
+	/** The project page. */
+	homepage: string;
+	/** Where the source is, in the shape npm defines. */
+	repository: unknown;
+	/** Where a defect is reported, in the shape npm defines. */
+	bugs: unknown;
+};
+
 /** What one packaging run produced. */
 export type PackagedRelease = {
 	/** The folder holding everything a user installs. */
@@ -61,6 +86,21 @@ export class PackageRelease {
 
 	/** The name of the installer inside the release folder, which registers the host with Chrome. */
 	static readonly INSTALLER = 'install_the_native_messaging_host.mjs';
+
+	/** The name of the command inside the release folder, which the `bin` field of `package.json` names. */
+	static readonly COMMAND = 'webmcp_everywhere.mjs';
+
+	/** The name of the package manifest inside the release folder, which npm publishes the folder with. */
+	static readonly PACKAGE_MANIFEST = 'package.json';
+
+	/**
+	 * The Node.js the published package asks for.
+	 *
+	 * It is not the `engines` field of this repository, which asks for 22.18.0 because that is what the
+	 * runners here and the TypeScript Node.js runs directly need. What a user runs is the bundled host
+	 * and the launcher, and the launcher accepts any Node.js 20 or later, so that is what the package says.
+	 */
+	static readonly NODE_ENGINE = '>=20';
 
 	/**
 	 * The launcher a packaged release carries.
@@ -134,6 +174,21 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			throw new Error('the extension is not built; run "npm run build" first');
 		}
 
+		const repositoryManifest = JSON.parse(
+			Fs.readFileSync(Path.join(repositoryRoot, 'package.json'), 'utf8'),
+		) as RepositoryManifest;
+		const extensionManifest = JSON.parse(
+			Fs.readFileSync(Path.join(extensionSource, 'manifest.json'), 'utf8'),
+		) as {
+			version: string;
+		};
+		if (repositoryManifest.version !== extensionManifest.version) {
+			throw new Error(
+				`the package says version ${repositoryManifest.version} and the extension it carries says ` +
+					`version ${extensionManifest.version}; they are one product and have to agree`,
+			);
+		}
+
 		Fs.rmSync(releaseDir, {
 			recursive: true,
 			force: true,
@@ -173,6 +228,22 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 		});
 		written.push(PackageRelease.INSTALLER);
 
+		await Esbuild.build({
+			entryPoints: [Path.join(repositoryRoot, 'tools', 'npm_command_entry.ts')],
+			outfile: Path.join(releaseDir, PackageRelease.COMMAND),
+			bundle: true,
+			format: 'esm',
+			platform: 'node',
+			target: 'node20',
+			tsconfig: tsconfigPath,
+			banner: {
+				js: '#!/usr/bin/env node',
+			},
+			logLevel: 'warning',
+		});
+		Fs.chmodSync(Path.join(releaseDir, PackageRelease.COMMAND), 0o755);
+		written.push(PackageRelease.COMMAND);
+
 		const launcher = Path.join(releaseDir, PackageRelease.LAUNCHER);
 		Fs.writeFileSync(launcher, PackageRelease.LAUNCHER_SOURCE);
 		Fs.chmodSync(launcher, 0o755);
@@ -192,6 +263,12 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 
 		Fs.writeFileSync(Path.join(releaseDir, 'README.md'), PackageRelease._readme());
 		written.push('README.md');
+
+		Fs.writeFileSync(
+			Path.join(releaseDir, PackageRelease.PACKAGE_MANIFEST),
+			PackageRelease._publishedPackageManifest(repositoryManifest),
+		);
+		written.push(PackageRelease.PACKAGE_MANIFEST);
 
 		const archive = Path.join(repositoryRoot, 'build', 'webmcp_everywhere_release.zip');
 		Fs.rmSync(archive, {
@@ -218,6 +295,39 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	//	Helpers
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Builds the package manifest npm publishes this folder with.
+	 *
+	 * The repository is not the package. This repository's own `package.json` carries every development
+	 * dependency, every script that needs a working copy, and a Node.js requirement that belongs to the
+	 * runners rather than to the product, and it is marked private so that none of it can be published by
+	 * accident. What is published is this folder, which already holds the user's README.md and the
+	 * licence, and which now holds a manifest naming only what a user needs.
+	 *
+	 * @param repositoryManifest The fields read out of this repository's `package.json`.
+	 * @returns The JSON text of the published manifest, ending in a newline.
+	 */
+	static _publishedPackageManifest(repositoryManifest: RepositoryManifest): string {
+		const published = {
+			name: repositoryManifest.name,
+			version: repositoryManifest.version,
+			license: repositoryManifest.license,
+			description: repositoryManifest.description,
+			keywords: repositoryManifest.keywords,
+			homepage: repositoryManifest.homepage,
+			repository: repositoryManifest.repository,
+			bugs: repositoryManifest.bugs,
+			type: 'module',
+			engines: {
+				node: PackageRelease.NODE_ENGINE,
+			},
+			bin: {
+				webmcp_everywhere: `./${PackageRelease.COMMAND}`,
+			},
+		};
+		return `${JSON.stringify(published, null, '\t')}\n`;
+	}
 
 	/**
 	 * Writes the instructions that travel inside the release.

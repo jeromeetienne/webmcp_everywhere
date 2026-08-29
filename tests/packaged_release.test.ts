@@ -239,6 +239,8 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 			PackageRelease.HOST_BUNDLE,
 			PackageRelease.LAUNCHER,
 			PackageRelease.INSTALLER,
+			PackageRelease.COMMAND,
+			PackageRelease.PACKAGE_MANIFEST,
 			'native_messaging_template/com.webmcp_everywhere.host.json',
 			'README.md',
 			'LICENSE',

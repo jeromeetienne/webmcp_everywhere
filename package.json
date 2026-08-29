@@ -1,15 +1,32 @@
 {
 	"name": "webmcp_everywhere",
 	"version": "0.1.0",
+	"private": true,
 	"license": "MIT",
 	"engines": {
 		"node": ">=22.18.0"
 	},
 	"type": "module",
 	"description": "A community-maintained library of WebMCP adapters that register tools into sites that have not shipped their own.",
+	"keywords": [
+		"webmcp",
+		"model context protocol",
+		"chrome extension",
+		"browser agent",
+		"site adapter"
+	],
+	"homepage": "https://github.com/jeromeetienne/webmcp_everywhere#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeromeetienne/webmcp_everywhere.git"
+	},
+	"bugs": {
+		"url": "https://github.com/jeromeetienne/webmcp_everywhere/issues"
+	},
 	"scripts": {
 		"build": "node tools/build_extension.ts",
 		"package:release": "node tools/package_release.ts",
+		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build ./build/release",
 		"sync:adapters": "node tools/sync_adapter_registry.ts",
 		"new-adapter": "node tools/new_adapter.ts",
 		"load-adapter": "node tools/load_adapter.ts",
