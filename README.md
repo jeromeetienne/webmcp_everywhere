@@ -32,6 +32,8 @@ On a fresh install only the read-only tools are offered; the acting ones stay wi
 
 You need Google Chrome 149 or later and Node.js 22.18.0 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156.
 
+There are two ways in. **To use it**, take the archive from [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest): it holds the extension, the native messaging host bundled into one file, and an installer, it needs no clone of this repository and no build, and the `README.md` beside them says what to do with the folder. **To write an adapter**, or to change anything here, work from the repository, which is everything below.
+
 ```bash
 npm install
 ```

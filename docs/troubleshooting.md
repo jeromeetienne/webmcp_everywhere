@@ -28,6 +28,16 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **`npm run load-adapter` refused it.** The refusal names what was found, and it is the same set of checks as the build's. See "The build refuses", below, which lists every one of them.
 
+## A packaged release does nothing
+
+These fail only for somebody who installed the archive rather than the repository, and none of them says anything on screen.
+
+**The folder moved after the installer ran.** The file the installer wrote into Chrome names the launcher by its full path, so moving or renaming the release folder leaves Chrome starting a program that is no longer there. Run `node install_the_native_messaging_host.mjs` again from where the folder is now.
+
+**No Node.js.** The launcher searches for one rather than naming one, because Chrome starts it with a very small environment, and a Node.js installed only by a version manager may be invisible to it. `~/.webmcp_everywhere/host.log` is the place this shows.
+
+**Another browser owns the port.** An everyday Chrome carrying this extension holds port 8765, and the port serves one browser at a time on purpose. The section above on the endpoint covers it, and it is the same failure whether the host came from a release or from a working copy.
+
 ## Every check passes but you are testing old code
 
 **The throwaway profile was kept.** Chrome does not re-read an unpacked extension it has already installed. `LaunchChrome` deletes the profile before every launch for exactly this reason; keeping it silently runs the previous build.

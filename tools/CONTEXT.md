@@ -9,7 +9,7 @@ Everything that builds, installs, launches, packages, or loads the product. What
 - `new_adapter.ts`: writes an adapter folder, its runner and its documents, then registers it. `npm run new-adapter`
 - `load_adapter.ts`, `unload_adapter.ts`: check an adapter folder from anywhere and install it, and remove it. `npm run load-adapter`, `npm run unload-adapter`
 - `adapter_freshness.ts`: the nightly job's matrix, and the table it writes into `README.md`.
-- `launch_chrome.ts`: the recipe for a Chrome that works, wherever it lives. `npm run chrome`
+- `launch_chrome.ts`: the recipe for a Chrome that works, wherever it lives, and the waits on the registrar. `npm run chrome`
 - `install_native_host.ts`, `uninstall_native_host.ts`: register the host with Chrome, and take that back out; `release_installer_entry.ts` is the same, bundled into a release. `npm run install:host`, `npm run uninstall:host`
 - `generate_extension_key.ts`: pins the extension identifier.
 - `grant_acting.ts`, `allow_user_scripts.ts`: stand in for a person at the popup and `chrome://extensions`. `npm run grant`
@@ -23,9 +23,9 @@ Everything that builds, installs, launches, packages, or loads the product. What
 - Anything reading an adapter bundles it with esbuild and runs the bundle, never parses source: adapters import with a `.js` extension, which Node.js cannot resolve from `.ts`.
 - Only `npm run install:host` may write into the everyday Chrome; everything else passes `isEverydayChromeCovered: false`. `InstallNativeHost.plan` names every file before `run` writes one, and installing and uninstalling share the one `manifestDirectories`: announcing a change after making it is not announcing it, and a missed directory leaves Chrome starting a program the user asked it to stop.
 - A packaged release carries its own launcher, its own bundled host, and its own copy of the manifest template, and `InstallNativeHost` is pointed at them. A release that reached for `src/` would pass every check here and fail for every user.
-- Never evaluate in the background service worker without being ready to do it again. Chrome stops an idle worker without telling a Chrome DevTools Protocol client, so the reply never arrives; `ServiceWorkerEvaluation` retries, so every expression given to it must be safe to run twice.
+- Every expression given to `ServiceWorkerEvaluation` is safe to run twice, because it retries — see [chrome_devtools_protocol/CONTEXT.md](chrome_devtools_protocol/CONTEXT.md) for why an idle service worker forces that.
 - Nothing in `src/` imports from here, and nothing here writes into `src/`, which `tests/source_boundary.test.ts` checks. Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.
-- Every step `LaunchChrome` takes prevents a silent failure: the two profile settings, `Extensions.loadUnpacked` rather than `--load-extension`, the deleted profile, the visibility variable, and the wait for the extension's first registered content script — the manifest names no site, so a page opened before that gets no adapter and every check after it fails for a reason unlike the cause. All are named in [build_and_install.md](../docs/build_and_install.md), and none is safe to drop.
+- Every step `LaunchChrome` takes prevents a silent failure: the two profile settings, `Extensions.loadUnpacked` rather than `--load-extension`, the deleted profile, the visibility variable, and two waits on the registrar — one for its first script, one for a named adapter just switched on. The manifest names no site, so a page opened before the registrar has run carries no adapter, and the check fails for a reason unlike the cause. All are named in [build_and_install.md](../docs/build_and_install.md), and none is safe to drop.
 
 ## Background
 - Every rule about launching Chrome is a failure that happened in [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2); none report an error. The everyday Chrome, the announcement, and the shared directory list come from [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4).
