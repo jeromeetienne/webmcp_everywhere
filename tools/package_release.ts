@@ -2,6 +2,7 @@ import ChildProcess from 'node:child_process';
 import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
+import { ReleaseLayout } from './release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -21,6 +22,31 @@ const releaseDir = Path.join(repositoryRoot, 'build', 'release');
 //	Types
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * The fields of this repository's `package.json` that the published package inherits.
+ *
+ * They are read rather than restated, so the description, the keywords and the links have one
+ * authoritative place and cannot drift into two versions that disagree.
+ */
+type RepositoryManifest = {
+	/** The package name on npmjs, which is the name of this repository. */
+	name: string;
+	/** The version, which has to equal the one in the extension manifest. */
+	version: string;
+	/** The licence identifier. */
+	license: string;
+	/** The one sentence npmjs shows under the name. */
+	description: string;
+	/** The words npmjs indexes the package under. */
+	keywords: string[];
+	/** The project page. */
+	homepage: string;
+	/** Where the source is, in the shape npm defines. */
+	repository: unknown;
+	/** Where a defect is reported, in the shape npm defines. */
+	bugs: unknown;
+};
 
 /** What one packaging run produced. */
 export type PackagedRelease = {
@@ -53,14 +79,14 @@ export type PackagedRelease = {
  * for one, because bundling removes the repository rather than the runtime.
  */
 export class PackageRelease {
-	/** The name of the bundled host inside the release folder. */
-	static readonly HOST_BUNDLE = 'webmcp_native_host.mjs';
-
-	/** The name of the launcher inside the release folder. */
-	static readonly LAUNCHER = 'webmcp_native_host.sh';
-
-	/** The name of the installer inside the release folder, which registers the host with Chrome. */
-	static readonly INSTALLER = 'install_the_native_messaging_host.mjs';
+	/**
+	 * The Node.js the published package asks for.
+	 *
+	 * It is not the `engines` field of this repository, which asks for 22.18.0 because that is what the
+	 * runners here and the TypeScript Node.js runs directly need. What a user runs is the bundled host
+	 * and the launcher, and the launcher accepts any Node.js 20 or later, so that is what the package says.
+	 */
+	static readonly NODE_ENGINE = '>=20';
 
 	/**
 	 * The launcher a packaged release carries.
@@ -82,7 +108,7 @@ export class PackageRelease {
 set -euo pipefail
 
 scriptDir="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
-hostBundle="\${scriptDir}/${PackageRelease.HOST_BUNDLE}"
+hostBundle="\${scriptDir}/${ReleaseLayout.HOST_BUNDLE}"
 
 # Answers whether a Node.js can run the bundled host, which is an ECMAScript module.
 runsTheHost() {
@@ -129,9 +155,24 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	 * @throws When the extension has not been built.
 	 */
 	static async run(): Promise<PackagedRelease> {
-		const extensionSource = Path.join(repositoryRoot, 'build', 'chrome_extension');
-		if (Fs.existsSync(Path.join(extensionSource, 'manifest.json')) === false) {
+		const extensionSource = Path.join(repositoryRoot, 'build', ReleaseLayout.EXTENSION_DIR);
+		if (Fs.existsSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST)) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
+		}
+
+		const repositoryManifest = JSON.parse(
+			Fs.readFileSync(Path.join(repositoryRoot, 'package.json'), 'utf8'),
+		) as RepositoryManifest;
+		const extensionManifest = JSON.parse(
+			Fs.readFileSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST), 'utf8'),
+		) as {
+			version: string;
+		};
+		if (repositoryManifest.version !== extensionManifest.version) {
+			throw new Error(
+				`the package says version ${repositoryManifest.version} and the extension it carries says ` +
+					`version ${extensionManifest.version}; they are one product and have to agree`,
+			);
 		}
 
 		Fs.rmSync(releaseDir, {
@@ -144,14 +185,14 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 
 		const written: string[] = [];
 
-		Fs.cpSync(extensionSource, Path.join(releaseDir, 'chrome_extension'), {
+		Fs.cpSync(extensionSource, Path.join(releaseDir, ReleaseLayout.EXTENSION_DIR), {
 			recursive: true,
 		});
-		written.push('chrome_extension/');
+		written.push(`${ReleaseLayout.EXTENSION_DIR}/`);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts')],
-			outfile: Path.join(releaseDir, PackageRelease.HOST_BUNDLE),
+			outfile: Path.join(releaseDir, ReleaseLayout.HOST_BUNDLE),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -159,11 +200,11 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			tsconfig: tsconfigPath,
 			logLevel: 'warning',
 		});
-		written.push(PackageRelease.HOST_BUNDLE);
+		written.push(ReleaseLayout.HOST_BUNDLE);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'tools', 'release_installer_entry.ts')],
-			outfile: Path.join(releaseDir, PackageRelease.INSTALLER),
+			outfile: Path.join(releaseDir, ReleaseLayout.INSTALLER),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -171,27 +212,49 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			tsconfig: tsconfigPath,
 			logLevel: 'warning',
 		});
-		written.push(PackageRelease.INSTALLER);
+		written.push(ReleaseLayout.INSTALLER);
 
-		const launcher = Path.join(releaseDir, PackageRelease.LAUNCHER);
+		await Esbuild.build({
+			entryPoints: [Path.join(repositoryRoot, 'tools', 'npm_command_entry.ts')],
+			outfile: Path.join(releaseDir, ReleaseLayout.COMMAND),
+			bundle: true,
+			format: 'esm',
+			platform: 'node',
+			target: 'node20',
+			tsconfig: tsconfigPath,
+			banner: {
+				js: '#!/usr/bin/env node',
+			},
+			logLevel: 'warning',
+		});
+		Fs.chmodSync(Path.join(releaseDir, ReleaseLayout.COMMAND), 0o755);
+		written.push(ReleaseLayout.COMMAND);
+
+		const launcher = Path.join(releaseDir, ReleaseLayout.LAUNCHER);
 		Fs.writeFileSync(launcher, PackageRelease.LAUNCHER_SOURCE);
 		Fs.chmodSync(launcher, 0o755);
-		written.push(PackageRelease.LAUNCHER);
+		written.push(ReleaseLayout.LAUNCHER);
 
 		Fs.cpSync(
 			Path.join(repositoryRoot, 'data', 'native_messaging_template'),
-			Path.join(releaseDir, 'native_messaging_template'),
+			Path.join(releaseDir, ReleaseLayout.TEMPLATE_DIR),
 			{
 				recursive: true,
 			},
 		);
-		written.push('native_messaging_template/');
+		written.push(`${ReleaseLayout.TEMPLATE_DIR}/`);
 
 		Fs.copyFileSync(Path.join(repositoryRoot, 'LICENSE'), Path.join(releaseDir, 'LICENSE'));
 		written.push('LICENSE');
 
 		Fs.writeFileSync(Path.join(releaseDir, 'README.md'), PackageRelease._readme());
 		written.push('README.md');
+
+		Fs.writeFileSync(
+			Path.join(releaseDir, ReleaseLayout.PACKAGE_MANIFEST),
+			PackageRelease._publishedPackageManifest(repositoryManifest),
+		);
+		written.push(ReleaseLayout.PACKAGE_MANIFEST);
 
 		const archive = Path.join(repositoryRoot, 'build', 'webmcp_everywhere_release.zip');
 		Fs.rmSync(archive, {
@@ -220,6 +283,39 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
+	 * Builds the package manifest npm publishes this folder with.
+	 *
+	 * The repository is not the package. This repository's own `package.json` carries every development
+	 * dependency, every script that needs a working copy, and a Node.js requirement that belongs to the
+	 * runners rather than to the product, and it is marked private so that none of it can be published by
+	 * accident. What is published is this folder, which already holds the user's README.md and the
+	 * licence, and which now holds a manifest naming only what a user needs.
+	 *
+	 * @param repositoryManifest The fields read out of this repository's `package.json`.
+	 * @returns The JSON text of the published manifest, ending in a newline.
+	 */
+	static _publishedPackageManifest(repositoryManifest: RepositoryManifest): string {
+		const published = {
+			name: repositoryManifest.name,
+			version: repositoryManifest.version,
+			license: repositoryManifest.license,
+			description: repositoryManifest.description,
+			keywords: repositoryManifest.keywords,
+			homepage: repositoryManifest.homepage,
+			repository: repositoryManifest.repository,
+			bugs: repositoryManifest.bugs,
+			type: 'module',
+			engines: {
+				node: PackageRelease.NODE_ENGINE,
+			},
+			bin: {
+				webmcp_everywhere: `./${ReleaseLayout.COMMAND}`,
+			},
+		};
+		return `${JSON.stringify(published, null, '\t')}\n`;
+	}
+
+	/**
 	 * Writes the instructions that travel inside the release.
 	 *
 	 * The release is for somebody who will never open this repository, so the instructions cannot
@@ -230,26 +326,61 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	static _readme(): string {
 		return `# WebMCP Everywhere
 
-This folder is a packaged release. It needs no clone of the repository and no build.
+A browser extension carrying community-maintained WebMCP adapters — small scripts that register tools
+into sites that never shipped their own. Install it, point any agent at one local address, and that
+agent gains real tools on the sites you already have open.
 
-You need Google Chrome 149 or later, and Node.js 20 or later. The WebMCP origin trial runs from Chrome 149 to Chrome 156.
+You need Google Chrome 149 or later, and Node.js 20 or later. The WebMCP origin trial runs from Chrome
+149 to Chrome 156.
 
 ## Install it
 
-1. Open \`chrome://extensions\`, turn on **Developer mode**, choose **Load unpacked**, and select the \`chrome_extension\` folder beside this file.
-2. Register the native messaging host, so an agent can reach the browser. This writes one file into Chrome's \`NativeMessagingHosts\` directory, naming the launcher in this folder:
+\`\`\`bash
+npx webmcp_everywhere
+\`\`\`
 
-   \`\`\`bash
-   node install_the_native_messaging_host.mjs
-   \`\`\`
+If you unzipped this folder from a release rather than installing from npm, run the same command out of
+the folder instead:
 
-   From then on Chrome starts \`webmcp_native_host.sh\` from this folder, as a separate operating system process outside the browser sandbox, with your rights. Keep the folder where it is: the registration names this path, so moving the folder means running the command again.
+\`\`\`bash
+node ${ReleaseLayout.COMMAND}
+\`\`\`
 
-3. Point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from \`~/.webmcp_everywhere/token\`.
+Either way it copies this folder to \`~/.webmcp_everywhere/installation\`, and registers the native
+messaging host so that an agent can reach the browser. It names every path before it writes one. The
+copy is the point: whatever folder you ran it from may be moved, unzipped again, or emptied by npm, and
+Chrome keeps an absolute path for both an unpacked extension and a native messaging host.
+
+From then on Chrome starts \`${ReleaseLayout.LAUNCHER}\` out of the installation folder, as a separate
+operating system process outside the browser sandbox, with your rights.
+
+One step is left, and only you can take it. Chrome loads an unpacked extension by hand:
+
+1. Open \`chrome://extensions\` and turn on **Developer mode**.
+2. Choose **Load unpacked**, and select \`~/.webmcp_everywhere/installation/${ReleaseLayout.EXTENSION_DIR}\`.
+
+Then point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from
+\`~/.webmcp_everywhere/token\`.
+
+## Check it is working
+
+\`\`\`bash
+npx webmcp_everywhere status
+\`\`\`
+
+It asks the running system rather than looking for the extension in Chrome's own files, so it answers
+about what an agent would really receive: whether a browser is holding the port, whether the extension
+is connected to it, and which adapters are offering tools in which tabs. It exits 1 when no tools are
+reaching your agent, and says which step to go and fix. Installing ends with the same answer.
 
 ## Take it back out
 
-Remove the extension at \`chrome://extensions\`, and delete the file the installer named. It prints the path.
+\`\`\`bash
+npx webmcp_everywhere uninstall
+\`\`\`
+
+That removes the registration and the installation folder, and prints what it removed. Your bearer token
+and any adapters you loaded are left alone. Remove the extension itself at \`chrome://extensions\`.
 
 ## What it does, and what it does not
 

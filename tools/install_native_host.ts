@@ -90,15 +90,29 @@ export class InstallNativeHost {
 	static plan(options: InstallNativeHostOptions = {}): NativeHostInstallation {
 		const identifier = GenerateExtensionKey.currentIdentifier(options.extensionManifestPath);
 		const launcher = InstallNativeHost._resolveLauncher(options.launcherPath);
-		const directories = InstallNativeHost.manifestDirectories(options);
 
 		return {
 			identifier: identifier,
 			launcher: launcher,
-			manifests: directories.map((directory) => {
-				return Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
-			}),
+			manifests: InstallNativeHost.manifestPaths(options),
 		};
+	}
+
+	/**
+	 * Names every manifest file the installation writes, without reading anything else.
+	 *
+	 * The installation, the uninstallation and the command that copies a release somewhere stable all
+	 * need this same list, and a file name spelled in three places is spelled wrong in one of them
+	 * eventually. It reads no launcher and no extension manifest, so it also answers before an
+	 * installation exists, which is what lets a command name the files it is about to write.
+	 *
+	 * @param options - Which directories to cover.
+	 * @returns The manifest files, in the order they are written.
+	 */
+	static manifestPaths(options: InstallNativeHostOptions = {}): string[] {
+		return InstallNativeHost.manifestDirectories(options).map((directory) => {
+			return Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
+		});
 	}
 
 	/**
@@ -153,13 +167,14 @@ export class InstallNativeHost {
 	/**
 	 * Names the directory the everyday Chrome, the one the user installed, reads host manifests from.
 	 *
+	 * @param homeDir - The home folder to read it out of, for a runner installing into a throwaway one.
 	 * @returns The absolute path of that directory on this platform.
 	 */
-	static everydayChromeDirectory(): string {
+	static everydayChromeDirectory(homeDir: string = Os.homedir()): string {
 		if (process.platform === 'darwin') {
-			return Path.join(Os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts');
+			return Path.join(homeDir, 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts');
 		}
-		return Path.join(Os.homedir(), '.config', 'google-chrome', 'NativeMessagingHosts');
+		return Path.join(homeDir, '.config', 'google-chrome', 'NativeMessagingHosts');
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -234,28 +249,3 @@ export class InstallNativeHost {
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	const throwaway = Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
-	const options: InstallNativeHostOptions = {
-		userDataDirs: [throwaway],
-	};
-
-	const planned = InstallNativeHost.plan(options);
-	console.log('This registers WebMCP Everywhere with Google Chrome. It is about to write:');
-	for (const manifestPath of planned.manifests) {
-		console.log(`  ${manifestPath}`);
-	}
-	console.log('');
-	console.log('Each of those files tells Google Chrome to start this program when the extension asks:');
-	console.log(`  ${planned.launcher}`);
-	console.log('Chrome starts it outside the browser sandbox, with your full rights.');
-	console.log('To undo all of this later, run: npm run uninstall:host');
-	console.log('');
-
-	const result = InstallNativeHost.run(options);
-	console.log(`extension identifier: ${result.identifier}`);
-	console.log(`launcher: ${result.launcher}`);
-	for (const manifest of result.manifests) {
-		console.log(`wrote: ${manifest}`);
-	}
-}

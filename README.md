@@ -30,9 +30,17 @@ On a fresh install only the read-only tools are offered; the acting ones stay wi
 
 ## Try it
 
-You need Google Chrome 149 or later and Node.js 22.18.0 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156.
+You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156. To use it you need Node.js 20 or later, and to work on it, Node.js 22.18.0 or later.
 
-There are two ways in. **To use it**, take the archive from [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest): it holds the extension, the native messaging host bundled into one file, and an installer, it needs no clone of this repository and no build, and the `README.md` beside them says what to do with the folder. **To write an adapter**, or to change anything here, work from the repository, which is everything below.
+**To use it**, one command does everything that can be done for you:
+
+```bash
+npx webmcp_everywhere
+```
+
+It copies the extension and the native messaging host into `~/.webmcp_everywhere/installation`, registers the host with Chrome, and ends by naming the one step only you can take, because Chrome loads an unpacked extension by hand. `npx webmcp_everywhere status` says at any time whether tools are reaching your agent and which step to fix when they are not, and `npx webmcp_everywhere uninstall` takes it all back out. Until the first version is on npmjs, take the archive from [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest) and run `node webmcp_everywhere.mjs` inside the folder, which is the same command.
+
+**To write an adapter**, or to change anything here, work from the repository, which is everything below.
 
 ```bash
 npm install

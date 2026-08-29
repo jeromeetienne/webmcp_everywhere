@@ -1,6 +1,6 @@
 # Building, installing, and launching
 
-Seven commands, each doing one thing.
+Nine commands, each doing one thing.
 
 ```bash
 npm run build           # checks every adapter, then bundles the extension
@@ -9,10 +9,22 @@ npm run chrome          # launches a throwaway Chrome with the extension install
 npm run load-adapter    # checks an adapter folder, and installs it without a rebuild
 npm run unload-adapter  # takes an installed adapter back out again
 npm run package:release # packages a folder somebody can install without cloning anything
+npm run pack:npm        # packs that folder into the tarball npm publishes
+npm run check:versions  # refuses a release whose version numbers disagree
 npm run uninstall:host  # takes the registration back out of Chrome
 ```
 
 You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156. You need Node.js 22.18.0 or later, because Node.js strips TypeScript types on its own from that version and the whole repository is run without a build step.
+
+## Which way in to choose
+
+Three ways, and only the third is what this document is about.
+
+- **`npx webmcp_everywhere`** installs the published package. It copies the extension and the bundled native messaging host into `~/.webmcp_everywhere/installation`, registers the host with Chrome, and ends by saying whether tools are reaching an agent. Nothing is built and nothing is cloned, and Node.js 20 or later is enough. Ask again at any time with `npx webmcp_everywhere status`, and take it all back out with `npx webmcp_everywhere uninstall`. This is what somebody who only wants to use it should run.
+- **The archive on [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest)** holds the same folder, for anybody who would rather not use npm. Unzip it and run `node webmcp_everywhere.mjs` inside it, which is the same command doing the same thing.
+- **This repository** is for writing an adapter, or changing anything here. Node.js runs the TypeScript with no build step, the launcher walks up from its own location to find `src/`, and `npm run install:host` registers this working copy rather than an installation. The nine commands above are all of it.
+
+Only one of these may be registered with Chrome at a time. The host manifest names one launcher, and installing either way overwrites what the other wrote.
 
 ## `npm run build`
 

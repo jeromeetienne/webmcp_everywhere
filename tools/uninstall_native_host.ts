@@ -5,8 +5,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import Fs from 'node:fs';
-import Os from 'node:os';
-import Path from 'node:path';
 import { HostStateFiles } from '../src/native_messaging_host/host_state_files.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 import type { InstallNativeHostOptions } from './install_native_host.ts';
@@ -58,11 +56,9 @@ export class UninstallNativeHost {
 	 * @returns Every manifest file looked at, and whether each one was there.
 	 */
 	static run(options: UninstallNativeHostOptions = {}): UninstalledNativeHost {
-		const directories = InstallNativeHost.manifestDirectories(options);
 		const manifests: InspectedNativeHostManifest[] = [];
 
-		for (const directory of directories) {
-			const manifestPath = Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
+		for (const manifestPath of InstallNativeHost.manifestPaths(options)) {
 			const launcher = UninstallNativeHost._readLauncher(manifestPath);
 			let isRemoved = false;
 			if (Fs.existsSync(manifestPath) === true) {
@@ -115,26 +111,3 @@ export class UninstallNativeHost {
 	}
 }
 
-if (import.meta.filename === process.argv[1]) {
-	const throwaway = Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
-	const result = UninstallNativeHost.run({
-		userDataDirs: [throwaway],
-	});
-
-	for (const manifest of result.manifests) {
-		if (manifest.isRemoved === true) {
-			console.log(`removed: ${manifest.path}`);
-			if (manifest.launcher !== null) {
-				console.log(`  it told Chrome to start: ${manifest.launcher}`);
-			}
-		} else {
-			console.log(`nothing to remove: ${manifest.path}`);
-		}
-	}
-
-	console.log('');
-	console.log('Google Chrome will no longer start the native messaging host for this extension.');
-	console.log('The extension itself is removed from chrome://extensions, which this does not touch.');
-	console.log(`Your bearer token and endpoint file are left alone in ${result.stateDir}`);
-	console.log(`To remove those as well: rm -rf ${result.stateDir}`);
-}
