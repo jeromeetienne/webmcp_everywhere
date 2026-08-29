@@ -28,6 +28,26 @@ export type InstallNativeHostOptions = {
 	 * anything that only needs a throwaway profile to work, so that it leaves the user's browser alone.
 	 */
 	isEverydayChromeCovered?: boolean;
+	/**
+	 * The executable Chrome should start, when it is not this working copy's own launcher.
+	 *
+	 * A packaged release carries its own launcher beside its own bundled host, and nothing of the
+	 * repository at all. Naming it here is what lets a release be installed, and what lets a check
+	 * prove that the packaged host really runs.
+	 */
+	launcherPath?: string;
+	/**
+	 * The folder holding the host manifest template, when it is not this working copy's `data/` one.
+	 *
+	 * A packaged release carries its own copy, because it carries no repository.
+	 */
+	templateDir?: string;
+	/**
+	 * The extension manifest to read the pinned identifier from, when it is not this working copy's.
+	 *
+	 * A packaged release reads it from the extension folder it ships.
+	 */
+	extensionManifestPath?: string;
 };
 
 /**
@@ -68,8 +88,8 @@ export class InstallNativeHost {
 	 * @returns The files the installation would write.
 	 */
 	static plan(options: InstallNativeHostOptions = {}): NativeHostInstallation {
-		const identifier = GenerateExtensionKey.currentIdentifier();
-		const launcher = InstallNativeHost._resolveLauncher();
+		const identifier = GenerateExtensionKey.currentIdentifier(options.extensionManifestPath);
+		const launcher = InstallNativeHost._resolveLauncher(options.launcherPath);
 		const directories = InstallNativeHost.manifestDirectories(options);
 
 		return {
@@ -89,7 +109,11 @@ export class InstallNativeHost {
 	 */
 	static run(options: InstallNativeHostOptions = {}): NativeHostInstallation {
 		const planned = InstallNativeHost.plan(options);
-		const manifest = InstallNativeHost._renderManifest(planned.launcher, planned.identifier);
+		const manifest = InstallNativeHost._renderManifest(
+			planned.launcher,
+			planned.identifier,
+			options.templateDir,
+		);
 
 		for (const manifestPath of planned.manifests) {
 			Fs.mkdirSync(Path.dirname(manifestPath), {
@@ -155,16 +179,13 @@ export class InstallNativeHost {
 	 *
 	 * @param launcher - The absolute path to the executable file Chrome starts.
 	 * @param identifier - The extension identifier the manifest allows to connect.
+	 * @param templateDir - The folder holding the template, or nothing for this working copy's.
 	 * @returns The manifest text to write, ending in a newline.
 	 */
-	static _renderManifest(launcher: string, identifier: string): string {
-		const templatePath = Path.join(
-			__dirname,
-			'..',
-			'data',
-			'native_messaging_template',
-			`${InstallNativeHost.HOST_NAME}.json`,
-		);
+	static _renderManifest(launcher: string, identifier: string, templateDir?: string): string {
+		const folder =
+			templateDir ?? Path.join(__dirname, '..', 'data', 'native_messaging_template');
+		const templatePath = Path.join(folder, `${InstallNativeHost.HOST_NAME}.json`);
 		if (Fs.existsSync(templatePath) === false) {
 			throw new Error(`host manifest template is missing: ${templatePath}`);
 		}
@@ -198,11 +219,13 @@ export class InstallNativeHost {
 	 * kept in the repository, and it works out the rest of the paths on its own, so this only has to
 	 * check that it is there and that it is executable.
 	 *
+	 * @param named - A launcher to use instead of this working copy's, such as a packaged release's.
 	 * @returns The absolute path to the launcher.
+	 * @throws When the launcher is not there.
 	 */
-	static _resolveLauncher(): string {
+	static _resolveLauncher(named?: string): string {
 		const repoRoot = Path.join(__dirname, '..');
-		const launcher = Path.join(repoRoot, 'bin', 'webmcp_native_host.sh');
+		const launcher = named === undefined ? Path.join(repoRoot, 'bin', 'webmcp_native_host.sh') : Path.resolve(named);
 		if (Fs.existsSync(launcher) === false) {
 			throw new Error(`launcher is missing: ${launcher}`);
 		}

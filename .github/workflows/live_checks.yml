@@ -11,10 +11,6 @@ on:
     # 04:20 UTC, chosen away from the top of the hour, where every scheduled job on GitHub queues.
     - cron: '20 4 * * *'
   workflow_dispatch:
-  # TEMPORARY, removed before this reaches main: proves the whole workflow on a branch first.
-  push:
-    branches:
-      - probe_the_browser_environment
 
 # Two runs writing the freshness table at once would conflict on the same file.
 concurrency:

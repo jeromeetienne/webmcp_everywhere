@@ -11,6 +11,7 @@ import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
 import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
 import { InstallNativeHost } from './install_native_host.ts';
+import type { InstallNativeHostOptions } from './install_native_host.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -36,6 +37,15 @@ export type LaunchChromeOptions = {
 	keepProfile?: boolean;
 	/** Whether to put a window on the screen. Falls back to the environment, then to hidden. */
 	visibility?: ChromeVisibility;
+	/** The extension folder to install, when it is not this working copy's build. */
+	extensionDir?: string;
+	/**
+	 * Where the native messaging host comes from, when it is not this working copy's.
+	 *
+	 * A packaged release carries its own launcher, its own bundled host, and its own copy of the
+	 * manifest template. Naming them here is what lets a check prove the packaged host really runs.
+	 */
+	nativeHost?: Pick<InstallNativeHostOptions, 'launcherPath' | 'templateDir' | 'extensionManifestPath'>;
 };
 
 /** How to reach the Chrome that was launched. */
@@ -138,7 +148,7 @@ export class LaunchChrome {
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
 		const visibility = options.visibility ?? LaunchChrome._visibilityFromEnvironment() ?? 'hidden';
-		const extensionDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
+		const extensionDir = options.extensionDir ?? Path.join(__dirname, '..', 'build', 'chrome_extension');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
@@ -153,6 +163,7 @@ export class LaunchChrome {
 		}
 		LaunchChrome._prepareProfile(profileDir);
 		InstallNativeHost.run({
+			...(options.nativeHost ?? {}),
 			userDataDirs: [profileDir],
 			isEverydayChromeCovered: false,
 		});

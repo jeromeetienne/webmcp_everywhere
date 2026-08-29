@@ -1,0 +1,87 @@
+name: Release
+
+# Packages the extension and the native messaging host into one folder a person can install
+# without cloning anything, proves that folder really works, and attaches it to a GitHub release.
+#
+# The proof matters more than the packaging. Everything else in this repository runs the host out of
+# a working copy, so nothing else would notice a release that cannot start without one.
+
+on:
+  push:
+    tags:
+      - 'v*'
+    # TEMPORARY, removed before this reaches main: proves the whole workflow on a branch first.
+    branches:
+      - probe_the_browser_environment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove_the_release_runs:
+    name: Prove a packaged release runs with no repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      archive: ${{ steps.package_it.outputs.archive }}
+    steps:
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      - name: Check every adapter, then bundle the extension
+        run: npm run build
+
+      - name: Package the release
+        id: package_it
+        run: |
+          node tools/package_release.ts
+          echo "archive=build/webmcp_everywhere_release.zip" >> "$GITHUB_OUTPUT"
+
+      # This is the whole point of the job. A runner has no other Chrome on it, so the packaged host
+      # can take port 8765, which is what makes this check able to run here and awkward on a laptop
+      # where the everyday browser already owns that port.
+      - name: Copy the release out of the repository and drive it
+        timeout-minutes: 12
+        run: node --test tests/packaged_release.test.ts
+
+      - name: Keep the archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: webmcp_everywhere_release
+          path: build/webmcp_everywhere_release.zip
+
+  publish_the_release:
+    name: Attach the archive to the release
+    needs: prove_the_release_runs
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Take the archive the proving job kept
+        uses: actions/download-artifact@v8
+        with:
+          name: webmcp_everywhere_release
+
+      # Nothing is published until the job above has driven the packaged release in a real Chrome, so
+      # an archive that cannot start never reaches anybody.
+      - name: Attach it to the release for this tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            webmcp_everywhere_release.zip
