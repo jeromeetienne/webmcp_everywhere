@@ -10,6 +10,7 @@ jobs:
   report:
     name: Report what this runner can do
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Take a copy of the repository
         uses: actions/checkout@v7
@@ -38,10 +39,13 @@ jobs:
         run: npm run build
 
       - name: Report the browser environment
+        timeout-minutes: 5
         run: node tools/report_browser_environment.ts
 
       - name: Run one adapter's live runner, which is what a nightly job would run
+        timeout-minutes: 6
         run: node --test tests/site_adapters/todomvc.test.ts
 
       - name: Run the largest adapter's live runner
+        timeout-minutes: 10
         run: node --test tests/site_adapters/openstreetmap.test.ts
