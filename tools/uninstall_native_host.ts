@@ -58,11 +58,9 @@ export class UninstallNativeHost {
 	 * @returns Every manifest file looked at, and whether each one was there.
 	 */
 	static run(options: UninstallNativeHostOptions = {}): UninstalledNativeHost {
-		const directories = InstallNativeHost.manifestDirectories(options);
 		const manifests: InspectedNativeHostManifest[] = [];
 
-		for (const directory of directories) {
-			const manifestPath = Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
+		for (const manifestPath of InstallNativeHost.manifestPaths(options)) {
 			const launcher = UninstallNativeHost._readLauncher(manifestPath);
 			let isRemoved = false;
 			if (Fs.existsSync(manifestPath) === true) {

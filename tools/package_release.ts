@@ -2,6 +2,7 @@ import ChildProcess from 'node:child_process';
 import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
+import { ReleaseLayout } from './release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,21 +79,6 @@ export type PackagedRelease = {
  * for one, because bundling removes the repository rather than the runtime.
  */
 export class PackageRelease {
-	/** The name of the bundled host inside the release folder. */
-	static readonly HOST_BUNDLE = 'webmcp_native_host.mjs';
-
-	/** The name of the launcher inside the release folder. */
-	static readonly LAUNCHER = 'webmcp_native_host.sh';
-
-	/** The name of the installer inside the release folder, which registers the host with Chrome. */
-	static readonly INSTALLER = 'install_the_native_messaging_host.mjs';
-
-	/** The name of the command inside the release folder, which the `bin` field of `package.json` names. */
-	static readonly COMMAND = 'webmcp_everywhere.mjs';
-
-	/** The name of the package manifest inside the release folder, which npm publishes the folder with. */
-	static readonly PACKAGE_MANIFEST = 'package.json';
-
 	/**
 	 * The Node.js the published package asks for.
 	 *
@@ -122,7 +108,7 @@ export class PackageRelease {
 set -euo pipefail
 
 scriptDir="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
-hostBundle="\${scriptDir}/${PackageRelease.HOST_BUNDLE}"
+hostBundle="\${scriptDir}/${ReleaseLayout.HOST_BUNDLE}"
 
 # Answers whether a Node.js can run the bundled host, which is an ECMAScript module.
 runsTheHost() {
@@ -169,8 +155,8 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	 * @throws When the extension has not been built.
 	 */
 	static async run(): Promise<PackagedRelease> {
-		const extensionSource = Path.join(repositoryRoot, 'build', 'chrome_extension');
-		if (Fs.existsSync(Path.join(extensionSource, 'manifest.json')) === false) {
+		const extensionSource = Path.join(repositoryRoot, 'build', ReleaseLayout.EXTENSION_DIR);
+		if (Fs.existsSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST)) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
 		}
 
@@ -178,7 +164,7 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			Fs.readFileSync(Path.join(repositoryRoot, 'package.json'), 'utf8'),
 		) as RepositoryManifest;
 		const extensionManifest = JSON.parse(
-			Fs.readFileSync(Path.join(extensionSource, 'manifest.json'), 'utf8'),
+			Fs.readFileSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST), 'utf8'),
 		) as {
 			version: string;
 		};
@@ -199,14 +185,14 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 
 		const written: string[] = [];
 
-		Fs.cpSync(extensionSource, Path.join(releaseDir, 'chrome_extension'), {
+		Fs.cpSync(extensionSource, Path.join(releaseDir, ReleaseLayout.EXTENSION_DIR), {
 			recursive: true,
 		});
-		written.push('chrome_extension/');
+		written.push(`${ReleaseLayout.EXTENSION_DIR}/`);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts')],
-			outfile: Path.join(releaseDir, PackageRelease.HOST_BUNDLE),
+			outfile: Path.join(releaseDir, ReleaseLayout.HOST_BUNDLE),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -214,11 +200,11 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			tsconfig: tsconfigPath,
 			logLevel: 'warning',
 		});
-		written.push(PackageRelease.HOST_BUNDLE);
+		written.push(ReleaseLayout.HOST_BUNDLE);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'tools', 'release_installer_entry.ts')],
-			outfile: Path.join(releaseDir, PackageRelease.INSTALLER),
+			outfile: Path.join(releaseDir, ReleaseLayout.INSTALLER),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -226,11 +212,11 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			tsconfig: tsconfigPath,
 			logLevel: 'warning',
 		});
-		written.push(PackageRelease.INSTALLER);
+		written.push(ReleaseLayout.INSTALLER);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'tools', 'npm_command_entry.ts')],
-			outfile: Path.join(releaseDir, PackageRelease.COMMAND),
+			outfile: Path.join(releaseDir, ReleaseLayout.COMMAND),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -241,22 +227,22 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			},
 			logLevel: 'warning',
 		});
-		Fs.chmodSync(Path.join(releaseDir, PackageRelease.COMMAND), 0o755);
-		written.push(PackageRelease.COMMAND);
+		Fs.chmodSync(Path.join(releaseDir, ReleaseLayout.COMMAND), 0o755);
+		written.push(ReleaseLayout.COMMAND);
 
-		const launcher = Path.join(releaseDir, PackageRelease.LAUNCHER);
+		const launcher = Path.join(releaseDir, ReleaseLayout.LAUNCHER);
 		Fs.writeFileSync(launcher, PackageRelease.LAUNCHER_SOURCE);
 		Fs.chmodSync(launcher, 0o755);
-		written.push(PackageRelease.LAUNCHER);
+		written.push(ReleaseLayout.LAUNCHER);
 
 		Fs.cpSync(
 			Path.join(repositoryRoot, 'data', 'native_messaging_template'),
-			Path.join(releaseDir, 'native_messaging_template'),
+			Path.join(releaseDir, ReleaseLayout.TEMPLATE_DIR),
 			{
 				recursive: true,
 			},
 		);
-		written.push('native_messaging_template/');
+		written.push(`${ReleaseLayout.TEMPLATE_DIR}/`);
 
 		Fs.copyFileSync(Path.join(repositoryRoot, 'LICENSE'), Path.join(releaseDir, 'LICENSE'));
 		written.push('LICENSE');
@@ -265,10 +251,10 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 		written.push('README.md');
 
 		Fs.writeFileSync(
-			Path.join(releaseDir, PackageRelease.PACKAGE_MANIFEST),
+			Path.join(releaseDir, ReleaseLayout.PACKAGE_MANIFEST),
 			PackageRelease._publishedPackageManifest(repositoryManifest),
 		);
-		written.push(PackageRelease.PACKAGE_MANIFEST);
+		written.push(ReleaseLayout.PACKAGE_MANIFEST);
 
 		const archive = Path.join(repositoryRoot, 'build', 'webmcp_everywhere_release.zip');
 		Fs.rmSync(archive, {
@@ -323,7 +309,7 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 				node: PackageRelease.NODE_ENGINE,
 			},
 			bin: {
-				webmcp_everywhere: `./${PackageRelease.COMMAND}`,
+				webmcp_everywhere: `./${ReleaseLayout.COMMAND}`,
 			},
 		};
 		return `${JSON.stringify(published, null, '\t')}\n`;
@@ -340,26 +326,50 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	static _readme(): string {
 		return `# WebMCP Everywhere
 
-This folder is a packaged release. It needs no clone of the repository and no build.
+A browser extension carrying community-maintained WebMCP adapters — small scripts that register tools
+into sites that never shipped their own. Install it, point any agent at one local address, and that
+agent gains real tools on the sites you already have open.
 
-You need Google Chrome 149 or later, and Node.js 20 or later. The WebMCP origin trial runs from Chrome 149 to Chrome 156.
+You need Google Chrome 149 or later, and Node.js 20 or later. The WebMCP origin trial runs from Chrome
+149 to Chrome 156.
 
 ## Install it
 
-1. Open \`chrome://extensions\`, turn on **Developer mode**, choose **Load unpacked**, and select the \`chrome_extension\` folder beside this file.
-2. Register the native messaging host, so an agent can reach the browser. This writes one file into Chrome's \`NativeMessagingHosts\` directory, naming the launcher in this folder:
+\`\`\`bash
+npx webmcp_everywhere
+\`\`\`
 
-   \`\`\`bash
-   node install_the_native_messaging_host.mjs
-   \`\`\`
+If you unzipped this folder from a release rather than installing from npm, run the same command out of
+the folder instead:
 
-   From then on Chrome starts \`webmcp_native_host.sh\` from this folder, as a separate operating system process outside the browser sandbox, with your rights. Keep the folder where it is: the registration names this path, so moving the folder means running the command again.
+\`\`\`bash
+node ${ReleaseLayout.COMMAND}
+\`\`\`
 
-3. Point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from \`~/.webmcp_everywhere/token\`.
+Either way it copies this folder to \`~/.webmcp_everywhere/installation\`, and registers the native
+messaging host so that an agent can reach the browser. It names every path before it writes one. The
+copy is the point: whatever folder you ran it from may be moved, unzipped again, or emptied by npm, and
+Chrome keeps an absolute path for both an unpacked extension and a native messaging host.
+
+From then on Chrome starts \`${ReleaseLayout.LAUNCHER}\` out of the installation folder, as a separate
+operating system process outside the browser sandbox, with your rights.
+
+One step is left, and only you can take it. Chrome loads an unpacked extension by hand:
+
+1. Open \`chrome://extensions\` and turn on **Developer mode**.
+2. Choose **Load unpacked**, and select \`~/.webmcp_everywhere/installation/${ReleaseLayout.EXTENSION_DIR}\`.
+
+Then point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from
+\`~/.webmcp_everywhere/token\`.
 
 ## Take it back out
 
-Remove the extension at \`chrome://extensions\`, and delete the file the installer named. It prints the path.
+\`\`\`bash
+npx webmcp_everywhere uninstall
+\`\`\`
+
+That removes the registration and the installation folder, and prints what it removed. Your bearer token
+and any adapters you loaded are left alone. Remove the extension itself at \`chrome://extensions\`.
 
 ## What it does, and what it does not
 

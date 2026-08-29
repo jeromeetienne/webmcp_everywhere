@@ -33,7 +33,7 @@
 		"unload-adapter": "node tools/unload_adapter.ts",
 		"test": "node --test --test-concurrency=1",
 		"test:visible": "WEBMCP_EVERYWHERE_CHROME_VISIBILITY=visible node --test --test-concurrency=1",
-		"test:no_browser": "node --test --test-concurrency=1 tests/adapter_registry_sync.test.ts tests/endpoint_file.test.ts tests/native_host_install.test.ts tests/source_boundary.test.ts",
+		"test:no_browser": "node --test --test-concurrency=1 tests/adapter_registry_sync.test.ts tests/endpoint_file.test.ts tests/native_host_install.test.ts tests/npm_package.test.ts tests/source_boundary.test.ts",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"chrome": "node tools/launch_chrome.ts",
 		"grant": "node tools/grant_acting.ts",

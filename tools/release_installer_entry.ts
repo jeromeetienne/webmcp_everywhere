@@ -1,5 +1,6 @@
 import Path from 'node:path';
 import { InstallNativeHost } from './install_native_host.ts';
+import { ReleaseLayout } from './release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,9 +31,9 @@ export class ReleaseInstallerEntry {
 	 */
 	static run(): void {
 		const options = {
-			launcherPath: Path.join(__dirname, 'webmcp_native_host.sh'),
-			templateDir: Path.join(__dirname, 'native_messaging_template'),
-			extensionManifestPath: Path.join(__dirname, 'chrome_extension', 'manifest.json'),
+			launcherPath: Path.join(__dirname, ReleaseLayout.LAUNCHER),
+			templateDir: Path.join(__dirname, ReleaseLayout.TEMPLATE_DIR),
+			extensionManifestPath: Path.join(__dirname, ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
 		};
 
 		const planned = InstallNativeHost.plan(options);
@@ -53,7 +54,7 @@ export class ReleaseInstallerEntry {
 			console.log(`wrote ${manifestPath}`);
 		}
 		console.log('');
-		console.log('Now load the chrome_extension folder at chrome://extensions, with Developer mode on.');
+		console.log(`Now load the ${ReleaseLayout.EXTENSION_DIR} folder at chrome://extensions, with Developer mode on.`);
 	}
 }
 

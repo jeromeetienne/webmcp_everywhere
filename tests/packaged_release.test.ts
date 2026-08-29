@@ -11,6 +11,8 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { LaunchChrome } from '../tools/launch_chrome.ts';
 import { PackageRelease } from '../tools/package_release.ts';
+import { PackagedReleaseInstallation } from '../tools/packaged_release_installation.ts';
+import { ReleaseLayout } from '../tools/release_layout.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -102,25 +104,26 @@ class PackagedReleaseTest {
 	}
 
 	/**
-	 * Builds the release and copies it out of the repository.
+	 * Builds the release and copies it out of the repository, through the command's own installation.
 	 *
 	 * The copy is what makes this a real check. A release folder still sitting inside `build/` has a
 	 * repository above it, so a path that accidentally reaches for one would still resolve and the
 	 * check would pass while the thing it checks was broken.
 	 *
+	 * It goes through `PackagedReleaseInstallation` rather than copying by hand, so that the folder a
+	 * real Chrome is driven against is the folder `npx webmcp_everywhere` writes. The everyday Chrome is
+	 * left out of it: `LaunchChrome` registers the host into the throwaway profile it starts.
+	 *
 	 * @returns The folder the release was installed into.
 	 */
 	static async installSomewhereElse(): Promise<string> {
 		const packaged = await PackageRelease.run();
-		Fs.rmSync(PackagedReleaseTest.INSTALLED_AT, {
-			recursive: true,
-			force: true,
+		const installed = PackagedReleaseInstallation.install({
+			sourceDir: packaged.folder,
+			targetDir: PackagedReleaseTest.INSTALLED_AT,
+			isEverydayChromeCovered: false,
 		});
-		Fs.cpSync(packaged.folder, PackagedReleaseTest.INSTALLED_AT, {
-			recursive: true,
-		});
-		Fs.chmodSync(Path.join(PackagedReleaseTest.INSTALLED_AT, PackageRelease.LAUNCHER), 0o755);
-		return PackagedReleaseTest.INSTALLED_AT;
+		return installed.targetDir;
 	}
 
 	/**
@@ -204,7 +207,7 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 		await LaunchChrome.run({
 			extensionDir: Path.join(installedAt, 'chrome_extension'),
 			nativeHost: {
-				launcherPath: Path.join(installedAt, PackageRelease.LAUNCHER),
+				launcherPath: Path.join(installedAt, ReleaseLayout.LAUNCHER),
 				templateDir: Path.join(installedAt, 'native_messaging_template'),
 				extensionManifestPath: Path.join(installedAt, 'chrome_extension', 'manifest.json'),
 			},
@@ -236,11 +239,11 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 		const installedAt = PackagedReleaseTest.INSTALLED_AT;
 		for (const name of [
 			'chrome_extension/manifest.json',
-			PackageRelease.HOST_BUNDLE,
-			PackageRelease.LAUNCHER,
-			PackageRelease.INSTALLER,
-			PackageRelease.COMMAND,
-			PackageRelease.PACKAGE_MANIFEST,
+			ReleaseLayout.HOST_BUNDLE,
+			ReleaseLayout.LAUNCHER,
+			ReleaseLayout.INSTALLER,
+			ReleaseLayout.COMMAND,
+			ReleaseLayout.PACKAGE_MANIFEST,
 			'native_messaging_template/com.webmcp_everywhere.host.json',
 			'README.md',
 			'LICENSE',
