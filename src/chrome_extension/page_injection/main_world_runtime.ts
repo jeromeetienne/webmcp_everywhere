@@ -1,5 +1,5 @@
-import type { Adapter, OriginGrant } from '../../adapter_format/adapter_types.js';
-import { ToolNaming } from '../../adapter_format/tool_naming.js';
+import { ToolNaming } from '@webmcp_everywhere/adapter_format';
+import type { Adapter, OriginGrant } from '@webmcp_everywhere/adapter_format';
 import { AdapterRuntime } from './adapter_runtime.js';
 import { PageQuery } from './page_query.js';
 import type { PageQueryRequest, PageToolSummary } from './page_query.js';

@@ -126,7 +126,7 @@ Two other workflows run away from pull requests. [live_checks.yml](.github/workf
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
 - **`src/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
 - **No adapter may reach the network**, wherever it lives. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
-- **Use `@webmcp_everywhere/adapter_toolkit` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder.
+- **Use `@webmcp_everywhere/adapter_toolkit` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder. An adapter outside this repository installs that package and `@webmcp_everywhere/adapter_format` rather than copying either.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.
 - **Never wrap a paragraph in a document at a fixed column.** One paragraph is one line.
 

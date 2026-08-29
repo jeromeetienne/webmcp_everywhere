@@ -1,4 +1,4 @@
-import type { Adapter } from '../../adapter_format/adapter_types.js';
+import type { Adapter } from '@webmcp_everywhere/adapter_format';
 // sync:adapters begin imports
 import { caniuseAdapter } from '../../site_adapters/caniuse_com/caniuse_adapter.js';
 import { todomvcAdapter } from '../../site_adapters/demo_playwright_dev/todomvc_adapter.js';

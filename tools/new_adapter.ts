@@ -1,7 +1,7 @@
 import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ADAPTER_FORMAT_VERSION } from '../src/adapter_format/adapter_format_version.ts';
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/adapter_format';
 import { SyncAdapterRegistry } from './sync_adapter_registry.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -171,7 +171,7 @@ export class NewAdapter {
 	static _renderAdapter(names: AdapterNames): string {
 		const separator = '/'.repeat(79);
 		return [
-			"import type { Adapter } from '../../adapter_format/adapter_types.js';",
+			"import type { Adapter } from '@webmcp_everywhere/adapter_format';",
 			'',
 			separator,
 			separator,
@@ -368,7 +368,8 @@ export class NewAdapter {
 			'',
 			'## Rules',
 			'- **Replace every rule below with what the live site taught you.** Each one is a sentence in the present tense, and each one is a failure a probe found first. An adapter whose rules are still the ones written here has not been checked against its site.',
-			'- Nothing here imports from another adapter, or from anything under `chrome_extension/`. Types come from `adapter_format/`, and waiting and driving come from `@webmcp_everywhere/adapter_toolkit`.',
+			'- Nothing here imports from another adapter, or from anything under `chrome_extension/`. Types come from ' +
+				'`@webmcp_everywhere/adapter_format`, and waiting and driving from `@webmcp_everywhere/adapter_toolkit`.',
 			'- Nothing here reaches the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.',
 			'- `metadata.targetSiteVerifiedOn` is the date this adapter was last checked against the live site, and it moves every time the runner passes again.',
 			'',

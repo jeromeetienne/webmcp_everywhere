@@ -1,4 +1,4 @@
-import type { Adapter, AdapterToolDefinition, PermissionClass } from '../../src/adapter_format/adapter_types.js';
+import type { Adapter, AdapterToolDefinition, PermissionClass } from '@webmcp_everywhere/adapter_format';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-import type { Adapter } from '../../adapter_format/adapter_types.js';
+import type { Adapter } from '@webmcp_everywhere/adapter_format';
 import { openStreetMapDrivingTools } from './openstreetmap_driving_tools.js';
 import { openStreetMapReadingTools } from './openstreetmap_reading_tools.js';
 

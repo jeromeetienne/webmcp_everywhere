@@ -1,4 +1,4 @@
-import type { LoadedAdapter } from '../../adapter_format/loaded_adapter_types.js';
+import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
 import { AdapterRegistry } from './adapter_registry.js';
 import { ExtensionStorage } from './extension_storage.js';
 

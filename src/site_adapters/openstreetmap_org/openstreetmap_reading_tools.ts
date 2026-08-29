@@ -1,4 +1,4 @@
-import type { AdapterToolDefinition } from '../../adapter_format/adapter_types.js';
+import type { AdapterToolDefinition } from '@webmcp_everywhere/adapter_format';
 import { OpenStreetMapPage } from './openstreetmap_page.js';
 import { NO_INPUT } from './openstreetmap_tool_input.js';
 

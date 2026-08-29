@@ -1,9 +1,9 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
+import { ToolNaming } from '@webmcp_everywhere/adapter_format';
 import { HostStateFiles } from '../src/native_messaging_host/host_state_files.ts';
 import { PackagedReleaseInstallation } from './packaged_release_installation.ts';
 import { ReleaseLayout } from './release_layout.ts';
-import { ToolNaming } from '../src/adapter_format/tool_naming.ts';
 import type { HostEndpointRecord, HostHealth } from '../src/native_messaging_host/webmcp_native_host_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
