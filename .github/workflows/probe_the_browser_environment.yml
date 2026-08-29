@@ -39,3 +39,9 @@ jobs:
 
       - name: Report the browser environment
         run: node tools/report_browser_environment.ts
+
+      - name: Run one adapter's live runner, which is what a nightly job would run
+        run: node --test tests/site_adapters/todomvc.test.ts
+
+      - name: Run the largest adapter's live runner
+        run: node --test tests/site_adapters/openstreetmap.test.ts
