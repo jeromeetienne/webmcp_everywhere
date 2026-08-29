@@ -34,7 +34,7 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **An address recorded earlier stopped working.** It should not any more. The host serves port 8765 and never steps to another one, so an address given to `codex mcp add`, which records it and keeps it, stays right. A host used to walk to the next free port when 8765 was taken, and that is what made a recorded address go stale.
 
-**The manifest names the wrong path.** The native messaging host manifest carries the launcher's absolute path. Moving the repository breaks it. Run `npm run install:host` again.
+**The manifest names the wrong path.** The native messaging host manifest carries the launcher's absolute path. Moving the repository breaks it. Run `npm run install:host` again. If the working copy the manifest names is gone rather than moved, run `npm run uninstall:host`, which prints the dead path it found before removing the file.
 
 **Chrome refuses the host manifest.** The field names in the manifest are Chrome's, not this project's: `name`, `description`, `path`, `type`, and `allowed_origins`. Chrome refuses a manifest with any other spelling and reports nothing useful when it does. The same applies to an unreplaced `{{placeholder}}`, which is why the installation treats one as an error.
 

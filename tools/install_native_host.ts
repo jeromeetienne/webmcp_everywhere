@@ -22,15 +22,27 @@ const __dirname = import.meta.dirname;
 export type InstallNativeHostOptions = {
 	/** Extra Chrome user data directories to install into. */
 	userDataDirs?: string[];
+	/**
+	 * Whether the everyday Chrome, the one the user installed, is covered as well. True by default,
+	 * because registering with that Chrome is the whole point of `npm run install:host`. Set to false by
+	 * anything that only needs a throwaway profile to work, so that it leaves the user's browser alone.
+	 */
+	isEverydayChromeCovered?: boolean;
 };
 
-/** What one installation wrote. */
-export type InstalledNativeHost = {
+/**
+ * What an installation writes, or would write.
+ *
+ * `InstallNativeHost.plan` returns this before anything is written, so a caller can say what it is
+ * about to do to the user's machine. `InstallNativeHost.run` returns the same shape afterwards, naming
+ * what it really wrote.
+ */
+export type NativeHostInstallation = {
 	/** The extension identifier the manifest allows. */
 	identifier: string;
 	/** The executable file Chrome starts. */
 	launcher: string;
-	/** Every manifest file that was written. */
+	/** Every manifest file, in the order they are written. */
 	manifests: string[];
 };
 
@@ -47,33 +59,83 @@ export class InstallNativeHost {
 	static HOST_NAME = 'com.webmcp_everywhere.host';
 
 	/**
+	 * Works out what an installation would write, without writing any of it.
+	 *
+	 * This exists so that the installation can say what it is about to do to the user's machine before it
+	 * does it. Writing a file into a browser the user installed is not something to announce afterwards.
+	 *
+	 * @param options - Where the installation would write.
+	 * @returns The files the installation would write.
+	 */
+	static plan(options: InstallNativeHostOptions = {}): NativeHostInstallation {
+		const identifier = GenerateExtensionKey.currentIdentifier();
+		const launcher = InstallNativeHost._resolveLauncher();
+		const directories = InstallNativeHost.manifestDirectories(options);
+
+		return {
+			identifier: identifier,
+			launcher: launcher,
+			manifests: directories.map((directory) => {
+				return Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
+			}),
+		};
+	}
+
+	/**
 	 * Writes the launcher and the manifest.
 	 *
 	 * @param options - Where to install.
 	 * @returns What was written.
 	 */
-	static run(options: InstallNativeHostOptions = {}): InstalledNativeHost {
-		const identifier = GenerateExtensionKey.currentIdentifier();
-		const launcher = InstallNativeHost._resolveLauncher();
+	static run(options: InstallNativeHostOptions = {}): NativeHostInstallation {
+		const planned = InstallNativeHost.plan(options);
+		const manifest = InstallNativeHost._renderManifest(planned.launcher, planned.identifier);
 
-		const manifest = InstallNativeHost._renderManifest(launcher, identifier);
-
-		const directories = InstallNativeHost._manifestDirectories(options.userDataDirs ?? []);
-		const written: string[] = [];
-		for (const directory of directories) {
-			Fs.mkdirSync(directory, {
+		for (const manifestPath of planned.manifests) {
+			Fs.mkdirSync(Path.dirname(manifestPath), {
 				recursive: true,
 			});
-			const manifestPath = Path.join(directory, `${InstallNativeHost.HOST_NAME}.json`);
 			Fs.writeFileSync(manifestPath, manifest);
-			written.push(manifestPath);
 		}
 
-		return {
-			identifier: identifier,
-			launcher: launcher,
-			manifests: written,
-		};
+		return planned;
+	}
+
+	/**
+	 * Lists every directory Chrome might read host manifests from.
+	 *
+	 * The everyday Chrome reads them from its own support directory. A Chrome started with a custom
+	 * `--user-data-dir`, which is what `LaunchChrome` and the verification runners use, reads them from
+	 * inside that directory instead and never looks at the everyday one, which is why a throwaway profile
+	 * can be covered without touching the browser the user installed.
+	 *
+	 * This is public because the uninstallation has to remove a manifest from exactly the directories the
+	 * installation writes one into, and two lists that have to agree are one list.
+	 *
+	 * @param options - Which directories to cover.
+	 * @returns The directories that hold a manifest, the everyday Chrome first when it is covered.
+	 */
+	static manifestDirectories(options: InstallNativeHostOptions = {}): string[] {
+		const directories: string[] = [];
+		if (options.isEverydayChromeCovered !== false) {
+			directories.push(InstallNativeHost.everydayChromeDirectory());
+		}
+		for (const userDataDir of options.userDataDirs ?? []) {
+			directories.push(Path.join(userDataDir, 'NativeMessagingHosts'));
+		}
+		return directories;
+	}
+
+	/**
+	 * Names the directory the everyday Chrome, the one the user installed, reads host manifests from.
+	 *
+	 * @returns The absolute path of that directory on this platform.
+	 */
+	static everydayChromeDirectory(): string {
+		if (process.platform === 'darwin') {
+			return Path.join(Os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts');
+		}
+		return Path.join(Os.homedir(), '.config', 'google-chrome', 'NativeMessagingHosts');
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -147,41 +209,30 @@ export class InstallNativeHost {
 		Fs.chmodSync(launcher, 0o755);
 		return launcher;
 	}
-
-	/**
-	 * Lists every directory Chrome might read host manifests from.
-	 *
-	 * The everyday Chrome reads them from its own support directory. A Chrome started with a custom
-	 * `--user-data-dir`, which is what the verification tooling uses, reads them from inside that
-	 * directory instead, so both are written.
-	 *
-	 * @param userDataDirs - Extra user data directories to cover.
-	 * @returns The directories to write into.
-	 */
-	static _manifestDirectories(userDataDirs: string[]): string[] {
-		const directories: string[] = [];
-		if (process.platform === 'darwin') {
-			directories.push(
-				Path.join(Os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts'),
-			);
-		} else {
-			directories.push(Path.join(Os.homedir(), '.config', 'google-chrome', 'NativeMessagingHosts'));
-		}
-		for (const userDataDir of userDataDirs) {
-			directories.push(Path.join(userDataDir, 'NativeMessagingHosts'));
-		}
-		return directories;
-	}
 }
 
 if (import.meta.filename === process.argv[1]) {
 	const throwaway = Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
-	const result = InstallNativeHost.run({
+	const options: InstallNativeHostOptions = {
 		userDataDirs: [throwaway],
-	});
+	};
+
+	const planned = InstallNativeHost.plan(options);
+	console.log('This registers WebMCP Everywhere with Google Chrome. It is about to write:');
+	for (const manifestPath of planned.manifests) {
+		console.log(`  ${manifestPath}`);
+	}
+	console.log('');
+	console.log('Each of those files tells Google Chrome to start this program when the extension asks:');
+	console.log(`  ${planned.launcher}`);
+	console.log('Chrome starts it outside the browser sandbox, with your full rights.');
+	console.log('To undo all of this later, run: npm run uninstall:host');
+	console.log('');
+
+	const result = InstallNativeHost.run(options);
 	console.log(`extension identifier: ${result.identifier}`);
 	console.log(`launcher: ${result.launcher}`);
 	for (const manifest of result.manifests) {
-		console.log(`manifest: ${manifest}`);
+		console.log(`wrote: ${manifest}`);
 	}
 }

@@ -27,9 +27,14 @@ Checks every adapter, then bundles the extension
 npm run build
 ```
 
-Registers the native messaging host with Chrome
+Registers the native messaging host with Chrome. It writes a file into the Chrome you installed, so it prints every path it is about to write, and the program those files name, before writing any of them.
 ```bash
 npm run install:host
+```
+
+Takes that registration back out of Chrome, whenever you want it gone
+```bash
+npm run uninstall:host
 ```
 
 Launches a throwaway Chrome with the extension installed
@@ -156,7 +161,7 @@ npm test                # every check, with Chrome hidden
 npm run test:visible    # the same checks, with Chrome on screen
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The two exceptions are `node --test tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, and `node --test tests/source_boundary.test.ts`, which reads the source folder off disk. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The three exceptions are `node --test tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `node --test tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `node --test tests/source_boundary.test.ts`, which reads the source folder off disk. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

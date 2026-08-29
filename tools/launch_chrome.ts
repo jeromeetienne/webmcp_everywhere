@@ -103,6 +103,11 @@ export class LaunchChrome {
 	 * silently keeps running the previous build. That turned a working fix into an apparent failure and
 	 * cost a full debugging cycle, because every check still ran, and ran against old code.
 	 *
+	 * The host manifest goes into the throwaway profile and nowhere else. A Chrome started with a custom
+	 * `--user-data-dir` reads host manifests from inside that directory and never looks at the everyday
+	 * Chrome's, so covering the everyday one here would modify a browser the user installed to run a
+	 * check that does not use it. See [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4).
+	 *
 	 * @param options - How to launch.
 	 * @returns How to reach it.
 	 */
@@ -127,6 +132,7 @@ export class LaunchChrome {
 		LaunchChrome._prepareProfile(profileDir);
 		InstallNativeHost.run({
 			userDataDirs: [profileDir],
+			isEverydayChromeCovered: false,
 		});
 
 		const args = [

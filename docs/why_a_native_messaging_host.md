@@ -32,6 +32,12 @@ Nothing left running afterwards takes two checks, not one. The channel closing i
 
 The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
 
+## The other cost, and the way back
+
+The larger cost is that registering the program means writing a file into a browser you installed, and from then on Google Chrome starts a program out of this working copy with your full rights. That is the native messaging design rather than a defect in it, but being opted into it silently would be a defect, so `npm run install:host` prints every path it is about to write and the program those files name before writing any of them, `npm run uninstall:host` removes every one of those files, and no other command in this repository writes into the everyday Chrome at all. See [build_and_install.md](build_and_install.md) and [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4).
+
+What has not been done is measure the alternative live. Turning the connection around — you start the program yourself, and the extension opens a `WebSocket` out to it — would leave Chrome untouched entirely. The reasons above for preferring native messaging are real, but they are an argument rather than a measurement, and three things would have to be established before the alternative could honestly be chosen: what it costs to have the program no longer start on demand, how the program authenticates the extension once `allowed_origins` is no longer doing it, and whether a `WebSocket` from an extension service worker survives that service worker being stopped and restarted.
+
 ## Why not the Chrome DevTools Protocol
 
 There is a second path to the browser in this repository, and it is not the product. [`tests/devtools_protocol_bridge/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.ts) is a Model Context Protocol server on standard input and output that reaches a page over the Chrome DevTools Protocol. It was the first path that worked, written before the extension and the native messaging host existed.

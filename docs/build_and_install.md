@@ -1,11 +1,12 @@
 # Building, installing, and launching
 
-Three commands, each doing one thing.
+Four commands, each doing one thing.
 
 ```bash
 npm run build           # checks every adapter, then bundles the extension
 npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
+npm run uninstall:host  # takes the registration back out of Chrome
 ```
 
 You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 149 to Chrome 156. You need Node.js 22.18.0 or later, because Node.js strips TypeScript types on its own from that version and the whole repository is run without a build step.
@@ -63,6 +64,25 @@ The rendered manifest is written into every Chrome `NativeMessagingHosts` direct
 
 Because the manifest names the launcher's absolute path, **moving the repository means running `npm run install:host` again.**
 
+### It says what it is about to do, before it does it
+
+This command writes a file into a browser you installed, and from then on Google Chrome will start a program out of this working copy, as a separate operating system process, outside the browser sandbox, with your full rights. That is the native messaging design rather than a defect in it, but it is not a thing to be opted into silently, so the command prints every path it is about to write, the program those files name, and how to undo all of it, before it writes anything.
+
+`InstallNativeHost.plan` is what makes that possible. It works out the identifier, the launcher, and every manifest path, and writes none of them. `InstallNativeHost.run` calls it and then writes exactly the files it named, so what was announced and what happened cannot drift apart.
+
+**Only `npm run install:host` writes into the everyday Chrome.** Every other command in this repository passes `isEverydayChromeCovered: false` and covers a throwaway user data directory alone.
+
+## `npm run uninstall:host`
+
+[`tools/uninstall_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/uninstall_native_host.ts) removes the manifest from exactly the directories the installation writes it into. Both commands take that list from `InstallNativeHost.manifestDirectories`, because two lists that have to agree are one list.
+
+For each directory it prints whether a manifest was there, and what program that manifest told Chrome to start. That last part matters for the manifest nobody can find on their own: a working copy that has since been moved or deleted leaves its manifest behind, still naming a program that no longer exists, and printing the dead path is how a person recognises what they are looking at.
+
+Afterwards Google Chrome no longer starts the native messaging host for this extension. Two things are deliberately left alone, and the command says so rather than doing them quietly.
+
+- **The extension itself**, which is removed from `chrome://extensions` like any other.
+- **The state directory** `~/.webmcp_everywhere`, which holds your bearer token, the endpoint file, and the log. The token is made once and never changes, so removing it would invalidate an agent registered with `codex mcp add`. The command prints the `rm -rf` line for it and leaves the decision to you.
+
 ## `npm run chrome`
 
 [`tools/launch_chrome.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/launch_chrome.ts) launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
@@ -74,7 +94,7 @@ It handles four steps that are each silent when they go wrong.
 3. **Chrome launches with `--enable-unsafe-extension-debugging`**, alongside `--user-data-dir`, `--remote-debugging-port`, `--no-first-run`, `--no-default-browser-check`, `--disable-sync`, and `--headless=new` unless the visibility is `visible`.
 4. **The extension is installed with `Extensions.loadUnpacked`** over the Chrome DevTools Protocol, and then the target page is opened.
 
-Two more things it does. It installs the native messaging host manifest into the throwaway profile, so the host works there. And **it deletes the profile before every launch**: Chrome does not re-read an unpacked extension it has already installed, so keeping the profile silently runs the previous build, and every check still passes while testing old code.
+Two more things it does. It installs the native messaging host manifest **into the throwaway profile and nowhere else**, so the host works there while the everyday Chrome is left exactly as it was. A Chrome started with a custom `--user-data-dir` reads host manifests from inside that directory and never looks at the everyday Chrome's, so covering the everyday one would modify a browser you installed in order to run a check that does not use it. And **it deletes the profile before every launch**: Chrome does not re-read an unpacked extension it has already installed, so keeping the profile silently runs the previous build, and every check still passes while testing old code.
 
 **Do not reach for `--load-extension`.** Chrome 151 ignores it, leaving zero extensions installed and nothing in the log.
 
