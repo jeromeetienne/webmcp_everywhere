@@ -17,7 +17,13 @@ Three sites are covered by adapters bundled into this build, as examples of what
 A site changes and an adapter breaks. A run every night drives each of these against its real site and writes what it found here, so a stale adapter is visible before somebody's agent gets a wrong answer.
 
 <!-- adapter_freshness begin -->
-The nightly run has not written here yet.
+| Adapter | Site | Read-only | Acting | Sensitive | Author last checked | Last nightly run |
+| --- | --- | --- | --- | --- | --- | --- |
+| `caniuse_com` | Can I use... | 5 | 2 | 0 | 2026-08-21 | passing |
+| `demo_playwright_dev` | Playwright TodoMVC demonstration | 3 | 7 | 0 | 2026-08-20 | passing |
+| `openstreetmap_org` | OpenStreetMap | 6 | 7 | 0 | 2026-08-21 | passing |
+
+Last nightly run: 2026-08-29.
 <!-- adapter_freshness end -->
 
 On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. An adapter loaded from a folder is switched off until you switch it on, because nobody here reviewed it. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
