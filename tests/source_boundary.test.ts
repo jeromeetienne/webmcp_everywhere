@@ -51,13 +51,17 @@ type Offence = {
  *
  * There are two kinds of such folder. `src/` is one: `tools/` and `tests/` may import from `src/`, and
  * `tests/` may import from `tools/`, and the reverse direction is what this check refuses, because that
- * is how build tooling and verification code drifted into `src/` before. Each workspace package under
- * `packages/` is the other: a package that reached back into the repository with a relative path would
- * work here and break for anybody who installed it, because the path it reached along would not be there.
+ * is how build tooling and verification code drifted into `src/` before.
+ *
+ * A workspace package that publishes its own source is the other: a path it reached back along would
+ * work here and break for anybody who installed it, because the repository would not be there. A package
+ * that publishes only built files is not held to that, because its source never leaves this repository —
+ * `packages/npm_package/src/` is bundled by esbuild into the three files the package ships, and its
+ * `files` list says so. Whether a package publishes its source is read out of that list rather than
+ * decided here, so a package that starts publishing its source starts being checked on the same day.
  *
  * A bare specifier such as `@webmcp_everywhere/adapter_toolkit` is not checked here. That is a dependency
- * npm resolves and a manifest can declare, and checking it against the manifests is milestone 3 of
- * https://github.com/jeromeetienne/webmcp_everywhere/issues/11.
+ * npm resolves, and the manifests are what `tests/workspace_packages.test.ts` reads.
  */
 class SourceBoundaryTest {
 	/** Where the workspace packages live, each one a folder no relative import may leave. */
@@ -113,12 +117,38 @@ class SourceBoundaryTest {
 			if (entry.isDirectory() === false) {
 				continue;
 			}
+			const packageDir = Path.join(SourceBoundaryTest.PACKAGES_DIR, entry.name);
+			if (SourceBoundaryTest._doesPublishItsSource(packageDir) === false) {
+				continue;
+			}
 			productRoots.push({
-				directory: Path.join(SourceBoundaryTest.PACKAGES_DIR, entry.name),
+				directory: packageDir,
 				name: `packages/${entry.name}/`,
 			});
 		}
 		return productRoots;
+	}
+
+	/**
+	 * Answers whether a package puts its own `src/` folder in the tarball npm publishes.
+	 *
+	 * A manifest with no `files` list publishes everything, so it publishes its source. One that names
+	 * `src` publishes it too. One that names only built files does not, and a relative import out of that
+	 * package reaches something esbuild inlines rather than something a user would have to have.
+	 *
+	 * @param packageDir - The package folder, absolute.
+	 * @returns True when the package's own source travels to whoever installs it.
+	 */
+	static _doesPublishItsSource(packageDir: string): boolean {
+		const manifest = JSON.parse(
+			Fs.readFileSync(Path.join(packageDir, 'package.json'), 'utf8'),
+		) as {
+			files?: string[];
+		};
+		if (manifest.files === undefined) {
+			return true;
+		}
+		return manifest.files.includes('src') === true;
 	}
 
 	/**
@@ -183,7 +213,7 @@ class SourceBoundaryTest {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-NodeTest.test('src/ and every package hold product code only, so no relative import leaves them', (t) => {
+NodeTest.test('src/ and every package publishing its source hold product code only', (t) => {
 	const { productRoots, filePaths, offences } = SourceBoundaryTest.run();
 	if (offences.length > 0) {
 		const listed = offences

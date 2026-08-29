@@ -39,4 +39,44 @@ export class ReleaseLayout {
 
 	/** The extension manifest inside the extension folder, which pins the extension identifier. */
 	static readonly EXTENSION_MANIFEST = 'manifest.json';
+
+	/** The instructions a user reads, which travel inside the release rather than pointing at a repository. */
+	static readonly NOTES = 'README.md';
+
+	/** The licence, which travels with everything it covers. */
+	static readonly LICENCE = 'LICENSE';
+
+	/**
+	 * Everything that travels out of `packages/npm_package/`, and nothing else.
+	 *
+	 * That folder holds two things a user must never receive: `src/`, which is bundled into the three
+	 * files above rather than shipped, and `CONTEXT.md`, which rules the folder for whoever edits it
+	 * here. So the copy into a user's installation, the archive attached to a release, and the `files`
+	 * list in the published manifest all name the same entries, and `tests/npm_package.test.ts` checks
+	 * that this list and that manifest still agree.
+	 */
+	static readonly PUBLISHED_ENTRIES = [
+		ReleaseLayout.EXTENSION_DIR,
+		ReleaseLayout.TEMPLATE_DIR,
+		ReleaseLayout.HOST_BUNDLE,
+		ReleaseLayout.LAUNCHER,
+		ReleaseLayout.INSTALLER,
+		ReleaseLayout.COMMAND,
+		ReleaseLayout.PACKAGE_MANIFEST,
+		ReleaseLayout.NOTES,
+		ReleaseLayout.LICENCE,
+	];
+
+	/**
+	 * The entries `npm run package:release` writes, which are the ones it clears first.
+	 *
+	 * Everything else in that folder is committed, so the packaging removes exactly these rather than
+	 * emptying the folder the way it did when the whole release was generated.
+	 */
+	static readonly GENERATED_ENTRIES = [
+		ReleaseLayout.EXTENSION_DIR,
+		ReleaseLayout.HOST_BUNDLE,
+		ReleaseLayout.INSTALLER,
+		ReleaseLayout.COMMAND,
+	];
 }

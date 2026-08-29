@@ -2,11 +2,11 @@ import ChildProcess from 'node:child_process';
 import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ReleaseLayout } from './release_layout.ts';
+import { ReleaseLayout } from '../packages/npm_package/src/release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	PackageRelease — writes a folder somebody can install without cloning anything
+//	PackageRelease — builds the four things the published package cannot commit
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,7 @@ const __dirname = import.meta.dirname;
 
 const repositoryRoot = Path.join(__dirname, '..');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
-const releaseDir = Path.join(repositoryRoot, 'build', 'release');
+const packageDir = Path.join(repositoryRoot, 'packages', 'npm_package');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -23,40 +23,21 @@ const releaseDir = Path.join(repositoryRoot, 'build', 'release');
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/**
- * The fields of this repository's `package.json` that the published package inherits.
- *
- * They are read rather than restated, so the description, the keywords and the links have one
- * authoritative place and cannot drift into two versions that disagree.
- */
-type RepositoryManifest = {
-	/** The package name on npmjs, which is the name of this repository. */
-	name: string;
-	/** The version, which has to equal the one in the extension manifest. */
+/** The one field of the published manifest this reads, to refuse a release whose versions disagree. */
+type PublishedManifest = {
+	/** The version npm publishes, which has to equal the one in the extension manifest. */
 	version: string;
-	/** The licence identifier. */
-	license: string;
-	/** The one sentence npmjs shows under the name. */
-	description: string;
-	/** The words npmjs indexes the package under. */
-	keywords: string[];
-	/** The project page. */
-	homepage: string;
-	/** Where the source is, in the shape npm defines. */
-	repository: unknown;
-	/** Where a defect is reported, in the shape npm defines. */
-	bugs: unknown;
 };
 
 /** What one packaging run produced. */
 export type PackagedRelease = {
-	/** The folder holding everything a user installs. */
+	/** The folder holding everything a user installs, which is the workspace package itself. */
 	folder: string;
 	/** The archive of that folder, ready to attach to a release. */
 	archive: string;
 	/** The launcher inside the folder, which is what a host manifest names. */
 	launcher: string;
-	/** Every path written, relative to the release folder. */
+	/** Every path written, relative to the package folder. */
 	written: string[];
 };
 
@@ -67,92 +48,30 @@ export type PackagedRelease = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Packages the extension and the native messaging host into one folder that needs no repository.
+ * Builds the parts of `packages/npm_package/` that cannot be committed, and archives the whole.
  *
- * Everything in this repository so far assumes a working copy on disk: the launcher walks up from
- * its own location to find `src/`, and Node.js runs the TypeScript with no build step. That is right
- * for somebody developing an adapter and wrong for everybody else, because it means a user has to
- * clone a repository to use a browser extension.
+ * Everything else in this repository assumes a working copy on disk: the launcher walks up from its
+ * own location to find `src/`, and Node.js runs the TypeScript with no build step. That is right for
+ * somebody developing an adapter and wrong for everybody else, because it means a user has to clone a
+ * repository to use a browser extension. So the host is bundled into one file with its dependencies
+ * inlined, and the launcher beside it points at that file rather than at `src/`. Node.js is still
+ * needed, and the launcher still searches for one, because bundling removes the repository rather
+ * than the runtime.
  *
- * So the host is bundled into one file with its dependencies inlined, and the launcher beside it
- * points at that file rather than at `src/`. Node.js is still needed, and the launcher still searches
- * for one, because bundling removes the repository rather than the runtime.
+ * Four things are built here: the extension folder, the bundled host, the installer, and the command.
+ * Everything else the package publishes — the manifest, the notes, the licence, the launcher, and the
+ * host manifest template — is committed in that folder and read rather than written, so what npm
+ * publishes can be reviewed in a diff. It was generated from this file until milestone 3 of
+ * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11), which is also where the
+ * launcher stopped being a shell script inside a TypeScript template literal.
  */
 export class PackageRelease {
 	/**
-	 * The Node.js the published package asks for.
-	 *
-	 * It is not the `engines` field of this repository, which asks for 22.18.0 because that is what the
-	 * runners here and the TypeScript Node.js runs directly need. What a user runs is the bundled host
-	 * and the launcher, and the launcher accepts any Node.js 20 or later, so that is what the package says.
-	 */
-	static readonly NODE_ENGINE = '>=20';
-
-	/**
-	 * The launcher a packaged release carries.
-	 *
-	 * It is a near copy of `bin/webmcp_native_host.sh` and differs in one line: it runs the bundle
-	 * beside it rather than the TypeScript under `src/`. The Node.js search is the same, and for the
-	 * same reason — Chrome starts this with a very small environment, so no path may be assumed.
-	 */
-	static readonly LAUNCHER_SOURCE = `#!/usr/bin/env bash
-#
-# The executable Chrome starts for the native messaging host, in a packaged release.
-#
-# Chrome reads the path of this file from the host manifest the installer writes, and starts it with
-# a very small environment. So the script holds no absolute path of its own: it finds the bundled
-# host beside itself, and it looks for a Node.js instead of naming one. The whole program is one
-# \`exec\`, because Chrome talks to the process it starts over standard input and standard output, and
-# any extra process in between would break that.
-
-set -euo pipefail
-
-scriptDir="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
-hostBundle="\${scriptDir}/${ReleaseLayout.HOST_BUNDLE}"
-
-# Answers whether a Node.js can run the bundled host, which is an ECMAScript module.
-runsTheHost() {
-	local candidate="$1"
-	local version major
-	version="$("\${candidate}" --version 2>/dev/null)" || return 1
-	version="\${version#v}"
-	major="\${version%%.*}"
-	if [ "\${major}" -ge 20 ]; then
-		return 0
-	fi
-	return 1
-}
-
-# Prints the first usable Node.js, or fails when there is none.
-findNode() {
-	local candidate
-	for candidate in \\
-		"$(command -v node 2>/dev/null || true)" \\
-		/opt/homebrew/bin/node \\
-		/usr/local/bin/node \\
-		/usr/bin/node; do
-		if [ -n "\${candidate}" ] && [ -x "\${candidate}" ] && runsTheHost "\${candidate}"; then
-			echo "\${candidate}"
-			return 0
-		fi
-	done
-	return 1
-}
-
-# The message goes to standard error, never to standard output, which belongs to Chrome alone.
-nodeBinary="$(findNode)" || {
-	echo "webmcp_native_host.sh: found no Node.js 20 or later" >&2
-	exit 1
-}
-
-exec "\${nodeBinary}" "\${hostBundle}" "$@"
-`;
-
-	/**
-	 * Builds the release folder and the archive beside it.
+	 * Builds what the package cannot commit, and archives what it publishes.
 	 *
 	 * @returns Where everything went.
-	 * @throws When the extension has not been built.
+	 * @throws When the extension has not been built, when the versions disagree, or when an entry the
+	 *   package publishes is not there afterwards.
 	 */
 	static async run(): Promise<PackagedRelease> {
 		const extensionSource = Path.join(repositoryRoot, 'build', ReleaseLayout.EXTENSION_DIR);
@@ -160,39 +79,39 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			throw new Error('the extension is not built; run "npm run build" first');
 		}
 
-		const repositoryManifest = JSON.parse(
-			Fs.readFileSync(Path.join(repositoryRoot, 'package.json'), 'utf8'),
-		) as RepositoryManifest;
+		const publishedManifest = JSON.parse(
+			Fs.readFileSync(Path.join(packageDir, ReleaseLayout.PACKAGE_MANIFEST), 'utf8'),
+		) as PublishedManifest;
 		const extensionManifest = JSON.parse(
 			Fs.readFileSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST), 'utf8'),
 		) as {
 			version: string;
 		};
-		if (repositoryManifest.version !== extensionManifest.version) {
+		if (publishedManifest.version !== extensionManifest.version) {
 			throw new Error(
-				`the package says version ${repositoryManifest.version} and the extension it carries says ` +
+				`the package says version ${publishedManifest.version} and the extension it carries says ` +
 					`version ${extensionManifest.version}; they are one product and have to agree`,
 			);
 		}
 
-		Fs.rmSync(releaseDir, {
-			recursive: true,
-			force: true,
-		});
-		Fs.mkdirSync(releaseDir, {
-			recursive: true,
-		});
+		// only what this writes is cleared, because everything else in that folder is committed
+		for (const entry of ReleaseLayout.GENERATED_ENTRIES) {
+			Fs.rmSync(Path.join(packageDir, entry), {
+				recursive: true,
+				force: true,
+			});
+		}
 
 		const written: string[] = [];
 
-		Fs.cpSync(extensionSource, Path.join(releaseDir, ReleaseLayout.EXTENSION_DIR), {
+		Fs.cpSync(extensionSource, Path.join(packageDir, ReleaseLayout.EXTENSION_DIR), {
 			recursive: true,
 		});
 		written.push(`${ReleaseLayout.EXTENSION_DIR}/`);
 
 		await Esbuild.build({
 			entryPoints: [Path.join(repositoryRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts')],
-			outfile: Path.join(releaseDir, ReleaseLayout.HOST_BUNDLE),
+			outfile: Path.join(packageDir, ReleaseLayout.HOST_BUNDLE),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -203,8 +122,8 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 		written.push(ReleaseLayout.HOST_BUNDLE);
 
 		await Esbuild.build({
-			entryPoints: [Path.join(repositoryRoot, 'tools', 'release_installer_entry.ts')],
-			outfile: Path.join(releaseDir, ReleaseLayout.INSTALLER),
+			entryPoints: [Path.join(packageDir, 'src', 'release_installer_entry.ts')],
+			outfile: Path.join(packageDir, ReleaseLayout.INSTALLER),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -215,8 +134,8 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 		written.push(ReleaseLayout.INSTALLER);
 
 		await Esbuild.build({
-			entryPoints: [Path.join(repositoryRoot, 'tools', 'npm_command_entry.ts')],
-			outfile: Path.join(releaseDir, ReleaseLayout.COMMAND),
+			entryPoints: [Path.join(packageDir, 'src', 'npm_command_entry.ts')],
+			outfile: Path.join(packageDir, ReleaseLayout.COMMAND),
 			bundle: true,
 			format: 'esm',
 			platform: 'node',
@@ -227,49 +146,36 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 			},
 			logLevel: 'warning',
 		});
-		Fs.chmodSync(Path.join(releaseDir, ReleaseLayout.COMMAND), 0o755);
+		Fs.chmodSync(Path.join(packageDir, ReleaseLayout.COMMAND), 0o755);
 		written.push(ReleaseLayout.COMMAND);
 
-		const launcher = Path.join(releaseDir, ReleaseLayout.LAUNCHER);
-		Fs.writeFileSync(launcher, PackageRelease.LAUNCHER_SOURCE);
+		const launcher = Path.join(packageDir, ReleaseLayout.LAUNCHER);
 		Fs.chmodSync(launcher, 0o755);
-		written.push(ReleaseLayout.LAUNCHER);
 
-		Fs.cpSync(
-			Path.join(repositoryRoot, 'data', 'native_messaging_template'),
-			Path.join(releaseDir, ReleaseLayout.TEMPLATE_DIR),
-			{
-				recursive: true,
-			},
-		);
-		written.push(`${ReleaseLayout.TEMPLATE_DIR}/`);
-
-		Fs.copyFileSync(Path.join(repositoryRoot, 'LICENSE'), Path.join(releaseDir, 'LICENSE'));
-		written.push('LICENSE');
-
-		Fs.writeFileSync(Path.join(releaseDir, 'README.md'), PackageRelease._readme());
-		written.push('README.md');
-
-		Fs.writeFileSync(
-			Path.join(releaseDir, ReleaseLayout.PACKAGE_MANIFEST),
-			PackageRelease._publishedPackageManifest(repositoryManifest),
-		);
-		written.push(ReleaseLayout.PACKAGE_MANIFEST);
+		PackageRelease._refuseAnythingMissing();
 
 		const archive = Path.join(repositoryRoot, 'build', 'webmcp_everywhere_release.zip');
+		Fs.mkdirSync(Path.dirname(archive), {
+			recursive: true,
+		});
 		Fs.rmSync(archive, {
 			force: true,
 		});
-		const zipped = ChildProcess.spawnSync('zip', ['-r', '-q', archive, '.'], {
-			cwd: releaseDir,
-			encoding: 'utf8',
-		});
+		// the entries are named rather than `.`, because the folder also holds `src/` and `CONTEXT.md`
+		const zipped = ChildProcess.spawnSync(
+			'zip',
+			['-r', '-q', archive, ...ReleaseLayout.PUBLISHED_ENTRIES],
+			{
+				cwd: packageDir,
+				encoding: 'utf8',
+			},
+		);
 		if (zipped.status !== 0) {
 			throw new Error(`packing the archive failed:\n${zipped.stderr}`);
 		}
 
 		return {
-			folder: releaseDir,
+			folder: packageDir,
 			archive: archive,
 			launcher: launcher,
 			written: written,
@@ -283,115 +189,30 @@ exec "\${nodeBinary}" "\${hostBundle}" "$@"
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Builds the package manifest npm publishes this folder with.
+	 * Refuses to archive a package missing anything it says it publishes.
 	 *
-	 * The repository is not the package. This repository's own `package.json` carries every development
-	 * dependency, every script that needs a working copy, and a Node.js requirement that belongs to the
-	 * runners rather than to the product, and it is marked private so that none of it can be published by
-	 * accident. What is published is this folder, which already holds the user's README.md and the
-	 * licence, and which now holds a manifest naming only what a user needs.
+	 * The committed entries cannot be written here any more, so a deleted one would leave a release
+	 * that installs and then fails at the moment Chrome starts the launcher. Naming them all in
+	 * `ReleaseLayout.PUBLISHED_ENTRIES` is only worth something if somebody looks.
 	 *
-	 * @param repositoryManifest The fields read out of this repository's `package.json`.
-	 * @returns The JSON text of the published manifest, ending in a newline.
+	 * @returns Nothing.
+	 * @throws When an entry the package publishes is not in the folder.
 	 */
-	static _publishedPackageManifest(repositoryManifest: RepositoryManifest): string {
-		const published = {
-			name: repositoryManifest.name,
-			version: repositoryManifest.version,
-			license: repositoryManifest.license,
-			description: repositoryManifest.description,
-			keywords: repositoryManifest.keywords,
-			homepage: repositoryManifest.homepage,
-			repository: repositoryManifest.repository,
-			bugs: repositoryManifest.bugs,
-			type: 'module',
-			engines: {
-				node: PackageRelease.NODE_ENGINE,
-			},
-			bin: {
-				webmcp_everywhere: `./${ReleaseLayout.COMMAND}`,
-			},
-		};
-		return `${JSON.stringify(published, null, '\t')}\n`;
-	}
-
-	/**
-	 * Writes the instructions that travel inside the release.
-	 *
-	 * The release is for somebody who will never open this repository, so the instructions cannot
-	 * point at a command in it.
-	 *
-	 * @returns The Markdown of the release's own README.md.
-	 */
-	static _readme(): string {
-		return `# WebMCP Everywhere
-
-A browser extension carrying community-maintained WebMCP adapters — small scripts that register tools
-into sites that never shipped their own. Install it, point any agent at one local address, and that
-agent gains real tools on the sites you already have open.
-
-You need Google Chrome 149 or later, and Node.js 20 or later. The WebMCP origin trial runs from Chrome
-149 to Chrome 156.
-
-## Install it
-
-\`\`\`bash
-npx webmcp_everywhere
-\`\`\`
-
-If you unzipped this folder from a release rather than installing from npm, run the same command out of
-the folder instead:
-
-\`\`\`bash
-node ${ReleaseLayout.COMMAND}
-\`\`\`
-
-Either way it copies this folder to \`~/.webmcp_everywhere/installation\`, and registers the native
-messaging host so that an agent can reach the browser. It names every path before it writes one. The
-copy is the point: whatever folder you ran it from may be moved, unzipped again, or emptied by npm, and
-Chrome keeps an absolute path for both an unpacked extension and a native messaging host.
-
-From then on Chrome starts \`${ReleaseLayout.LAUNCHER}\` out of the installation folder, as a separate
-operating system process outside the browser sandbox, with your rights.
-
-One step is left, and only you can take it. Chrome loads an unpacked extension by hand:
-
-1. Open \`chrome://extensions\` and turn on **Developer mode**.
-2. Choose **Load unpacked**, and select \`~/.webmcp_everywhere/installation/${ReleaseLayout.EXTENSION_DIR}\`.
-
-Then point your agent at \`http://127.0.0.1:8765/mcp\`, with the bearer token from
-\`~/.webmcp_everywhere/token\`.
-
-## Check it is working
-
-\`\`\`bash
-npx webmcp_everywhere status
-\`\`\`
-
-It asks the running system rather than looking for the extension in Chrome's own files, so it answers
-about what an agent would really receive: whether a browser is holding the port, whether the extension
-is connected to it, and which adapters are offering tools in which tabs. It exits 1 when no tools are
-reaching your agent, and says which step to go and fix. Installing ends with the same answer.
-
-## Take it back out
-
-\`\`\`bash
-npx webmcp_everywhere uninstall
-\`\`\`
-
-That removes the registration and the installation folder, and prints what it removed. Your bearer token
-and any adapters you loaded are left alone. Remove the extension itself at \`chrome://extensions\`.
-
-## What it does, and what it does not
-
-Read the security model and the permissions before you let an agent act on a site: https://github.com/jeromeetienne/webmcp_everywhere/blob/main/docs/security_model.md
-`;
+	static _refuseAnythingMissing(): void {
+		const missing = ReleaseLayout.PUBLISHED_ENTRIES.filter(
+			(entry) => Fs.existsSync(Path.join(packageDir, entry)) === false,
+		);
+		if (missing.length > 0) {
+			throw new Error(
+				`packages/npm_package/ is missing ${missing.join(' and ')}, which the package publishes`,
+			);
+		}
 	}
 }
 
 if (import.meta.filename === process.argv[1]) {
 	const packaged = await PackageRelease.run();
-	console.log(`release folder ${packaged.folder}`);
+	console.log(`package folder ${packaged.folder}`);
 	for (const entry of packaged.written) {
 		console.log(`  ${entry}`);
 	}

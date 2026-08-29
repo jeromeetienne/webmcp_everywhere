@@ -29,7 +29,7 @@
 	"scripts": {
 		"build": "node tools/build_extension.ts",
 		"package:release": "node tools/package_release.ts",
-		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build ./build/release",
+		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build --workspace webmcp_everywhere",
 		"sync:adapters": "node tools/sync_adapter_registry.ts",
 		"new-adapter": "node tools/new_adapter.ts",
 		"load-adapter": "node tools/load_adapter.ts",

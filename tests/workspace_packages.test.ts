@@ -31,8 +31,12 @@ type PackageManifest = {
 	version: string;
 	/** Whether npm refuses to publish it. */
 	private?: boolean;
-	/** What the package offers to the outside, which must be one entry point under `"."`. */
+	/** What the package offers to be imported, which must be one entry point under `"."` when it is there. */
 	exports?: Record<string, unknown>;
+	/** What the package offers to be run, which is how the published package offers itself. */
+	bin?: Record<string, string>;
+	/** What travels in the tarball, beyond the files npm always includes. */
+	files?: string[];
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,6 +59,9 @@ type PackageManifest = {
 class WorkspacePackagesTest {
 	/** Where the packages live, one folder each. */
 	static readonly PACKAGES_DIR = Path.join(repositoryRoot, 'packages');
+
+	/** The one package npmjs carries, which is what `npx webmcp_everywhere` fetches. */
+	static readonly PUBLISHED_PACKAGE = 'webmcp_everywhere';
 
 	/** Where everything this runner writes goes, well away from the repository. */
 	static readonly WORKING_DIR = Path.join(Os.tmpdir(), 'webmcp_everywhere_workspace_packages');
@@ -200,10 +207,16 @@ class WorkspacePackagesTest {
 ///////////////////////////////////////////////////////////////////////////////
 
 NodeTest.describe('The packages an adapter author installs', () => {
-	NodeTest.test('each names one entry point, and it is the package source', (t) => {
+	NodeTest.test('a package is imported by one entry point, or run by a bin, and never both', (t) => {
 		const wrong: string[] = [];
 		for (const { folderName, manifest } of WorkspacePackagesTest.packages()) {
 			const keys = Object.keys(manifest.exports ?? {});
+			if (keys.length === 0) {
+				if (manifest.bin === undefined) {
+					wrong.push(`${folderName} offers neither an entry point to import nor a command to run`);
+				}
+				continue;
+			}
 			if (keys.length !== 1 || keys[0] !== '.') {
 				wrong.push(`${folderName} names ${keys.length} exports (${keys.join(', ')}) instead of one "."`);
 				continue;
@@ -213,23 +226,44 @@ NodeTest.describe('The packages an adapter author installs', () => {
 			}
 		}
 		if (wrong.length > 0) {
-			throw new Error(`${wrong.length} packages name the wrong entry point:\n        ${wrong.join('\n        ')}`);
+			throw new Error(`${wrong.length} packages offer the wrong thing:\n        ${wrong.join('\n        ')}`);
 		}
-		t.diagnostic(`${WorkspacePackagesTest.packages().length} packages, each offering only ./src/index.ts`);
+		t.diagnostic(`${WorkspacePackagesTest.packages().length} packages, each offering one thing`);
 	});
 
-	NodeTest.test('each is private, so publishing one is a decision somebody took', (t) => {
+	NodeTest.test('one package is published on npmjs and every other one is private', (t) => {
 		const publishable = WorkspacePackagesTest.packages()
 			.filter(({ manifest }) => manifest.private !== true)
 			.map(({ manifest }) => manifest.name);
-		if (publishable.length > 0) {
+		if (publishable.join(',') !== WorkspacePackagesTest.PUBLISHED_PACKAGE) {
 			throw new Error(
-				`${publishable.join(' and ')} would be published by an npm publish at the root. ` +
-					'Milestone 2 of https://github.com/jeromeetienne/webmcp_everywhere/issues/11 is where that ' +
-					'decision is recorded; until it is taken, every package stays private.',
+				`${publishable.length === 0 ? 'no package' : publishable.join(' and ')} would be published, ` +
+					`and it should be ${WorkspacePackagesTest.PUBLISHED_PACKAGE} alone. That package is what ` +
+					'https://github.com/jeromeetienne/webmcp_everywhere/issues/12 put on npmjs. The two an ' +
+					'adapter author installs are still private, which is the decision milestone 2 of ' +
+					'https://github.com/jeromeetienne/webmcp_everywhere/issues/11 left open.',
 			);
 		}
-		t.diagnostic('no package would be published by accident');
+		t.diagnostic(`${WorkspacePackagesTest.PUBLISHED_PACKAGE} is the one npm publish can reach`);
+	});
+
+	NodeTest.test('the published package publishes no TypeScript, because nothing could run it', (t) => {
+		const found = WorkspacePackagesTest.packages().find(
+			({ manifest }) => manifest.name === WorkspacePackagesTest.PUBLISHED_PACKAGE,
+		);
+		if (found === undefined) {
+			throw new Error(`${WorkspacePackagesTest.PUBLISHED_PACKAGE} is not a package under packages/`);
+		}
+		if (found.manifest.files === undefined) {
+			throw new Error(`${WorkspacePackagesTest.PUBLISHED_PACKAGE} names no files, so it publishes its source`);
+		}
+		if (found.manifest.files.includes('src') === true) {
+			throw new Error(
+				`${WorkspacePackagesTest.PUBLISHED_PACKAGE} publishes src/, which Node.js refuses to strip ` +
+					'types for once it is inside node_modules. What ships is the bundle esbuild writes.',
+			);
+		}
+		t.diagnostic(`it publishes ${found.manifest.files.join(', ')}`);
 	});
 
 	NodeTest.test('the adapter format package and ADAPTER_FORMAT_VERSION name one version', (t) => {

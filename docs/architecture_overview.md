@@ -110,7 +110,7 @@ The full account is in [permissions_and_trust.md](permissions_and_trust.md).
 | [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) | The native messaging host, Chrome's message framing, and the folder of loaded adapters it reads |
 | [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) | Everything that builds, installs, launches, or loads an adapter, plus the adapter checks |
 | [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) | The verification runners, and the stdio Model Context Protocol bridge one of them checks |
-| [`data/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/data) | The native messaging host manifest template Chrome reads |
+| [`packages/npm_package/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/npm_package) | What npmjs carries and what a user installs: the committed manifest, notes, licence, launcher and host manifest template, plus the `src/` bundled into the three files it ships |
 | `build/chrome_extension/` | What the build writes, and what Chrome loads. Git-ignored, so it is not in the repository |
 
 Every one of those folders carries its own `CONTEXT.md` with the rules for editing it.

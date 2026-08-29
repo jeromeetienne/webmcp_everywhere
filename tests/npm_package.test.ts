@@ -10,12 +10,12 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { GenerateExtensionKey } from '../tools/generate_extension_key.ts';
-import { InstallNativeHost } from '../tools/install_native_host.ts';
-import { InstallationStatus } from '../tools/installation_status.ts';
+import { ExtensionIdentifier } from '../packages/npm_package/src/extension_identifier.ts';
+import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
+import { InstallationStatus } from '../packages/npm_package/src/installation_status.ts';
 import { PackageRelease } from '../tools/package_release.ts';
-import { PackagedReleaseInstallation } from '../tools/packaged_release_installation.ts';
-import { ReleaseLayout } from '../tools/release_layout.ts';
+import { PackagedReleaseInstallation } from '../packages/npm_package/src/packaged_release_installation.ts';
+import { ReleaseLayout } from '../packages/npm_package/src/release_layout.ts';
 import { VersionAgreement } from '../tools/version_agreement.ts';
 
 const __filename = import.meta.filename;
@@ -195,9 +195,10 @@ class NpmPackageTest {
 	 * Lists every file under a folder with the digest of its content, keyed by its path inside the folder.
 	 *
 	 * @param folder - The folder to walk.
+	 * @param only - The entries inside it to cover, or nothing to cover the whole folder.
 	 * @returns One entry per file, path inside the folder to digest.
 	 */
-	static digestEveryFile(folder: string): Map<string, string> {
+	static digestEveryFile(folder: string, only?: string[]): Map<string, string> {
 		const digests = new Map<string, string>();
 		const walk = (current: string): void => {
 			for (const entry of Fs.readdirSync(current, { withFileTypes: true })) {
@@ -210,7 +211,19 @@ class NpmPackageTest {
 				digests.set(Path.relative(folder, full), digest);
 			}
 		};
-		walk(folder);
+		if (only === undefined) {
+			walk(folder);
+			return digests;
+		}
+		for (const entry of only) {
+			const full = Path.join(folder, entry);
+			if (Fs.statSync(full).isDirectory() === true) {
+				walk(full);
+				continue;
+			}
+			const digest = Crypto.createHash('sha256').update(Fs.readFileSync(full)).digest('hex');
+			digests.set(entry, digest);
+		}
 		return digests;
 	}
 
@@ -321,7 +334,12 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 		// command uses, and it needs port 8765 so it can only run where no other browser does. Here the
 		// same folder is compared with what npm really packed, installed and copied, so the browser proof
 		// carries over to the package without a second twelve-minute Chrome run.
-		const released = NpmPackageTest.digestEveryFile(Path.join(__dirname, '..', 'build', 'release'));
+		// only the entries the package publishes: that folder is the workspace package, so it also holds
+		// the `src/` that is bundled into the three files rather than shipped, and its `CONTEXT.md`
+		const released = NpmPackageTest.digestEveryFile(
+			Path.join(__dirname, '..', 'packages', 'npm_package'),
+			ReleaseLayout.PUBLISHED_ENTRIES,
+		);
 		const installed = NpmPackageTest.digestEveryFile(NpmPackageTest.installationDir());
 
 		const missing = [...released.keys()].filter((name) => installed.has(name) === false);
@@ -403,7 +421,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			throw new Error(`the manifest tells Chrome to start ${manifest.path}, not ${launcher}`);
 		}
 
-		const identifier = GenerateExtensionKey.currentIdentifier(
+		const identifier = ExtensionIdentifier.fromManifest(
 			Path.join(__dirname, '..', 'build', ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
 		);
 		const expected = `chrome-extension://${identifier}/`;

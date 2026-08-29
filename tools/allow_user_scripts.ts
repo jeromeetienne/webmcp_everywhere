@@ -1,5 +1,6 @@
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { GenerateExtensionKey } from './generate_extension_key.ts';
+import { ExtensionIdentifier } from '../packages/npm_package/src/extension_identifier.ts';
+import { WorkingCopyLayout } from './working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,7 +42,7 @@ export class AllowUserScripts {
 	 * @throws When the extensions page never answers.
 	 */
 	static async run(port: number = AllowUserScripts.DEFAULT_PORT): Promise<string> {
-		const identifier = GenerateExtensionKey.currentIdentifier();
+		const identifier = ExtensionIdentifier.fromManifest(WorkingCopyLayout.EXTENSION_MANIFEST);
 		const browser = await CdpClient.connectToBrowser(port);
 		await browser.send('Target.createTarget', {
 			url: `chrome://extensions/?id=${identifier}`,

@@ -67,7 +67,7 @@ That folder is git-ignored.
 
 ## `npm run install:host`
 
-[`tools/install_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/install_native_host.ts) writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
+[`packages/npm_package/src/install_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/src/install_native_host.ts) writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
 
 Both halves have to be right: the manifest points at an executable file, and it names the extension identifier.
 
@@ -75,7 +75,7 @@ Both halves have to be right: the manifest points at an executable file, and it 
 
 **The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json). The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
 
-**The manifest itself** is [`data/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/data/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
+**The manifest itself** is [`packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
 
 The rendered manifest is written into every Chrome `NativeMessagingHosts` directory found — on macOS `~/Library/Application Support/Google/Chrome/NativeMessagingHosts`, on Linux `~/.config/google-chrome/NativeMessagingHosts`, plus the same directory inside any user data directory passed in, which is how a throwaway profile gets one.
 
@@ -91,7 +91,7 @@ This command writes a file into a browser you installed, and from then on Google
 
 ## `npm run uninstall:host`
 
-[`tools/uninstall_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/uninstall_native_host.ts) removes the manifest from exactly the directories the installation writes it into. Both commands take that list from `InstallNativeHost.manifestDirectories`, because two lists that have to agree are one list.
+[`packages/npm_package/src/uninstall_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/src/uninstall_native_host.ts) removes the manifest from exactly the directories the installation writes it into. Both commands take that list from `InstallNativeHost.manifestDirectories`, because two lists that have to agree are one list.
 
 For each directory it prints whether a manifest was there, and what program that manifest told Chrome to start. That last part matters for the manifest nobody can find on their own: a working copy that has since been moved or deleted leaves its manifest behind, still naming a program that no longer exists, and printing the dead path is how a person recognises what they are looking at.
 
@@ -161,7 +161,7 @@ Everything above assumes a working copy on disk: the launcher walks up from its 
 npm run package:release
 ```
 
-[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) writes `build/release/` and an archive beside it, holding:
+[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/npm_package/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/npm_package), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
 
 | What | Why it is there |
 | --- | --- |
@@ -170,11 +170,13 @@ npm run package:release
 | `webmcp_native_host.sh` | The launcher, which finds the bundle beside itself and searches for a Node.js |
 | `install_the_native_messaging_host.mjs` | The installer, which announces every file before writing it |
 | `native_messaging_template/` | The host manifest template, because the release carries no repository |
+| `webmcp_everywhere.mjs` | The command `npx webmcp_everywhere` runs, which copies all of the above somewhere npm will not empty |
+| `package.json` | The manifest npm publishes, committed rather than generated, with the `files` list naming everything above |
 | `README.md` and `LICENSE` | What to do with the folder, and under what terms |
 
 Node.js is still needed, because bundling removes the repository rather than the runtime. The launcher searches for one exactly as the repository's does, since Chrome starts it with a very small environment.
 
-`node --test tests/packaged_release.test.ts` copies that folder out of the repository, registers its host with a throwaway Chrome, and asks the endpoint for its tools. It is the only check that proves the host works with nothing above it, and the release workflow attaches no archive until it has passed.
+`node --test tests/packaged_release.test.ts` copies what that package publishes out of the repository, registers its host with a throwaway Chrome, and asks the endpoint for its tools. It is the only check that proves the host works with nothing above it, and the release workflow attaches no archive until it has passed.
 
 That runner needs port 8765, which serves one browser at a time on purpose, so it skips with its reason when your everyday Chrome already owns the port. Continuous integration has no other browser, which is where it really runs.
 

@@ -177,14 +177,15 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own, imported by its name rather than by a relative path.
+`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, and the one npmjs carries.
 
+- `packages/npm_package/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it.
 - `packages/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed. Imported as `@webmcp_everywhere/adapter_format`.
 - `packages/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it. Imported as `@webmcp_everywhere/adapter_toolkit`.
 - `src/site_adapters/` — one folder per target site this build ships.
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads.
-- `tools/` — build, launch, install, the commands that write a new adapter and register it, the commands that load and unload an adapter written elsewhere, plus the adapter checks and the Chrome DevTools Protocol connection.
+- `tools/` — build, launch, register the host in this working copy, the commands that write a new adapter, load one and unload one, plus the adapter checks and the Chrome DevTools Protocol connection. Nothing here ships.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.

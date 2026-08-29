@@ -5,3 +5,10 @@ extension_private_key.pem
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# What `npm run package:release` builds into the published package. Everything else in that folder is
+# committed, which is the whole point of packages/npm_package/.
+packages/npm_package/chrome_extension/
+packages/npm_package/webmcp_native_host.mjs
+packages/npm_package/install_the_native_messaging_host.mjs
+packages/npm_package/webmcp_everywhere.mjs

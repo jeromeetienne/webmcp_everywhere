@@ -2,8 +2,10 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { InstallNativeHost } from '../tools/install_native_host.ts';
-import { UninstallNativeHost } from '../tools/uninstall_native_host.ts';
+import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
+import { UninstallNativeHost } from '../packages/npm_package/src/uninstall_native_host.ts';
+import type { InstallNativeHostOptions } from '../packages/npm_package/src/install_native_host.ts';
+import { WorkingCopyLayout } from '../tools/working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -37,8 +39,9 @@ class NativeHostInstallTest {
 	 *
 	 * @returns Options naming the throwaway user data directory alone.
 	 */
-	static options(): { userDataDirs: string[]; isEverydayChromeCovered: boolean } {
+	static options(): InstallNativeHostOptions {
 		return {
+			...WorkingCopyLayout.nativeHostPaths(),
 			userDataDirs: [NativeHostInstallTest.PROFILE_DIR],
 			isEverydayChromeCovered: false,
 		};

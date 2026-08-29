@@ -116,10 +116,14 @@ jobs:
       - name: Install the dependencies the lock file names
         run: npm ci
 
-      # The release folder is built again here rather than carried over from the proving job. What
-      # stops a broken build reaching npmjs is `needs:` above: this job does not start until that one
-      # has driven this same commit's release in a real Chrome. The archive on the GitHub release is
-      # still the exact folder that was driven, because that job keeps and attaches it.
+      # The package is built again here rather than carried over from the proving job. What stops a
+      # broken build reaching npmjs is `needs:` above: this job does not start until that one has driven
+      # this same commit's release in a real Chrome. The archive on the GitHub release is still the exact
+      # folder that was driven, because that job keeps and attaches it.
+      #
+      # `packages/npm_package/` is the package. Its manifest, its README, its launcher and its host
+      # manifest template are committed; the extension folder and the three bundles are what this builds
+      # into it. See milestone 3 of https://github.com/jeromeetienne/webmcp_everywhere/issues/11.
       - name: Build the package npm publishes
         run: |
           npm run build
@@ -134,4 +138,4 @@ jobs:
             echo "Set one to publish. The archive on the GitHub release is unaffected."
             exit 0
           fi
-          npm publish ./build/release --provenance --access public
+          npm publish --workspace webmcp_everywhere --provenance --access public

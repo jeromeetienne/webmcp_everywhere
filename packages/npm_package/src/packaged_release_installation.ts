@@ -1,7 +1,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { HostStateFiles } from '../src/native_messaging_host/host_state_files.ts';
-import { GenerateExtensionKey } from './generate_extension_key.ts';
+import { HostStateFiles } from '../../../src/native_messaging_host/host_state_files.ts';
+import { ExtensionIdentifier } from './extension_identifier.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 import { ReleaseLayout } from './release_layout.ts';
 import { UninstallNativeHost } from './uninstall_native_host.ts';
@@ -123,7 +123,7 @@ export class PackagedReleaseInstallation {
 		// first install the launcher arrives with the copy this plan has not made yet. So the identifier
 		// is read from the extension in the package, and the manifest paths come from the one list.
 		const nativeHost: NativeHostInstallation = {
-			identifier: GenerateExtensionKey.currentIdentifier(
+			identifier: ExtensionIdentifier.fromManifest(
 				Path.join(options.sourceDir, ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
 			),
 			launcher: Path.join(targetDir, ReleaseLayout.LAUNCHER),
@@ -166,9 +166,17 @@ export class PackagedReleaseInstallation {
 				recursive: true,
 				mode: 0o700,
 			});
-			Fs.cpSync(planned.sourceDir, planned.targetDir, {
-				recursive: true,
-			});
+			// the published entries, not the whole folder: in a working copy that folder also holds
+			// `src/`, which is bundled into the three files rather than shipped, and a `CONTEXT.md`
+			for (const entry of ReleaseLayout.PUBLISHED_ENTRIES) {
+				const from = Path.join(planned.sourceDir, entry);
+				if (Fs.existsSync(from) === false) {
+					throw new Error(`the release is missing ${entry}, which every installation needs`);
+				}
+				Fs.cpSync(from, Path.join(planned.targetDir, entry), {
+					recursive: true,
+				});
+			}
 		}
 
 		PackagedReleaseInstallation._makeRunnable(Path.join(planned.targetDir, ReleaseLayout.LAUNCHER));

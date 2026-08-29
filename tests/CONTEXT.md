@@ -6,16 +6,15 @@ Everything that exists only to check the product: the runners, the live browser 
 ## Key Exports & Entry Points
 - `site_adapters/`: One verification runner per adapted site — see its own CONTEXT.md.
 - `devtools_protocol_bridge/`: The stdio Model Context Protocol bridge and the runner driving it — see its own CONTEXT.md.
-- `adapter_registry_sync.test.ts`: `AdapterRegistrySyncTest` — 5 checks that the registry and the runners match the folders under `src/site_adapters/`, and that the manifest names no site.
-- `loaded_adapter.test.ts`: `LoadedAdapterTest` — 5 checks that an adapter written outside this repository, importing both packages, is refused when dishonest and otherwise run with no rebuild.
+- `adapter_registry_sync.test.ts`: `AdapterRegistrySyncTest` — 5 checks that the registry and the runners match the folders under `src/site_adapters/`, and the manifest names no site.
+- `loaded_adapter.test.ts`: `LoadedAdapterTest` — 5 checks that an adapter written outside here, importing both packages, is refused when dishonest and otherwise run with no rebuild.
 - `packaged_release.test.ts`: `PackagedReleaseTest` — 3 checks that a release copied out of the repository installs its host and serves an agent.
-- `npm_package.test.ts`: `NpmPackageTest` — 13 checks that the published package names one version, is byte for byte the release Chrome drives, installs into a home of its own, and comes back out.
-- `native_host.test.ts`: `NativeHostTest` — 10 checks over the delivery path, endpoint to page.
-- `endpoint_file.test.ts`: `EndpointFileTest` — 10 checks that `endpoint.json` names a host really listening.
+- `npm_package.test.ts`: `NpmPackageTest` — 13 checks that the published package names one version, is byte for byte what Chrome is driven against, installs into a home of its own, and comes back out.
+- `native_host.test.ts`, `endpoint_file.test.ts`: 10 checks over the delivery path, endpoint to page; 10 that `endpoint.json` names a host really listening.
 - `native_host_install.test.ts`: `NativeHostInstallTest` — 7 checks that installing announces every file first and uninstalling removes each one.
-- `injection_defence.test.ts`: `InjectionDefenceTest` — attacks through hostile content put on the page.
+- `injection_defence.test.ts`: `InjectionDefenceTest` — attacks through hostile page content.
 - `source_boundary.test.ts`: `SourceBoundaryTest` — refuses a relative import that leaves `src/`, or that leaves a package under `packages/`.
-- `workspace_packages.test.ts`: `WorkspacePackagesTest` — 5 checks over the two packages an adapter author installs, packed rather than linked.
+- `workspace_packages.test.ts`: `WorkspacePackagesTest` — 6 checks over the three packages: what each offers, which one is published, and how the two an author installs behave once packed.
 - `live_page_harness.ts`: `LivePageHarness` — the live browser the site checks share, from launching Chrome to calling a tool.
 - Commands: `npm test`; `npm run test:no_browser`; one alone, `node --test <runner>`.
 

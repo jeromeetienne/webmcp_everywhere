@@ -1,7 +1,8 @@
 import Os from 'node:os';
 import Path from 'node:path';
-import { InstallNativeHost } from './install_native_host.ts';
-import type { InstallNativeHostOptions } from './install_native_host.ts';
+import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
+import type { InstallNativeHostOptions } from '../packages/npm_package/src/install_native_host.ts';
+import { WorkingCopyLayout } from './working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -27,6 +28,7 @@ export class InstallNativeHostEntry {
 	static run(): void {
 		const throwaway = Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const options: InstallNativeHostOptions = {
+			...WorkingCopyLayout.nativeHostPaths(),
 			userDataDirs: [throwaway],
 		};
 
