@@ -5,6 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import ChildProcess from 'node:child_process';
+import Crypto from 'node:crypto';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
@@ -15,6 +16,7 @@ import { InstallationStatus } from '../tools/installation_status.ts';
 import { PackageRelease } from '../tools/package_release.ts';
 import { PackagedReleaseInstallation } from '../tools/packaged_release_installation.ts';
 import { ReleaseLayout } from '../tools/release_layout.ts';
+import { VersionAgreement } from '../tools/version_agreement.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -190,6 +192,29 @@ class NpmPackageTest {
 	}
 
 	/**
+	 * Lists every file under a folder with the digest of its content, keyed by its path inside the folder.
+	 *
+	 * @param folder - The folder to walk.
+	 * @returns One entry per file, path inside the folder to digest.
+	 */
+	static digestEveryFile(folder: string): Map<string, string> {
+		const digests = new Map<string, string>();
+		const walk = (current: string): void => {
+			for (const entry of Fs.readdirSync(current, { withFileTypes: true })) {
+				const full = Path.join(current, entry.name);
+				if (entry.isDirectory() === true) {
+					walk(full);
+					continue;
+				}
+				const digest = Crypto.createHash('sha256').update(Fs.readFileSync(full)).digest('hex');
+				digests.set(Path.relative(folder, full), digest);
+			}
+		};
+		walk(folder);
+		return digests;
+	}
+
+	/**
 	 * Answers whether a file is executable by its owner.
 	 *
 	 * @param path - The file to look at.
@@ -220,6 +245,21 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			recursive: true,
 			force: true,
 		});
+	});
+
+	NodeTest.test('the package and the extension name one version', (t) => {
+		const agreed = VersionAgreement.check();
+		if (agreed.isAgreed === false) {
+			throw new Error(`the version numbers disagree: ${agreed.disagreement}`);
+		}
+
+		// The same check has to be able to fail, or it is checking nothing. A tag is what the release
+		// workflow passes it, and a tag naming another version is the mistake it exists to refuse.
+		const refused = VersionAgreement.check(`v${agreed.packageVersion}9`);
+		if (refused.isAgreed === true) {
+			throw new Error('a tag naming another version was accepted');
+		}
+		t.diagnostic(`both say ${agreed.packageVersion}, and a tag saying otherwise is refused`);
 	});
 
 	NodeTest.test('npm links the command the bin field names, and it runs', (t) => {
@@ -273,6 +313,32 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			throw new Error('the command never named the folder it wrote, so nothing was announced');
 		}
 		t.diagnostic(`installed into ${installationDir}`);
+	});
+
+	NodeTest.test('what npm delivered is the release a real Chrome is driven against', (t) => {
+		// This is the link between the two runners. `packaged_release.test.ts` drives a real Chrome
+		// against the release folder, installed through the same `PackagedReleaseInstallation` this
+		// command uses, and it needs port 8765 so it can only run where no other browser does. Here the
+		// same folder is compared with what npm really packed, installed and copied, so the browser proof
+		// carries over to the package without a second twelve-minute Chrome run.
+		const released = NpmPackageTest.digestEveryFile(Path.join(__dirname, '..', 'build', 'release'));
+		const installed = NpmPackageTest.digestEveryFile(NpmPackageTest.installationDir());
+
+		const missing = [...released.keys()].filter((name) => installed.has(name) === false);
+		if (missing.length > 0) {
+			throw new Error(`npm delivered no ${missing.join(', ')}`);
+		}
+		const extra = [...installed.keys()].filter((name) => released.has(name) === false);
+		if (extra.length > 0) {
+			throw new Error(`the installation holds ${extra.join(', ')}, which the release does not`);
+		}
+		const changed = [...released.entries()]
+			.filter(([name, digest]) => installed.get(name) !== digest)
+			.map(([name]) => name);
+		if (changed.length > 0) {
+			throw new Error(`${changed.join(', ')} arrived changed`);
+		}
+		t.diagnostic(`${released.size} files, every one identical to the release Chrome is driven against`);
 	});
 
 	NodeTest.test('installing ends by saying the one step nobody else can take', (t) => {

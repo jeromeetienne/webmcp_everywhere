@@ -43,11 +43,17 @@ export type InstalledPackagedRelease = {
 	targetDir: string;
 	/** Whether that folder was already there, so a person is told it is replaced rather than created. */
 	isTargetDirReplaced: boolean;
-	/** Whether the source and the target are one folder, in which case nothing is copied and only the registration runs again. */
+	/**
+	 * Whether the source and the target are one folder, in which case nothing is copied and only the
+	 * registration runs again.
+	 */
 	isAlreadyInPlace: boolean;
 	/** The extension folder to load at `chrome://extensions`, inside the target folder. */
 	extensionDir: string;
-	/** The state directory holding the token, the endpoint file and the loaded adapters, which the target folder sits in. */
+	/**
+	 * The state directory holding the token, the endpoint file and the loaded adapters, which the target
+	 * folder sits in.
+	 */
 	stateDir: string;
 	/** What registering the native messaging host writes. */
 	nativeHost: NativeHostInstallation;
