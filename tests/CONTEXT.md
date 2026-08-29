@@ -14,14 +14,14 @@ Everything that exists only to check the product: the runners, the live browser 
 - `endpoint_file.test.ts`: `EndpointFileTest` — 10 checks that `endpoint.json` names a host really listening.
 - `native_host_install.test.ts`: `NativeHostInstallTest` — 7 checks that installing announces every file first and uninstalling removes each.
 - `injection_defence.test.ts`: `InjectionDefenceTest` — attacks through hostile content put on the page.
-- `source_boundary.test.ts`: `SourceBoundaryTest` — refuses a relative import that leaves `src/`.
+- `source_boundary.test.ts`: `SourceBoundaryTest` — refuses a relative import that leaves `src/`, or that leaves a package under `packages/`.
 - `live_page_harness.ts`: `LivePageHarness` — the live browser the site checks share, from launching Chrome to calling one tool.
 - Commands: `npm test`; `npm run test:no_browser`; one alone, `node --test tests/native_host.test.ts`.
 
 ## Rules
 - A runner is named after its subject and ends in `.test.ts`, so `node --test` finds it with no file list, here and in the subfolders. A file holding no check keeps a plain name.
 - `package.json` holds no script for a single runner, except `npm run test:no_browser`, which names the five starting no browser.
-- Imports run one way only: `tests/` from `tools/` and `src/`, `tools/` from `src/`, `src/` from neither. `tests/source_boundary.test.ts` checks the last.
+- Imports run one way only: `tests/` from `tools/` and `src/`, `tools/` from `src/`, `src/` from neither. `tests/source_boundary.test.ts` checks the last, for `src/` and for every package under `packages/`.
 - Verification asserts against state read back out of the live page. Nothing is mocked, and a check that cannot fail is not a check.
 - The five starting no browser are what `npm run test:no_browser` names, and none mocks anything: `endpoint_file.test.ts` starts the real host over a real pipe, and `npm_package.test.ts` really packs, installs and runs the published command.
 - Nothing here writes into the browser the user installed, which [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4) refuses: `native_host_install.test.ts` passes `isEverydayChromeCovered: false`, and `npm_package.test.ts` sets `HOME` to a throwaway directory, so the everyday Chrome it covers is one inside that home.

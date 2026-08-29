@@ -1,5 +1,5 @@
+import { PageDriving } from '@webmcp_everywhere/adapter_toolkit';
 import type { Adapter } from '../../adapter_format/adapter_types.js';
-import { PageDriving } from '../../adapter_toolkit/page_driving.js';
 import type { TodoFilter } from './todomvc_page.js';
 import { TodomvcPage } from './todomvc_page.js';
 

@@ -59,7 +59,7 @@ node --test tests/native_host.test.ts
 | [`tests/injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
 | [`tests/devtools_protocol_bridge/webmcp_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.test.ts) | The stdio Model Context Protocol bridge |
 | [`tests/packaged_release.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/packaged_release.test.ts) | That a packaged release installs and runs with no repository under it |
-| [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
+| [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), or that leaves a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages) |
 
 `npm run typecheck` covers the types, and that every file Node.js runs directly stays within erasable syntax.
 
@@ -91,7 +91,7 @@ That runner is the one check that cannot run on most laptops. Port 8765 serves o
 - **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `node --test tests/endpoint_file.test.ts`.
 - **You touched what the installation writes into Chrome, or what the uninstallation takes back out.** Run `node --test tests/native_host_install.test.ts`.
 - **You touched the framing or the injection watch.** Run `node --test tests/injection_defence.test.ts`.
-- **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `node --test tests/source_boundary.test.ts`.
+- **You moved a file between [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), and [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests).** Run `node --test tests/source_boundary.test.ts`.
 
 ## The three runners with no browser in them
 
@@ -109,7 +109,7 @@ Imports run one way only.
 tests/  →  tools/  →  src/
 ```
 
-[`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) may import from [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) and from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) may import from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) imports from neither, and `node --test tests/source_boundary.test.ts` refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
+[`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) may import from [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) and from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) may import from [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) imports from neither, and `node --test tests/source_boundary.test.ts` refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Each package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages) is held to the same rule about its own folder, because a package reaching back into the repository along a relative path would work here and break for anybody who installed it.
 
 That rule is what keeps build tooling and verification code from drifting back into the product. [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) holds what ships and nothing else.
 

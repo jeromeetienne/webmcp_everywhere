@@ -23,6 +23,7 @@
 		"types": ["node", "chrome"]
 	},
 	"include": [
+		"packages/**/*.ts",
 		"src/**/*.ts",
 		"tests/**/*.ts",
 		"tools/**/*.ts"

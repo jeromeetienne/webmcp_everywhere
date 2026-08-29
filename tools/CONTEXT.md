@@ -21,7 +21,7 @@ Everything that builds, installs, launches, packages, or loads the product. What
 - Anything reading an adapter bundles it with esbuild and runs the bundle, never parses source: adapters import with a `.js` extension, which Node.js cannot resolve from `.ts`.
 - Only `npm run install:host` and the installed `npx webmcp_everywhere` may write into the everyday Chrome; everything else passes `isEverydayChromeCovered: false`. `InstallNativeHost.plan` names every file before `run` writes one, and installing and uninstalling share the one `manifestDirectories`: a missed directory leaves Chrome starting a program the user asked it to stop.
 - A packaged release carries its own launcher, bundled host and manifest template. One reaching for `src/` would pass every check here and fail for every user.
-- Nothing in `src/` imports from here, and nothing here writes into `src/`, which `tests/source_boundary.test.ts` checks. Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.
+- Nothing in `src/` or in `packages/` imports from here, and nothing here writes into either, which `tests/source_boundary.test.ts` checks. Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.
 - Every step `LaunchChrome` takes prevents a silent failure, none is safe to drop, and all are named in [build_and_install.md](../docs/build_and_install.md): the manifest names no site, so a page opened before the registrar has run carries no adapter.
 
 ## Background

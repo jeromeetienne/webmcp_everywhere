@@ -17,4 +17,4 @@ The checks an adapter must pass before `npm run build` will bundle it: the schem
 ## Background
 - These three files lived in `src/adapter_format/` until the source folder was cut down to product code only. The reason they must stay out of a page is in [`/src/CONTEXT.md`](../../src/CONTEXT.md): bundling the schema library into a main-world content script cost about 150 kilobytes on every page for no protection at all.
 - The permission audit is a lint, not a proof: it reads only the handler's own source, so a handler that calls a mutating helper defeats it. The no-network rule is the defence that does not depend on reading source.
-- The one mutating helper the audit does see is `PageDriving`, because every helper in `src/adapter_toolkit/page_driving.ts` changes the page. That is a rule of [that folder](../../src/adapter_toolkit/CONTEXT.md), and this pattern is only sound while it holds.
+- The one mutating helper the audit does see is `PageDriving`, because every helper in `packages/adapter_toolkit/src/page_driving.ts` changes the page. That is a rule of [that package](../../packages/adapter_toolkit/CONTEXT.md), and this pattern is only sound while it holds.

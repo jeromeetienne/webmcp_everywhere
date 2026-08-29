@@ -7,6 +7,9 @@
 		"node": ">=22.18.0"
 	},
 	"type": "module",
+	"workspaces": [
+		"packages/*"
+	],
 	"description": "A community-maintained library of WebMCP adapters that register tools into sites that have not shipped their own.",
 	"keywords": [
 		"webmcp",
@@ -45,6 +48,7 @@
 		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
 	},
 	"devDependencies": {
+		"@webmcp_everywhere/adapter_toolkit": "0.1.0",
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@types/chrome": "0.2.6",
 		"@types/node": "26.2.0",

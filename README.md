@@ -177,10 +177,10 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`.
+`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own, imported by its name rather than by a relative path.
 
+- `packages/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it. Imported as `@webmcp_everywhere/adapter_toolkit`.
 - `src/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed.
-- `src/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it.
 - `src/site_adapters/` — one folder per target site this build ships.
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads.
