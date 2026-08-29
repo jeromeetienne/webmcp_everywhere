@@ -84,8 +84,23 @@ type ChromePreferences = {
  * does not bring it back. Installing over the Chrome DevTools Protocol is the only path that works.
  */
 export class LaunchChrome {
-	/** Where Chrome lives on macOS. */
-	static CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+	/**
+	 * Where Chrome lives, in the order these paths are tried.
+	 *
+	 * The first is macOS, and the rest are Linux, which is what a continuous integration runner is.
+	 * `WEBMCP_EVERYWHERE_CHROME_PATH` overrides the whole list, for a Chrome installed somewhere else.
+	 */
+	static CHROME_PATHS = [
+		'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+		'/usr/bin/google-chrome',
+		'/usr/bin/google-chrome-stable',
+		'/opt/google/chrome/chrome',
+		'/usr/bin/chromium',
+		'/usr/bin/chromium-browser',
+	];
+
+	/** The environment variable naming a Chrome to use instead of searching for one. */
+	static CHROME_PATH_VARIABLE = 'WEBMCP_EVERYWHERE_CHROME_PATH';
 
 	/** The remote debugging port everything else in this repository expects. */
 	static PORT = 9333;
@@ -155,7 +170,7 @@ export class LaunchChrome {
 		}
 		args.push('about:blank');
 
-		const childProcess = ChildProcess.spawn(LaunchChrome.CHROME_PATH, args, {
+		const childProcess = ChildProcess.spawn(LaunchChrome.chromePath(), args, {
 			detached: true,
 			stdio: 'ignore',
 		});
@@ -180,6 +195,50 @@ export class LaunchChrome {
 			extensionId: installed.id,
 			profileDir: profileDir,
 		};
+	}
+
+	/**
+	 * Finds the Chrome to launch.
+	 *
+	 * This repository was written on macOS, where there is one path and it is always right. A
+	 * continuous integration runner is Linux, where Chrome sits in one of several places and may be
+	 * Chromium instead, so the path is searched for rather than named.
+	 *
+	 * @returns The path of the first Chrome found.
+	 * @throws When no Chrome is at any of the paths, naming every path tried.
+	 */
+	static chromePath(): string {
+		const named = process.env[LaunchChrome.CHROME_PATH_VARIABLE];
+		if (named !== undefined && named !== '') {
+			if (Fs.existsSync(named) === false) {
+				throw new Error(`${LaunchChrome.CHROME_PATH_VARIABLE} names ${named}, which does not exist`);
+			}
+			return named;
+		}
+		for (const candidate of LaunchChrome.CHROME_PATHS) {
+			if (Fs.existsSync(candidate) === true) {
+				return candidate;
+			}
+		}
+		throw new Error(
+			`no Chrome found at any of: ${LaunchChrome.CHROME_PATHS.join(', ')}. ` +
+				`Set ${LaunchChrome.CHROME_PATH_VARIABLE} to name one.`,
+		);
+	}
+
+	/**
+	 * Reports the version of the Chrome that would be launched.
+	 *
+	 * WebMCP is an origin trial that runs from Chrome 149 to Chrome 156, so a check that fails on an
+	 * older Chrome has found the browser, not a fault in this repository, and has to say so.
+	 *
+	 * @returns The version string Chrome prints, such as `Google Chrome 151.0.7710.0`.
+	 */
+	static chromeVersion(): string {
+		const result = ChildProcess.spawnSync(LaunchChrome.chromePath(), ['--version'], {
+			encoding: 'utf8',
+		});
+		return (result.stdout ?? '').trim();
 	}
 
 	///////////////////////////////////////////////////////////////////////////////

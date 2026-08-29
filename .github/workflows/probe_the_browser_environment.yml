@@ -1,0 +1,41 @@
+name: Probe the browser environment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - probe_the_browser_environment
+
+jobs:
+  report:
+    name: Report what this runner can do
+    runs-on: ubuntu-latest
+    steps:
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      - name: Say which Chrome this runner already has
+        run: |
+          echo "--- which google-chrome ---"
+          which google-chrome || echo "no google-chrome on the path"
+          which google-chrome-stable || echo "no google-chrome-stable on the path"
+          which chromium || echo "no chromium on the path"
+          echo "--- versions of whatever is there ---"
+          for candidate in /usr/bin/google-chrome /usr/bin/google-chrome-stable /opt/google/chrome/chrome /usr/bin/chromium /usr/bin/chromium-browser; do
+            if [ -x "$candidate" ]; then echo "$candidate -> $("$candidate" --version 2>&1)"; else echo "$candidate absent"; fi
+          done
+
+      - name: Build the extension
+        run: npm run build
+
+      - name: Report the browser environment
+        run: node tools/report_browser_environment.ts
