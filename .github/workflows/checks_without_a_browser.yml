@@ -1,0 +1,45 @@
+# The checks a pull request gets an answer from, which are every check that needs no browser.
+#
+# Almost every verification runner in this repository drives a real Chrome against the real public
+# site, which is the right way to know an adapter works and the wrong way to answer a pull request: it
+# is slow, it needs Chrome 149 or later with the WebMCP origin trial, and it reports a site that
+# changed and a broken adapter in the same way. Those runners are checked nightly instead, one job per
+# adapter, and a failure there marks the adapter stale rather than refusing a merge.
+#
+# See https://github.com/jeromeetienne/webmcp_everywhere/issues/9 for the plan this file belongs to.
+
+name: Checks without a browser
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  checks_without_a_browser:
+    name: Checks without a browser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Take a copy of the repository
+        uses: actions/checkout@v7
+
+      # Version 22.18.0 is the oldest Node.js this repository runs on, because that is the first one
+      # that strips TypeScript types on its own. Checking on the oldest is what keeps that claim true.
+      - name: Install the oldest Node.js this repository supports
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.18.0'
+          cache: npm
+
+      - name: Install the dependencies the lock file names
+        run: npm ci
+
+      - name: Check the types
+        run: npm run typecheck
+
+      - name: Check every adapter, then bundle the extension
+        run: npm run build
+
+      - name: Run the verification runners that start no browser
+        run: npm run test:no_browser

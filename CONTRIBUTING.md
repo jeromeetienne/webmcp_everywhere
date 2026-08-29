@@ -1,0 +1,116 @@
+# Contributing to WebMCP Everywhere
+
+The point of this project is that other people write the adapters. This repository keeps the engine and a small number of example adapters, and the catalogue is meant to grow from contributions rather than from the maintainer. So a pull request that covers a new site is the most useful thing you can send.
+
+## What this project takes
+
+- **An adapter for a site nobody has covered.** This is the main one. Read [Before you write an adapter](#before-you-write-an-adapter) first, because two of the three questions there have already dropped sites that looked like good candidates.
+- **A repair to an adapter whose site changed under it.** Sites change and adapters break. Open [an adapter has stopped working](https://github.com/jeromeetienne/webmcp_everywhere/issues/new?template=an_adapter_has_stopped_working.yml) or send the repair.
+- **A fix or an improvement to the engine**: the adapter format, the extension, the native messaging host, the build, or the verification runners.
+- **A correction to the documentation.** Anything in `docs/` that is wrong or out of date is worth a pull request on its own.
+
+## The licence of what you send
+
+This project is under the MIT licence, in [LICENSE](LICENSE). By sending a pull request you agree that your contribution is published under the same licence. There is no separate agreement to sign.
+
+## Before you write an adapter
+
+A site is worth an adapter only where a browser session gives an agent something no public interface will. The three questions below are the ones every candidate in [issue #5](https://github.com/jeromeetienne/webmcp_everywhere/issues/5) was judged against.
+
+1. **What does a browser session give here that a public interface will not?** The three answers that have counted so far are the view you are actually looking at, the session you are actually signed in to, and the queries the site already composes for you. A site with a free public interface is still a candidate, but only for the part that interface does not serve.
+2. **Does the site already ship its own WebMCP tools?** A site that does is the outcome this project wants, not a gap to fill. An adapter for it would be refused, and its yield condition would stand it down anyway.
+3. **Do the terms of the site forbid navigating it with an automated tool?** An adapter navigates the site automatically. Where the terms forbid that, the site is not a candidate at all.
+
+You do not have to open an issue before sending a pull request. Opening [request an adapter for a site](https://github.com/jeromeetienne/webmcp_everywhere/issues/new?template=request_an_adapter.yml) is the cheap way to find out that a site is not a candidate before you spend a day on it.
+
+## How to write one
+
+[docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide, in the order to do things in. Read [docs/adapter_format.md](docs/adapter_format.md) first for what an adapter is.
+
+The three existing adapters are examples, and each carries a `README.md` and a `CONTEXT.md` beside it. Read at least one of them before writing your own.
+
+- [The Playwright TodoMVC adapter](src/site_adapters/demo_playwright_dev/README.md) — the smallest one, and the one every engine milestone was written against.
+- [The Can I use... adapter](src/site_adapters/caniuse_com/README.md) — reads data the rendered page does not show.
+- [The OpenStreetMap adapter](src/site_adapters/openstreetmap_org/README.md) — the largest one, split across several files.
+
+## What a pull request must carry
+
+The pull request template asks for these as checkboxes. A pull request that adds an adapter carries all of them; a pull request that changes the engine carries the first group only.
+
+**Every pull request**
+
+- `npm run typecheck` passes.
+- `npm run build` passes, which is where every adapter review check runs.
+- `npm run test:no_browser` passes.
+- Every rule in the `CONTEXT.md` of each folder you touched still holds. A rule your change makes untrue is rewritten in the same pull request.
+
+**A pull request that adds an adapter**
+
+- The adapter, as one folder under `src/site_adapters/`.
+- A verification runner under `tests/site_adapters/` that asserts against state read back out of the live page.
+- That runner passing against the live site, with the date and the Chrome version written into the pull request. Continuous integration cannot run it, so that line is the only record of it.
+- The folder's `CONTEXT.md` and the folder's `README.md`.
+- The adapter registered in `src/chrome_extension/shared_state/adapter_registry.ts`, and its match patterns added to all three lists in `src/chrome_extension/manifest.json`.
+
+That last one is four hand edits, and it is the thing this project is working to remove. The plan is in [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9); until it lands, the four edits are still yours to make, and forgetting one of the three manifest lists registers an adapter that never runs.
+
+## Running the checks
+
+You need Google Chrome 149 or later and Node.js 22.18.0 or later. The WebMCP origin trial runs from Chrome 149 to Chrome 156.
+
+Install the dependencies once.
+
+```bash
+npm install
+```
+
+The checks that need no browser. These are the ones continuous integration runs, and they answer in about a minute.
+
+```bash
+npm run typecheck
+```
+
+```bash
+npm run build
+```
+
+```bash
+npm run test:no_browser
+```
+
+The checks that drive a real Chrome against the real live site. Everything else in `tests/` is one of these, and they are the ones that actually prove an adapter works.
+
+```bash
+npm test
+```
+
+```bash
+npm run test:visible
+```
+
+One runner alone, which is what you want while writing an adapter.
+
+```bash
+node --test tests/site_adapters/todomvc.test.ts
+```
+
+Which runner covers what, and which one to reach for when a check fails, is in [docs/testing_and_verification.md](docs/testing_and_verification.md).
+
+## What continuous integration runs, and what it does not
+
+Continuous integration runs `npm run typecheck`, `npm run build`, and `npm run test:no_browser`, on every pull request. See [.github/workflows/checks_without_a_browser.yml](.github/workflows/checks_without_a_browser.yml).
+
+It does not run anything that starts a browser. Those runners drive the real public site, so they are slow, they need Chrome 149 or later with the WebMCP origin trial, and they report a site that changed and a broken adapter in the same way. **Running the live check for your adapter is your job, and saying in the pull request when you last ran it is part of the contribution.**
+
+## Following the conventions of the repository
+
+- **Every folder has a `CONTEXT.md`** holding the rules for editing that folder. Read the one for any folder you touch, before you touch it. It is short, and every rule in it is a failure somebody already had.
+- **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
+- **`src/` holds the product and nothing else.** It imports from neither `tools/` nor `tests/`, and `node --test tests/source_boundary.test.ts` refuses a relative import that leaves it.
+- **Nothing under `src/site_adapters/` may reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
+- **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.
+- **Never wrap a paragraph in a document at a fixed column.** One paragraph is one line.
+
+## Where this project is going
+
+[Issue #8](https://github.com/jeromeetienne/webmcp_everywhere/issues/8) lists what is still missing before somebody who is not the maintainer can write an adapter, publish it, and use it without waiting for a merge here. [Issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9) is the plan for it. Reading both is the fastest way to see what is worth working on.

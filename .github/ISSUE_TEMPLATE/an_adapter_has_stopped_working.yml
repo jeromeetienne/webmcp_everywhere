@@ -1,0 +1,76 @@
+name: An adapter has stopped working
+description: A tool that used to work now fails, returns nothing, or returns something wrong.
+title: 'Broken: '
+labels:
+  - adapter broken
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The usual cause is that the site changed under the adapter. That is expected, it is the main way an adapter fails, and reporting it is the only way anybody finds out before the next user does.
+
+        Before reporting, run that adapter's own verification runner if you can. It drives the live site in a real Chrome and says which tool disagrees with the page:
+
+        ```bash
+        node --test tests/site_adapters/openstreetmap.test.ts
+        ```
+
+  - type: input
+    id: site
+    attributes:
+      label: The site
+      placeholder: https://www.openstreetmap.org/
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: The tool that failed
+      description: The whole qualified name, as the agent sees it.
+      placeholder: openstreetmap_org__describe_feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What you asked, and what the tool returned
+      description: The request in your own words, then the tool result as it came back. Paste the result rather than describing it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: read_only_tools
+    attributes:
+      label: Do the read-only tools on that site still work?
+      description: This is what separates a broken adapter from a broken delivery path. If nothing at all works, the fault is more likely the native messaging host than the adapter.
+      options:
+        - 'Yes, the read-only tools still work'
+        - 'No, nothing on that site works'
+        - 'I have not tried'
+    validations:
+      required: true
+
+  - type: textarea
+    id: runner
+    attributes:
+      label: What that adapter's verification runner reported
+      description: Leave this empty if you did not run it.
+
+  - type: input
+    id: chrome_version
+    attributes:
+      label: Your Chrome version
+      description: Read it from chrome://version. WebMCP needs Chrome 149 or later, and its origin trial runs to Chrome 156.
+      placeholder: '151.0.7710.0'
+    validations:
+      required: true
+
+  - type: input
+    id: operating_system
+    attributes:
+      label: Your operating system
+      placeholder: macOS 15.2
+    validations:
+      required: true

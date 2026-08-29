@@ -5,6 +5,7 @@ Almost every check drives a real Chrome and asserts against state read back out 
 ```bash
 npm test                # every check, with Chrome hidden
 npm run test:visible    # every check, with Chrome on screen
+npm run test:no_browser # only the three runners that start no browser
 ```
 
 The checks are written with `node:test`, which Node.js runs straight from TypeScript with no build step. `npm test` runs them one runner at a time, because every runner that starts a browser takes the same debugging port and the same throwaway profile. Each of those launches its own throwaway Chrome, so none of them needs a browser to be up first.
@@ -58,6 +59,12 @@ node --test tests/native_host.test.ts
 | [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
 
 `npm run typecheck` covers the types, and that every file Node.js runs directly stays within erasable syntax.
+
+## What continuous integration runs
+
+`npm run test:no_browser` names the three runners that start no browser: [`tests/endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/endpoint_file.test.ts), [`tests/native_host_install.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host_install.test.ts), and [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts). Those three, plus `npm run typecheck` and `npm run build`, are what [`.github/workflows/checks_without_a_browser.yml`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/.github/workflows/checks_without_a_browser.yml) runs on every pull request, and they answer in about a minute.
+
+Every other runner drives a real Chrome against a real public site. That is the right way to know an adapter works and the wrong way to answer a pull request: it is slow, it needs Chrome 149 or later with the WebMCP origin trial, and it reports a site that changed the same way it reports a broken adapter. So **running the live check for an adapter is the contributor's job**, and the date it last passed belongs in the pull request. Checking those runners nightly, one job per adapter, so that a stale adapter is visible before a user finds it, is milestone four of [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9).
 
 ## Which one to run when
 

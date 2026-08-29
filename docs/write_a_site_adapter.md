@@ -50,7 +50,7 @@ export const exampleAdapter: Adapter = {
 	metadata: {
 		author: 'your name',
 		version: '1.0.0',
-		adapterFormatVersion: '1.0.0',
+		adapterFormatVersion: '0.1.0',
 		targetSiteVerifiedOn: '2026-08-21',
 	},
 	yieldCondition: (firstPartyToolNames) => firstPartyToolNames.length > 0,
@@ -59,6 +59,8 @@ export const exampleAdapter: Adapter = {
 	],
 };
 ```
+
+`adapterFormatVersion` is not yours to choose: it names the version of the adapter format the build accepts, which is `ADAPTER_FORMAT_VERSION` in [`tools/adapter_validation/adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/adapter_schema.ts). Any other value is rejected by the build. `version` beside it is the adapter's own version, and that one is yours.
 
 The rules that apply while writing it:
 

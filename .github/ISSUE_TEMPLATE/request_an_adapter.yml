@@ -1,0 +1,72 @@
+name: Request an adapter for a site
+description: Ask for a site to be covered, or propose one you intend to cover yourself.
+title: 'Adapter request: '
+labels:
+  - adapter request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A site is worth an adapter only where a browser session gives an agent something no public interface will. The three questions below are the ones every candidate in [issue #5](https://github.com/jeromeetienne/webmcp_everywhere/issues/5) was judged against, and two of them have already dropped candidates that looked good.
+
+        If you intend to write the adapter yourself, read [docs/write_a_site_adapter.md](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/docs/write_a_site_adapter.md) first. You do not have to open this issue before sending a pull request, but it is the cheap way to find out that a site is not a candidate before you spend a day on it.
+
+  - type: input
+    id: site
+    attributes:
+      label: The address of the site
+      placeholder: https://example.com/
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_you_would_ask
+    attributes:
+      label: What you would ask an agent to do on this site
+      description: Two or three real requests, in the words you would use. Not a list of tools.
+      placeholder: |
+        What changed on the map around where I am looking, and who made the biggest change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_the_session_gives
+    attributes:
+      label: What does a browser session give here that a public interface will not?
+      description: The three answers that have counted so far are the view you are actually looking at, the session you are actually signed in to, and the queries the site already composes for you. A site with a free public interface is still a candidate, but only for the part the interface does not serve.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: first_party_tools
+    attributes:
+      label: Does the site already ship its own WebMCP tools?
+      description: A site that ships its own tools is the outcome this project wants, not a gap to fill. An adapter for it would be refused, and its yield condition would stand it down anyway.
+      options:
+        - 'No, the site ships no tools of its own'
+        - 'Yes, the site ships its own tools'
+        - 'I have not checked'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: terms
+    attributes:
+      label: Do the terms of the site forbid navigating it with an automated tool?
+      description: An adapter navigates the site automatically. Where the terms forbid that, the site is not a candidate at all.
+      options:
+        - 'No, the terms allow it'
+        - 'Yes, the terms forbid it'
+        - 'I have not read the terms'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: who_writes_it
+    attributes:
+      label: Who writes this adapter?
+      options:
+        - 'I intend to write it myself'
+        - 'I am asking somebody else to write it'
+    validations:
+      required: true

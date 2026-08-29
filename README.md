@@ -147,6 +147,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 - `tools/` — build, launch, and install, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
+- `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.
 - `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
 
 Each folder has its own `CONTEXT.md`.
@@ -161,11 +162,25 @@ npm test                # every check, with Chrome hidden
 npm run test:visible    # the same checks, with Chrome on screen
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The three exceptions are `node --test tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `node --test tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `node --test tests/source_boundary.test.ts`, which reads the source folder off disk. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+```bash
+npm run test:no_browser # only the checks that start no browser
+```
+
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The three exceptions are the ones `npm run test:no_browser` names: `tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `tests/source_boundary.test.ts`, which reads the source folder off disk. Those three are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 
 There is no registry, no signing, no review pipeline, no telemetry, and no automated repair. Prompt injection is untouched: tool outputs are page content handed straight into an agent's context. What is and is not defended is set out honestly in [security_model.md](docs/security_model.md). None of the rest can be designed honestly until one adapter has been written and has broken at least once.
+
+## Contributing
+
+The point of this project is that other people write the adapters. [CONTRIBUTING.md](CONTRIBUTING.md) says what a pull request must carry, how to judge whether a site is worth an adapter at all, and which checks run where. [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide to writing one.
+
+What is still missing before somebody who is not the maintainer can write an adapter, publish it, and use it without waiting for a merge here is listed in [issue #8](https://github.com/jeromeetienne/webmcp_everywhere/issues/8), and the plan for it is [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9).
+
+## Licence
+
+[MIT](LICENSE).
 
 ## Useful links
 
