@@ -209,6 +209,48 @@ export class LaunchChrome {
 	}
 
 	/**
+	 * Waits until one named adapter's scripts are registered, whichever kind of adapter it is.
+	 *
+	 * Switching an adapter on writes extension storage, and the registrar re-applies when it notices
+	 * that write. Nothing about that is instant, so a page loaded straight after the switch can still
+	 * be running under the old set. The page then has no tools and the failure names the adapter,
+	 * which is the one thing that was working.
+	 *
+	 * @param port - The remote debugging port.
+	 * @param siteSlug - The adapter to wait for.
+	 * @param timeoutMs - How long to wait before giving up.
+	 * @returns Nothing.
+	 * @throws When the adapter's scripts are still not registered when the time runs out.
+	 */
+	static async waitUntilAdapterRegistered(
+		port: number,
+		siteSlug: string,
+		timeoutMs = LaunchChrome.REGISTRATION_TIMEOUT,
+	): Promise<void> {
+		const expression = `
+			(async () => {
+				const content = await chrome.scripting.getRegisteredContentScripts();
+				const user = typeof chrome.userScripts === 'undefined'
+					? []
+					: await chrome.userScripts.getScripts();
+				return [...content, ...user]
+					.map((script) => script.id)
+					.filter((id) => id.endsWith(${JSON.stringify(siteSlug)}))
+					.length;
+			})()
+		`;
+		const deadline = Date.now() + timeoutMs;
+		while (Date.now() < deadline) {
+			const registered = await ServiceWorkerEvaluation.evaluate<number>(port, expression);
+			if (registered > 0) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		throw new Error(`nothing was registered for the adapter ${siteSlug} within ${timeoutMs}ms`);
+	}
+
+	/**
 	 * Finds the Chrome to launch.
 	 *
 	 * This repository was written on macOS, where there is one path and it is always right. A

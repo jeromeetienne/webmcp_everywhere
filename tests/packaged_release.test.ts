@@ -4,6 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
@@ -42,8 +43,16 @@ class PackagedReleaseTest {
 	/** The address and token of the running host, or null before the first check. */
 	static endpoint: { url: string; token: string } | null = null;
 
-	/** The process holding port 8765 before this runner launched anything, or null when none did. */
-	static incumbentProcessId: number | null = null;
+
+	/**
+	 * Why these checks could not run, or null when they could.
+	 *
+	 * They need port 8765, and the port serves one browser at a time on purpose. A developer with
+	 * their everyday Chrome open already owns it, and no amount of waiting changes that. So this
+	 * says so and the checks skip, rather than failing and reading like a broken adapter. Continuous
+	 * integration has no other browser, so there they really run — see `.github/workflows/release.yml`.
+	 */
+	static blockedBy: string | null = null;
 
 	/**
 	 * Names the process currently serving on the host's port, or null when nothing is.
@@ -63,6 +72,33 @@ class PackagedReleaseTest {
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * Finds the packaged host this runner started, by the folder it was copied to.
+	 *
+	 * Comparing this against the process answering on the port is the only reliable way to know the
+	 * answers are coming from the release. Comparing against whoever held the port beforehand is not:
+	 * the other checks in this repository start and stop their own Chrome, so a browser that owned the
+	 * port a minute ago can be pushed off it and take it back again while this runner is starting.
+	 *
+	 * @returns Every process identifier whose command line names the installed release, newest first.
+	 */
+	static packagedHostProcessIds(): number[] {
+		const listing = ChildProcess.execSync('ps -axww -o pid=,command=', {
+			encoding: 'utf8',
+		});
+		const found: number[] = [];
+		for (const line of listing.split('\n')) {
+			if (line.includes(PackagedReleaseTest.INSTALLED_AT) === false) {
+				continue;
+			}
+			const processId = Number.parseInt(line.trim().split(/\s+/)[0], 10);
+			if (Number.isNaN(processId) === false) {
+				found.push(processId);
+			}
+		}
+		return found;
 	}
 
 	/**
@@ -164,7 +200,6 @@ class PackagedReleaseTest {
 
 NodeTest.describe('A packaged release, installed with no repository under it', () => {
 	NodeTest.before(async () => {
-		PackagedReleaseTest.incumbentProcessId = await PackagedReleaseTest.whoHoldsThePort();
 		const installedAt = await PackagedReleaseTest.installSomewhereElse();
 		await LaunchChrome.run({
 			extensionDir: Path.join(installedAt, 'chrome_extension'),
@@ -175,21 +210,29 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 			},
 		});
 		await PackagedReleaseTest._pause(PackagedReleaseTest.HOST_START);
-		PackagedReleaseTest.endpoint = PackagedReleaseTest.readEndpoint();
 
+		// Whoever is answering has to be the host that came out of the release. Another Chrome on this
+		// machine with this extension installed owns the port otherwise, the port serves one browser at
+		// a time on purpose, and every answer below would then be about that browser instead.
 		const holder = await PackagedReleaseTest.whoHoldsThePort();
-		if (holder !== null && holder === PackagedReleaseTest.incumbentProcessId) {
-			throw new Error(
-				`process ${holder} already held port 8765 before this runner started and still holds it. ` +
-					'That is another Chrome on this machine with this extension installed, and the port ' +
-					'serves one browser at a time by design, so the packaged host cannot be reached here. ' +
-					'Close that browser and run this again, or let continuous integration run it, where ' +
-					'no other Chrome exists.',
-			);
+		const ours = PackagedReleaseTest.packagedHostProcessIds();
+		if (holder !== null && ours.includes(holder) === false) {
+			PackagedReleaseTest.blockedBy =
+				`process ${holder} holds port 8765, and it is not the packaged host this runner started ` +
+				`(${ours.length === 0 ? 'which is no longer running' : `process ${ours.join(' or ')}`}). ` +
+				'That is another Chrome on this machine with this extension installed, and the port serves ' +
+				'one browser at a time by design. Close that browser to run these here; continuous ' +
+				'integration runs them for real, where no other Chrome exists.';
+			return;
 		}
+		PackagedReleaseTest.endpoint = PackagedReleaseTest.readEndpoint();
 	});
 
 	NodeTest.test('the release carries everything it needs and no TypeScript', async (t) => {
+		if (PackagedReleaseTest.blockedBy !== null) {
+			t.skip(PackagedReleaseTest.blockedBy);
+			return;
+		}
 		const installedAt = PackagedReleaseTest.INSTALLED_AT;
 		for (const name of [
 			'chrome_extension/manifest.json',
@@ -229,6 +272,10 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 	});
 
 	NodeTest.test('Chrome starts the packaged host, which takes the port', async (t) => {
+		if (PackagedReleaseTest.blockedBy !== null) {
+			t.skip(PackagedReleaseTest.blockedBy);
+			return;
+		}
 		const endpoint = PackagedReleaseTest.requireEndpoint();
 		const response = await fetch(endpoint.url.replace('/mcp', '/health'));
 		const health = (await response.json()) as {
@@ -242,6 +289,10 @@ NodeTest.describe('A packaged release, installed with no repository under it', (
 	});
 
 	NodeTest.test('an agent gets the page tools through the packaged host', async (t) => {
+		if (PackagedReleaseTest.blockedBy !== null) {
+			t.skip(PackagedReleaseTest.blockedBy);
+			return;
+		}
 		const endpoint = PackagedReleaseTest.requireEndpoint();
 		let text = '';
 		let fromThePage: string[] = [];

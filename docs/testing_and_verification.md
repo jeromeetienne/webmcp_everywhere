@@ -58,6 +58,7 @@ node --test tests/native_host.test.ts
 | [`tests/native_host_install.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host_install.test.ts) | That installing announces every file first, and that uninstalling removes every one of them |
 | [`tests/injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
 | [`tests/devtools_protocol_bridge/webmcp_bridge.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/webmcp_bridge.test.ts) | The stdio Model Context Protocol bridge |
+| [`tests/packaged_release.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/packaged_release.test.ts) | That a packaged release installs and runs with no repository under it |
 | [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts) | Refuses any relative import that leaves [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src) |
 
 `npm run typecheck` covers the types, and that every file Node.js runs directly stays within erasable syntax.
@@ -66,13 +67,26 @@ node --test tests/native_host.test.ts
 
 `npm run test:no_browser` names the four runners that start no browser: [`tests/adapter_registry_sync.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/adapter_registry_sync.test.ts), [`tests/endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/endpoint_file.test.ts), [`tests/native_host_install.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host_install.test.ts), and [`tests/source_boundary.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/source_boundary.test.ts). Those four, plus `npm run typecheck` and `npm run build`, are what [`.github/workflows/checks_without_a_browser.yml`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/.github/workflows/checks_without_a_browser.yml) runs on every pull request, and they answer in about a minute.
 
-Every other runner drives a real Chrome against a real public site. That is the right way to know an adapter works and the wrong way to answer a pull request: it is slow, it needs Chrome 149 or later with the WebMCP origin trial, and it reports a site that changed the same way it reports a broken adapter. So **running the live check for an adapter is the contributor's job**, and the date it last passed belongs in the pull request. Checking those runners nightly, one job per adapter, so that a stale adapter is visible before a user finds it, is milestone four of [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9).
+Every other runner drives a real Chrome against a real public site. That is the right way to know an adapter works and the wrong way to answer a pull request: it is slow, it needs Chrome 149 or later with the WebMCP origin trial, and it reports a site that changed the same way it reports a broken adapter. So **running the live check for an adapter is the contributor's job**, and the date it last passed belongs in the pull request.
+
+## What runs every night, and what runs on a tag
+
+Two more workflows exist, and neither of them answers a pull request.
+
+**[`live_checks.yml`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/.github/workflows/live_checks.yml)** runs every adapter's own runner against its real site, one job per adapter, every night. It refuses no merge, because the usual cause of a failure is the site rather than the change in front of it. What it does instead is write the freshness table into [`README.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/README.md) and commit it, so a stale adapter is visible before somebody's agent gets a wrong answer. The job list comes from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), never from a list written in the workflow, so adding an adapter stays one folder.
+
+Each of those jobs runs [`tools/environment_reports/report_browser_environment.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/environment_reports/report_browser_environment.ts) before the adapter's runner, and [`tools/environment_reports/report_site_reachability.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/environment_reports/report_site_reachability.ts) after it fails. A runner reports the same failure when the adapter broke, when the machine cannot run a browser, and when the site refused that machine. Those are three different conclusions, and the two reports are what separate them.
+
+**[`release.yml`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/.github/workflows/release.yml)** packages the extension and the native messaging host into one folder, drives that folder in a real Chrome with `node --test tests/packaged_release.test.ts`, and only then attaches the archive to the release for the tag. Nothing is published that has not been started.
+
+That runner is the one check that cannot run on most laptops. Port 8765 serves one browser at a time on purpose, so a developer with their everyday Chrome open already owns it. It says so and skips, rather than failing and reading like a broken adapter. A runner has no other browser, which is why it runs there for real.
 
 ## Which one to run when
 
 - **You changed an adapter.** Run that adapter's own runner: `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`.
 - **You changed the extension or the native messaging host.** Run `node --test tests/native_host.test.ts`, which is the only runner covering the real delivery path.
 - **You changed how an adapter is loaded, checked, or registered.** Run `node --test tests/loaded_adapter.test.ts`, which is the only runner covering the path from a folder outside this repository to a running tool.
+- **You changed the packaging, the launcher, or anything the host reads from disk.** Run `node --test tests/packaged_release.test.ts`, with your everyday Chrome closed. It is the only runner that proves the host works with no repository under it.
 - **`node --test tests/native_host.test.ts` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` narrows it further, because the bridge reaches the page without the extension or the host in the way.
 - **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `node --test tests/endpoint_file.test.ts`.
 - **You touched what the installation writes into Chrome, or what the uninstallation takes back out.** Run `node --test tests/native_host_install.test.ts`.

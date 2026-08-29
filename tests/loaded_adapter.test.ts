@@ -202,14 +202,25 @@ NodeTest.test('it registers its tools on the live site, with no rebuild of this 
 		enabledAdapters: [LoadedAdapterTest.SITE_SLUG],
 	});
 
+	// Switching an adapter on and loading a page are two separate things, and the registrar sits
+	// between them. Loading first gives a page running under the old set, no tools, and a failure
+	// that names the adapter rather than the race.
+	await LaunchChrome.waitUntilAdapterRegistered(launched.port, LoadedAdapterTest.SITE_SLUG);
+
 	const page = await CdpClient.connectToPage(launched.port, 'example.com');
-	await page.navigate(LoadedAdapterTest.TARGET_URL, 5000);
-	const names = JSON.parse(
-		await page.evaluate<string>(
-			'document.modelContext.getTools().then((tools) => JSON.stringify(tools.map((tool) => tool.name)))',
-		),
-	) as string[];
-	page.close();
+	let names: string[];
+	try {
+		await page.navigate(LoadedAdapterTest.TARGET_URL, 5000);
+		names = JSON.parse(
+			await page.evaluate<string>(
+				'document.modelContext.getTools().then((tools) => JSON.stringify(tools.map((tool) => tool.name)))',
+			),
+		) as string[];
+	} finally {
+		// Closing in a `finally` because an open socket keeps the event loop alive: a check that threw
+		// used to leave the runner running for ever with its failure already printed.
+		page.close();
+	}
 
 	const expected = `${LoadedAdapterTest.SITE_SLUG}__describe_page`;
 	if (names.includes(expected) === false) {
@@ -220,15 +231,20 @@ NodeTest.test('it registers its tools on the live site, with no rebuild of this 
 
 NodeTest.test('its tool runs, and its result is framed as untrusted content', async (t) => {
 	const page = await CdpClient.connectToPage(LoadedAdapterTest.requirePort(), 'example.com');
-	const raw = await page.evaluate<string>(`
-		(async () => {
-			const tools = await document.modelContext.getTools();
-			const tool = tools.find((candidate) => candidate.name === '${LoadedAdapterTest.SITE_SLUG}__describe_page');
-			return await document.modelContext.executeTool(tool, '{}');
-		})()
-	`);
-	const title = await page.evaluate<string>('document.title');
-	page.close();
+	let raw: string;
+	let title: string;
+	try {
+		raw = await page.evaluate<string>(`
+			(async () => {
+				const tools = await document.modelContext.getTools();
+				const tool = tools.find((candidate) => candidate.name === '${LoadedAdapterTest.SITE_SLUG}__describe_page');
+				return await document.modelContext.executeTool(tool, '{}');
+			})()
+		`);
+		title = await page.evaluate<string>('document.title');
+	} finally {
+		page.close();
+	}
 
 	const framed = JSON.parse(raw) as {
 		webmcpEverywhere?: { origin: string; tool: string };

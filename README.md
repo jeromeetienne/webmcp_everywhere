@@ -14,7 +14,7 @@ Three sites are covered by adapters bundled into this build, as examples of what
 - Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](src/site_adapters/caniuse_com/README.md).
 - Thirteen tools on `https://www.openstreetmap.org/` — six read-only and seven acting, aimed at a mapper: the tags on a feature, the areas containing a point, what changed in the view, and routing used as a test of the road network. See [the adapter's own README.md](src/site_adapters/openstreetmap_org/README.md).
 
-A site changes and an adapter breaks. A run every night drives each of these against its real site and writes what it found here, so a stale adapter is visible before somebody's agent gets a wrong answer.
+A site changes and an adapter breaks. [A run every night](.github/workflows/live_checks.yml) drives each of these against its real site and writes what it found here, so a stale adapter is visible before somebody's agent gets a wrong answer. "Author last checked" is the date in the adapter's own `metadata.targetSiteVerifiedOn`, which the extension's popup shows as well.
 
 <!-- adapter_freshness begin -->
 | Adapter | Site | Read-only | Acting | Sensitive | Author last checked | Last nightly run |
@@ -75,6 +75,11 @@ npm run load-adapter -- ~/my_adapters/example_com
 Takes an installed adapter back out again
 ```bash
 npm run unload-adapter -- example_com
+```
+
+Packages a folder somebody can install without cloning anything
+```bash
+npm run package:release
 ```
 
 The native messaging host writes where it is listening to `~/.webmcp_everywhere/endpoint.json`, and the token an agent must present to `~/.webmcp_everywhere/token`. Two files, because the two facts have different lifetimes: the token is made once and never changes, while the address is true only while a host is holding that port. So `endpoint.json` is there while a host is really listening and gone when none is, and a missing file means no browser is running rather than an address that no longer works. The address itself is always `http://127.0.0.1:8765/mcp`, so an agent registered once stays registered.
@@ -157,7 +162,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 | [permissions_and_trust.md](docs/permissions_and_trust.md) | Why acting tools are withheld, and what you agree to by loading an adapter |
 | [security_model.md](docs/security_model.md) | What is defended, and what plainly is not |
 | [testing_and_verification.md](docs/testing_and_verification.md) | The three paths to the browser, and which runner covers which |
-| [build_and_install.md](docs/build_and_install.md) | What each command writes, and every environment variable |
+| [build_and_install.md](docs/build_and_install.md) | What each command writes, how a release is packaged, and every environment variable |
 | [troubleshooting.md](docs/troubleshooting.md) | The failures that report nothing |
 
 ## Layout

@@ -116,7 +116,9 @@ Which runner covers what, and which one to reach for when a check fails, is in [
 
 Continuous integration runs `npm run typecheck`, `npm run build`, and `npm run test:no_browser`, on every pull request. See [.github/workflows/checks_without_a_browser.yml](.github/workflows/checks_without_a_browser.yml).
 
-It does not run anything that starts a browser. Those runners drive the real public site, so they are slow, they need Chrome 149 or later with the WebMCP origin trial, and they report a site that changed and a broken adapter in the same way. **Running the live check for your adapter is your job, and saying in the pull request when you last ran it is part of the contribution.**
+It does not run anything that starts a browser on a pull request. Those runners drive the real public site, so they are slow, they need Chrome 149 or later with the WebMCP origin trial, and they report a site that changed and a broken adapter in the same way. **Running the live check for your adapter is your job, and saying in the pull request when you last ran it is part of the contribution.**
+
+Two other workflows run away from pull requests. [live_checks.yml](.github/workflows/live_checks.yml) drives every adapter against its real site every night and writes the freshness table into [README.md](README.md), so a stale adapter is visible before somebody's agent gets a wrong answer; it refuses no merge, because the usual cause is the site. [release.yml](.github/workflows/release.yml) packages a release, drives it in a real Chrome, and only then attaches the archive to the release for a `v*` tag.
 
 ## Following the conventions of the repository
 

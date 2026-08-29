@@ -4,8 +4,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { LaunchChrome } from './launch_chrome.ts';
+import { CdpClient } from '../chrome_devtools_protocol/cdp_client.ts';
+import { LaunchChrome } from '../launch_chrome.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

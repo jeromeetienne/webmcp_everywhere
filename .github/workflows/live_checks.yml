@@ -77,7 +77,7 @@ jobs:
       # cannot run a browser at all, and those are opposite conclusions.
       - name: Say whether this machine can run a live check at all
         timeout-minutes: 5
-        run: node tools/report_browser_environment.ts
+        run: node tools/environment_reports/report_browser_environment.ts
 
       - name: Drive the real site
         id: drive_the_real_site
@@ -89,7 +89,7 @@ jobs:
       - name: Ask the site directly, now that the runner has failed
         if: failure() && steps.drive_the_real_site.outcome == 'failure'
         timeout-minutes: 8
-        run: node tools/report_site_reachability.ts
+        run: node tools/environment_reports/report_site_reachability.ts
 
       - name: Say what happened, for the freshness table
         if: always()

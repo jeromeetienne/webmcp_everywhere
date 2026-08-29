@@ -10,9 +10,6 @@ on:
   push:
     tags:
       - 'v*'
-    # TEMPORARY, removed before this reaches main: proves the whole workflow on a branch first.
-    branches:
-      - probe_the_browser_environment
   workflow_dispatch:
 
 permissions:
