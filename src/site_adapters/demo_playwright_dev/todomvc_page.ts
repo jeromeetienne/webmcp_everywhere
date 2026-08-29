@@ -1,3 +1,5 @@
+import { PageWaiting } from '../../adapter_toolkit/page_waiting.js';
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	TodomvcPage — reads and drives https://demo.playwright.dev/todomvc/
@@ -34,6 +36,12 @@ export class TodomvcPage {
 
 	/** How long to wait for React to re-render and persist after an interaction, in milliseconds. */
 	static readonly SETTLE_TIMEOUT = 2000;
+
+	/** How long to wait between two reads of the stored state while waiting for it, in milliseconds. */
+	static readonly POLL_INTERVAL = 25;
+
+	/** How long a re-render takes that never reaches the stored state, such as a filter, in milliseconds. */
+	static readonly RENDER_DELAY = 150;
 
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
@@ -127,43 +135,6 @@ export class TodomvcPage {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Writes into a React-controlled input the only way React notices.
-	 *
-	 * @param element - The input to write into.
-	 * @param value - The text to write.
-	 * @returns Nothing.
-	 */
-	static _setReactInputValue(element: HTMLInputElement, value: string): void {
-		const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-		if (descriptor === undefined || descriptor.set === undefined) {
-			throw new Error('cannot reach the native input value setter');
-		}
-		descriptor.set.call(element, value);
-		element.dispatchEvent(
-			new Event('input', {
-				bubbles: true,
-			}),
-		);
-	}
-
-	/**
-	 * Presses Enter on an element, the way the page's key handlers expect.
-	 *
-	 * @param element - The element to press Enter on.
-	 * @returns Nothing.
-	 */
-	static _pressEnter(element: HTMLElement): void {
-		element.dispatchEvent(
-			new KeyboardEvent('keydown', {
-				key: 'Enter',
-				keyCode: 13,
-				which: 13,
-				bubbles: true,
-			}),
-		);
-	}
-
-	/**
 	 * Waits until the stored state stops matching what it was, so a tool reports the result of its own
 	 * interaction rather than the state from before it.
 	 *
@@ -171,13 +142,12 @@ export class TodomvcPage {
 	 * @returns Nothing. Returns early on timeout rather than throwing, so a no-op interaction still reports.
 	 */
 	static async _waitForChange(previousRaw: string | null): Promise<void> {
-		const deadline = Date.now() + TodomvcPage.SETTLE_TIMEOUT;
-		while (Date.now() < deadline) {
-			if (window.localStorage.getItem(TodomvcPage.STORAGE_KEY) !== previousRaw) {
-				return;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 25));
-		}
+		await PageWaiting.waitUntilChanged(
+			() => window.localStorage.getItem(TodomvcPage.STORAGE_KEY),
+			previousRaw,
+			TodomvcPage.SETTLE_TIMEOUT,
+			TodomvcPage.POLL_INTERVAL,
+		);
 	}
 
 	/**
@@ -187,7 +157,7 @@ export class TodomvcPage {
 	 * @returns Nothing.
 	 */
 	static async _settle(): Promise<void> {
-		await new Promise((resolve) => setTimeout(resolve, 150));
+		await PageWaiting.pause(TodomvcPage.RENDER_DELAY);
 	}
 
 	/**

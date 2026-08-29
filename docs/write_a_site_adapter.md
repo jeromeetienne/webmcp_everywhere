@@ -6,79 +6,63 @@ The worked example throughout is the Playwright TodoMVC adapter in [`src/site_ad
 
 ## Before writing anything: probe the live site
 
-Every rule in both existing adapters is a failure that a probe found first. Neither adapter was written by reading the site's source.
+Every rule in all three existing adapters is a failure that a probe found first. None of them was written by reading the site's source.
 
 Open the site, open the developer tools, and find out three things.
 
 1. **Where the site keeps its real state.** TodoMVC keeps every todo in `localStorage` under `react-todos`, so the adapter reads the list from there and reads the Document Object Model only for what is on screen. Can I use... publishes its whole feature index on `window.Caniuse.rawData` before it renders anything.
 2. **What the visible page will not tell you.** The Can I use... support table sits behind three nested shadow roots and is drawn lazily, so it is empty exactly when it is needed; the adapter reads `model.fullData` off the feature's `ciu-feature` element instead. TodoMVC's filter links hide items rather than re-order them, so a position in the list means something different under each filter.
-3. **What the site ignores.** TodoMVC is React, so assigning to `input.value` does nothing at all. Text has to be written through the native `HTMLInputElement` value setter, then an `input` event, then a `keydown` for Enter.
+3. **What the site ignores.** TodoMVC is React, so assigning to `input.value` does nothing at all. Text has to be written through the native `HTMLInputElement` value setter, then an `input` event, then a `keydown` for Enter. That one is already solved for you: it is `PageDriving.writeIntoInputField` in [`src/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/adapter_toolkit).
 
 Write down what you found. It goes into the folder's `CONTEXT.md` as a rule, and the date goes into the adapter's `metadata.targetSiteVerifiedOn`.
 
-## Step one: make the folder
+## Step one: run the scaffold
 
-One folder per origin under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), named after the origin in `snake_case`, matching the adapter's `siteSlug`.
-
+```bash
+npm run new-adapter -- https://example.com
 ```
-src/site_adapters/example_com/
-	CONTEXT.md          the rules for editing this adapter
-	README.md           what an agent can do with this site, and the workflows worth asking for
-	example_adapter.ts  the adapter
-	example_page.ts     the page-reading and page-driving class, once one file is too long
+
+That writes five things, all of them already passing `npm run build`:
+
+- `src/site_adapters/example_com/example_adapter.ts` — the adapter, with one read-only tool that already works, and the page-reading class beside it.
+- `src/site_adapters/example_com/CONTEXT.md` — the rules for editing this adapter, waiting to be replaced by yours.
+- `src/site_adapters/example_com/README.md` — what an agent can do on this site, waiting to be written.
+- `tests/site_adapters/example.test.ts` — the verification runner, with two checks that already pass against the live site.
+- The registration: the adapter list in `adapter_registry.ts`, and the match patterns in all three lists in `manifest.json`.
+
+The folder is named after the origin in `snake_case`, and that name is also the adapter's `siteSlug`; the two have to agree, because every tool name is namespaced by the slug. The scaffold takes both from the address you gave it.
+
+The rest of the file names come from the first label of the host — `example.com` gives `example_adapter.ts`, `ExamplePage`, and `example.test.ts`. Pass a second argument when the site is better known by another name, which is why TodoMVC's files are named after TodoMVC rather than after `demo`.
+
+```bash
+npm run new-adapter -- https://demo.playwright.dev/todomvc/ todomvc
 ```
 
 ## Step two: write the adapter
 
 One file, holding two exports: the adapter object itself, and a class holding the page-reading and page-driving helpers. Split that one file in two once it passes about six hundred lines, as the OpenStreetMap adapter does: `<site>_page.ts` for the class and the result types, `<site>_adapter.ts` for the adapter object and its tools.
 
-```ts
-import type { Adapter } from '../../adapter_format/adapter_types.js';
-
-export class ExampleAdapter {
-	static readonly SETTLE_TIMEOUT = 2000;
-
-	static _readState(): SomeShape {
-		// read the site's own storage or its own published data, not the rendered page
-	}
-}
-
-export const exampleAdapter: Adapter = {
-	siteSlug: 'example_com',
-	siteName: 'Example',
-	matchPatterns: ['https://example.com/*'],
-	metadata: {
-		author: 'your name',
-		version: '1.0.0',
-		adapterFormatVersion: '0.1.0',
-		targetSiteVerifiedOn: '2026-08-21',
-	},
-	yieldCondition: (firstPartyToolNames) => firstPartyToolNames.length > 0,
-	tools: [
-		// ...
-	],
-};
-```
-
-`adapterFormatVersion` is not yours to choose: it names the version of the adapter format the build accepts, which is `ADAPTER_FORMAT_VERSION` in [`tools/adapter_validation/adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/adapter_schema.ts). Any other value is rejected by the build. `version` beside it is the adapter's own version, and that one is yours.
-
 The rules that apply while writing it:
 
-- **Import types from `../../adapter_format/` and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
+- **Use [`src/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/adapter_toolkit) rather than writing the same helper again.** `PageWaiting.waitUntil` and `PageWaiting.waitUntilChanged` are the waiting every adapter needs; `PageDriving.writeIntoInputField` and `PageDriving.pressEnter` are the two interactions a framework only notices when they are done a particular way. What stays in your own folder is this site's own figures, such as how long it takes to settle.
+- **Import from `../../adapter_format/` and `../../adapter_toolkit/` and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
 - **Never reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
 - **Set a `yieldCondition`.** An adapter that cannot stand down when the site ships its own tools is not finished.
-- **Declare the permission class honestly.** The build reads your handler's source and disagrees with a wrong one.
-- **A read-only handler must not name `location`.** The audit cannot tell reading it from assigning to it. Read the address through a helper outside the handler.
+- **Declare the permission class honestly.** The build reads your handler's source and disagrees with a wrong one. A handler that names `PageDriving` at all is acting, because every helper in that file changes the page.
+- **A read-only handler must not name `location`.** The audit cannot tell reading it from assigning to it. Read the address through a helper outside the handler, which is what the scaffolded `_address` is for.
 - **Return a refusal, never throw.** Chrome 151 replaces a thrown handler error with a fixed `UnknownError` text, so a thrown message reaches no agent. A tool that cannot serve a reasonable request returns a refusal object naming the tool to call next.
 - **Put an acting tool back the way it found it.** A TodoMVC tool that needs a hidden todo shows every todo, acts, and restores the filter, so the page never looks different from how the user left it.
+- **Leave `metadata.adapterFormatVersion` alone.** It names the version of the format the build accepts, which is `ADAPTER_FORMAT_VERSION` in [`src/adapter_format/adapter_format_version.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/adapter_format/adapter_format_version.ts), and the scaffold already wrote the right one. `version` beside it is the adapter's own, and that one is yours.
 
-## Step three: register it in the two places
+## Step three: keep the registration in step
 
-Both are by hand, and a build that silently picked up a new file would be a build that silently shipped one.
+The scaffold registered the adapter. The one thing that changes it afterwards is editing `matchPatterns`, because those patterns are also the three lists in the extension manifest.
 
-**[`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts)** — import the adapter and add it to `AdapterRegistry.ADAPTERS`.
+```bash
+npm run sync:adapters
+```
 
-**[`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json)** — add the match pattern to `host_permissions` and to **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
+That rewrites the adapter list in [`adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) and the three match pattern lists in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) from the folders that exist. Both files are committed, so the change still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where they disagree, and continuous integration runs it, so forgetting the command costs a failed check rather than an adapter that is registered and never runs.
 
 ## Step four: build
 
@@ -90,17 +74,25 @@ The build runs every check over every adapter before it bundles anything, and pr
 
 ## Step five: check it against the live site
 
-Write a verification runner in [`tests/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests/site_adapters), named after the adapter file with `_adapter` dropped, so `bandcamp_adapter.ts` is checked by `bandcamp.test.ts`. Follow the shape the existing ones use. `node --test tests/site_adapters/todomvc.test.ts` covers TodoMVC, `node --test tests/site_adapters/caniuse.test.ts` covers Can I use..., and `node --test tests/site_adapters/openstreetmap.test.ts` covers OpenStreetMap; all three are worth reading before writing a fourth.
+The scaffold wrote your runner in [`tests/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests/site_adapters), with two checks in it that already pass. Every tool you add gets a check beside them.
+
+```bash
+node --test tests/site_adapters/example.test.ts
+```
 
 The rules for a runner are in [`tests/site_adapters/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/CONTEXT.md). The two that matter most:
 
 - **Assert against state read back out of the live page.** Nothing is mocked, and a check that cannot fail is not a check.
 - **Each runner launches its own throwaway Chrome**, so it needs no browser to be up first.
 
+`node --test tests/site_adapters/todomvc.test.ts`, `caniuse.test.ts`, and `openstreetmap.test.ts` are the three worth reading before writing a fourth. Continuous integration never runs any of them, because they drive the real public site; running yours, and saying in the pull request when it last passed, is part of the contribution.
+
 When a check fails, `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` and the stdio Model Context Protocol bridge are the smallest way to tell an adapter fault apart from a delivery fault — see [testing_and_verification.md](testing_and_verification.md).
 
-## Step six: write the two documents
+## Step six: fill in the two documents
 
-**`CONTEXT.md`** — the rules for editing this adapter, in the standard folder template. Every fact you established by probing becomes one rule here, in the present tense.
+The scaffold wrote both, and both say what to replace.
 
-**`README.md`** — what an agent can do with this site, and the workflows worth asking for. Both existing adapters have one; they are the reason a person can tell what a site is good for without reading the tool list.
+**`CONTEXT.md`** — the rules for editing this adapter. Every fact you established by probing becomes one rule here, in the present tense. An adapter whose `CONTEXT.md` still holds only the scaffold's rules has not been checked against its site.
+
+**`README.md`** — what an agent can do with this site, and the workflows worth asking for. Write the workflows before the tool table: they are the reason a person can tell what a site is good for without reading the tool list.

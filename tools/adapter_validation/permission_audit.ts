@@ -30,7 +30,14 @@ export type PermissionFinding = {
  * that does not depend on reading source.
  */
 export class PermissionAudit {
-	/** Source patterns that mean the handler changes the page or the user's data on the site. */
+	/**
+	 * Source patterns that mean the handler changes the page or the user's data on the site.
+	 *
+	 * `PageDriving` is in this list because every helper in `src/adapter_toolkit/page_driving.ts`
+	 * changes the page. That is the rule that folder is held to, and it is what lets a handler keep its
+	 * mutation inside a shared helper without escaping this audit. `PageWaiting` is deliberately absent:
+	 * nothing in it changes anything.
+	 */
 	static readonly MUTATING_PATTERNS: Array<{ pattern: RegExp; why: string }> = [
 		{
 			pattern: /\.click\s*\(/,
@@ -79,6 +86,11 @@ export class PermissionAudit {
 		{
 			pattern: /sessionStorage\s*\.\s*(setItem|removeItem|clear)/,
 			why: 'writes to session storage',
+		},
+		{
+			// `\w*` after the class name, because esbuild appends a digit to a bundled name that collides.
+			pattern: /PageDriving\w*\s*\.\s*\w/,
+			why: 'drives the page through the adapter toolkit',
 		},
 	];
 

@@ -10,11 +10,14 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 
 ## Rules
 - One folder per origin, named after the origin in `snake_case`, matching the adapter's `siteSlug`.
-- An adapter imports types from `../../adapter_format/` and nothing else. It never imports another adapter, and it never imports from `chrome_extension/`.
+- An adapter imports types from `../../adapter_format/` and helpers from `../../adapter_toolkit/`, and nothing else. It never imports another adapter, and it never imports from `chrome_extension/`.
+- A helper that any second site would also need belongs in `adapter_toolkit/`, not here. What stays here is this site's own figures and its own selectors: how long it takes to settle, where it keeps its state, which element means what.
 - Every adapter sets a `yieldCondition`. An adapter that cannot stand down when the site ships its own tools is not finished.
 - A tool that cannot serve a reasonable request returns a refusal object naming the tool to call next, rather than throwing. Chrome 151 replaces a thrown handler error with a fixed `UnknownError` text, so a thrown message reaches no agent.
-- Adding a site to an adapter means adding its match pattern to both `host_permissions` and both `content_scripts` entries in `src/chrome_extension/manifest.json`. A registered adapter whose pattern is missing there never runs.
-- Adapters are added to `src/chrome_extension/shared_state/adapter_registry.ts` by hand. There is no automatic discovery, because a build that silently picks up a new file is a build that silently ships one.
+- A folder here is the only thing an adapter author adds. `npm run sync:adapters` writes the adapter list in `src/chrome_extension/shared_state/adapter_registry.ts` and the three match pattern lists in `src/chrome_extension/manifest.json` from these folders, and `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where they disagree.
+- Nothing is still picked up silently, which is what the four hand edits used to protect: the command runs when a person asks it to, its output is committed, and the change arrives as a diff a reviewer reads.
+- Every folder here carries its own `CONTEXT.md` and `README.md`, and has a runner named after it in `tests/site_adapters/`. All three are checked.
 
 ## Background
+- A new folder is written by `npm run new-adapter -- <site address>`, which also writes the runner and the two documents, and registers the adapter. Filling it in: [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
 - Long-term success is a shrinking adapter count, not a growing one, per [issue #1](https://github.com/jeromeetienne/webmcp_everywhere/issues/1).

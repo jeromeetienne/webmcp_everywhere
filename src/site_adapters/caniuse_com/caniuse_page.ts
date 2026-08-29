@@ -1,3 +1,4 @@
+import { PageWaiting } from '../../adapter_toolkit/page_waiting.js';
 import type {
 	CaniuseAgent,
 	CaniuseFeatureData,
@@ -349,19 +350,13 @@ export class CaniusePage {
 	/**
 	 * Waits until a test passes, or until the settle timeout runs out.
 	 *
+	 * The loop is `PageWaiting.waitUntil`. What this adds is the two figures that belong to this site
+	 * and nowhere else: how long a feature takes to arrive, and how often it is worth looking.
+	 *
 	 * @param test - The test to run repeatedly.
 	 * @returns `true` when the test passed, `false` when the timeout ran out first.
 	 */
 	static async _waitUntil(test: () => boolean): Promise<boolean> {
-		const deadline = Date.now() + CaniusePage.SETTLE_TIMEOUT;
-		while (Date.now() < deadline) {
-			if (test() === true) {
-				return true;
-			}
-			await new Promise((resolve) => {
-				window.setTimeout(resolve, CaniusePage.POLL_INTERVAL);
-			});
-		}
-		return test();
+		return await PageWaiting.waitUntil(test, CaniusePage.SETTLE_TIMEOUT, CaniusePage.POLL_INTERVAL);
 	}
 }

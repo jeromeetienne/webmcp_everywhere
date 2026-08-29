@@ -5,6 +5,7 @@ Defines what an adapter is, how its tools are named, and how everything a page r
 
 ## Key Exports & Entry Points
 - `adapter_types.ts`: `Adapter`, `AdapterToolDefinition`, `PermissionClass`, `OriginGrant`. The shape everything else agrees on.
+- `adapter_format_version.ts`: `ADAPTER_FORMAT_VERSION` — the version every adapter must carry, in a file holding nothing else so that Node.js can import it without bundling.
 - `tool_naming.ts`: `ToolNaming` — qualifies `list_todos` into `demo_playwright_dev__list_todos`.
 - `untrusted_content.ts`: `UntrustedContent` — cleans, bounds, frames, and flags everything a page returns.
 - `webmcp_globals.d.ts`: Ambient declarations for `document.modelContext`, written from probing Chrome 151.

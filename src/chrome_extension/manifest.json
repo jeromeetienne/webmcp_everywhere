@@ -9,8 +9,8 @@
 		"tabs"
 	],
 	"host_permissions": [
-		"https://demo.playwright.dev/*",
 		"https://caniuse.com/*",
+		"https://demo.playwright.dev/todomvc/*",
 		"https://www.openstreetmap.org/*",
 		"https://openstreetmap.org/*"
 	],
@@ -24,8 +24,8 @@
 	"content_scripts": [
 		{
 			"matches": [
-				"https://demo.playwright.dev/*",
 				"https://caniuse.com/*",
+				"https://demo.playwright.dev/todomvc/*",
 				"https://www.openstreetmap.org/*",
 				"https://openstreetmap.org/*"
 			],
@@ -38,8 +38,8 @@
 		},
 		{
 			"matches": [
-				"https://demo.playwright.dev/*",
 				"https://caniuse.com/*",
+				"https://demo.playwright.dev/todomvc/*",
 				"https://www.openstreetmap.org/*",
 				"https://openstreetmap.org/*"
 			],

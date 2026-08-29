@@ -25,6 +25,12 @@ You do not have to open an issue before sending a pull request. Opening [request
 
 ## How to write one
 
+Start with the scaffold, which writes the folder, the runner, the two documents, and the registration, all of it already passing the build and the live check.
+
+```bash
+npm run new-adapter -- https://example.com
+```
+
 [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide, in the order to do things in. Read [docs/adapter_format.md](docs/adapter_format.md) first for what an adapter is.
 
 The three existing adapters are examples, and each carries a `README.md` and a `CONTEXT.md` beside it. Read at least one of them before writing your own.
@@ -50,9 +56,9 @@ The pull request template asks for these as checkboxes. A pull request that adds
 - A verification runner under `tests/site_adapters/` that asserts against state read back out of the live page.
 - That runner passing against the live site, with the date and the Chrome version written into the pull request. Continuous integration cannot run it, so that line is the only record of it.
 - The folder's `CONTEXT.md` and the folder's `README.md`.
-- The adapter registered in `src/chrome_extension/shared_state/adapter_registry.ts`, and its match patterns added to all three lists in `src/chrome_extension/manifest.json`.
+- The registration, which `npm run sync:adapters` writes for you and which is committed alongside your folder.
 
-That last one is four hand edits, and it is the thing this project is working to remove. The plan is in [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9); until it lands, the four edits are still yours to make, and forgetting one of the three manifest lists registers an adapter that never runs.
+`npm run new-adapter` writes all five, so the folder is the only thing you add by hand. The registration used to be four hand edits, and forgetting one of them registered an adapter that never ran; `node --test tests/adapter_registry_sync.test.ts` now refuses a working copy where the committed files and the folders disagree.
 
 ## Running the checks
 
@@ -108,6 +114,7 @@ It does not run anything that starts a browser. Those runners drive the real pub
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
 - **`src/` holds the product and nothing else.** It imports from neither `tools/` nor `tests/`, and `node --test tests/source_boundary.test.ts` refuses a relative import that leaves it.
 - **Nothing under `src/site_adapters/` may reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
+- **Use `src/adapter_toolkit/` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.
 - **Never wrap a paragraph in a document at a fixed column.** One paragraph is one line.
 

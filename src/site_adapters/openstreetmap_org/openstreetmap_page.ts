@@ -1,3 +1,4 @@
+import { PageWaiting } from '../../adapter_toolkit/page_waiting.js';
 import type {
 	BoundingBox,
 	ChangesetDetail,
@@ -501,31 +502,17 @@ export class OpenStreetMapPage {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Waits for a moment.
-	 *
-	 * @param milliseconds - How long to wait.
-	 * @returns Nothing.
-	 */
-	static async _pause(milliseconds: number): Promise<void> {
-		await new Promise((resolve) => setTimeout(resolve, milliseconds));
-	}
-
-	/**
 	 * Waits until a test passes, or until the time runs out.
+	 *
+	 * The loop is `PageWaiting.waitUntil`. What this adds is how often it is worth looking at this
+	 * site, which every caller here would otherwise have to repeat.
 	 *
 	 * @param test - The condition to wait for.
 	 * @param timeoutMs - How long to keep trying, in milliseconds.
 	 * @returns `true` when the test passed, `false` when the time ran out.
 	 */
 	static async _waitUntil(test: () => boolean, timeoutMs: number): Promise<boolean> {
-		const deadline = Date.now() + timeoutMs;
-		while (Date.now() < deadline) {
-			if (test() === true) {
-				return true;
-			}
-			await OpenStreetMapPage._pause(OpenStreetMapPage.POLL_INTERVAL);
-		}
-		return test();
+		return await PageWaiting.waitUntil(test, timeoutMs, OpenStreetMapPage.POLL_INTERVAL);
 	}
 
 	/**
@@ -779,7 +766,7 @@ export class OpenStreetMapPage {
 				return route;
 			}
 			previousSignature = signature;
-			await OpenStreetMapPage._pause(OpenStreetMapPage.ROUTE_POLL_INTERVAL);
+			await PageWaiting.pause(OpenStreetMapPage.ROUTE_POLL_INTERVAL);
 		}
 		return OpenStreetMapPage._readRoute();
 	}

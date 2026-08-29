@@ -11,7 +11,7 @@ One verification runner per adapted site, each driving the real public site in a
 - Command to run one runner: `node --test tests/site_adapters/caniuse.test.ts`.
 
 ## Rules
-- One file here per adapter folder in `src/site_adapters/`, named after that folder's adapter file with `_adapter` dropped: `caniuse_adapter.ts` is checked by `caniuse.test.ts`. Adding an adapter adds a file here and changes nothing else.
+- One file here per adapter folder in `src/site_adapters/`, named after that folder's adapter file with `_adapter` dropped: `caniuse_adapter.ts` is checked by `caniuse.test.ts`. `npm run new-adapter` writes it, and `node --test tests/adapter_registry_sync.test.ts` refuses an adapter that has none.
 - A runner here uses `LivePageHarness` and writes no launch, opt-in, reload, tool list or tool call of its own, keeping only the helpers for its own site. It reaches extension storage through `GrantActing`, which is where the wait for the service worker lives.
 - The result shapes one site's runner compares against sit beside it in `<site>_result_types.ts`. `tests/host_call_types.ts` holds only the shapes that cross to the native messaging host, which every runner shares.
 - Nothing in `src/site_adapters/` imports from here, and nothing here is imported by the product. This folder is one direction of the import rule the whole of `tests/` follows.

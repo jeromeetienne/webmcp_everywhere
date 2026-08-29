@@ -1,4 +1,5 @@
 import type { Adapter } from '../../adapter_format/adapter_types.js';
+import { PageDriving } from '../../adapter_toolkit/page_driving.js';
 import type { TodoFilter } from './todomvc_page.js';
 import { TodomvcPage } from './todomvc_page.js';
 
@@ -113,8 +114,8 @@ export const todomvcAdapter: Adapter = {
 					throw new Error('the new todo field is not on this page');
 				}
 				const previousRaw = window.localStorage.getItem(TodomvcPage.STORAGE_KEY);
-				TodomvcPage._setReactInputValue(field, title);
-				TodomvcPage._pressEnter(field);
+				PageDriving.writeIntoInputField(field, title);
+				PageDriving.pressEnter(field);
 				await TodomvcPage._waitForChange(previousRaw);
 				const added = TodomvcPage._readStore().find((todo) => todo.title === title);
 				if (added === undefined) {
@@ -216,8 +217,8 @@ export const todomvcAdapter: Adapter = {
 					if (field === null) {
 						throw new Error('the todo did not open for editing');
 					}
-					TodomvcPage._setReactInputValue(field, title);
-					TodomvcPage._pressEnter(field);
+					PageDriving.writeIntoInputField(field, title);
+					PageDriving.pressEnter(field);
 				});
 				return {
 					todo: TodomvcPage._todoForId(id),

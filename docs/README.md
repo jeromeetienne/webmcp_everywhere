@@ -24,3 +24,4 @@ What each adapter can do on its own site is in that adapter's own README.md, nex
 
 - [The Playwright TodoMVC adapter](../src/site_adapters/demo_playwright_dev/README.md)
 - [The Can I use... adapter](../src/site_adapters/caniuse_com/README.md)
+- [The OpenStreetMap adapter](../src/site_adapters/openstreetmap_org/README.md)

@@ -10,7 +10,7 @@ Everything GitHub itself reads: the continuous integration workflow, the issue f
 - `pull_request_template.md`: The checkboxes [CONTRIBUTING.md](../CONTRIBUTING.md) describes in prose.
 
 ## Rules
-- No workflow here starts a browser. Everything under `tests/` except `endpoint_file.test.ts`, `native_host_install.test.ts`, and `source_boundary.test.ts` drives a real Chrome against a real public site, which is slow, needs Chrome 149 or later with the WebMCP origin trial, and reports a site that changed the same way it reports a broken adapter. Those runners are checked nightly, one job per adapter, and a failure there marks the adapter stale rather than refusing a merge.
+- No workflow here starts a browser. Everything under `tests/` except the four that `npm run test:no_browser` names drives a real Chrome against a real public site, which is slow, needs Chrome 149 or later with the WebMCP origin trial, and reports a site that changed the same way it reports a broken adapter. Those runners are checked nightly, one job per adapter, and a failure there marks the adapter stale rather than refusing a merge.
 - The workflow names the three checks through `npm` scripts, never by repeating their commands. A check that is worth running in continuous integration is worth a contributor being able to run it the same way on their own machine.
 - The workflow pins Node.js to `22.18.0`, the oldest version `package.json` says this repository runs on, because that claim is only true while something checks it.
 - What a contributor must do is stated once, in [CONTRIBUTING.md](../CONTRIBUTING.md). `pull_request_template.md` is the same list as checkboxes, and nothing here explains a rule that document already explains.

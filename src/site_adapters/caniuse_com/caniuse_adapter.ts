@@ -1,4 +1,5 @@
 import type { Adapter } from '../../adapter_format/adapter_types.js';
+import { PageDriving } from '../../adapter_toolkit/page_driving.js';
 import type { CaniuseFeatureData, CaniuseFeatureIndexEntry, ToolRefusal } from './caniuse_types.js';
 import { CaniusePage } from './caniuse_page.js';
 
@@ -404,19 +405,7 @@ export const caniuseAdapter: Adapter = {
 				const before = CaniusePage._featureElements()
 					.map((element) => element.id)
 					.join(',');
-				const setter = Object.getOwnPropertyDescriptor(
-					HTMLInputElement.prototype,
-					'value',
-				)?.set;
-				if (setter === undefined) {
-					throw new Error('this browser does not let the search field be written to');
-				}
-				setter.call(field, query);
-				field.dispatchEvent(
-					new Event('input', {
-						bubbles: true,
-					}),
-				);
+				PageDriving.writeIntoInputField(field, query);
 				await CaniusePage._waitUntil(() => {
 					const now = CaniusePage._featureElements();
 					if (now.length === 0) {

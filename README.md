@@ -141,10 +141,11 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 `src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`.
 
 - `src/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed.
+- `src/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it.
 - `src/site_adapters/` — one folder per target site.
 - `src/chrome_extension/` — the Manifest Version 3 extension.
 - `src/native_messaging_host/` — the native messaging host and its HTTP endpoint.
-- `tools/` — build, launch, and install, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
+- `tools/` — build, launch, install, and the two commands that write a new adapter and register it, plus the adapter checks the build runs and the Chrome DevTools Protocol connection.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.
@@ -166,7 +167,7 @@ npm run test:visible    # the same checks, with Chrome on screen
 npm run test:no_browser # only the checks that start no browser
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The three exceptions are the ones `npm run test:no_browser` names: `tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `tests/source_boundary.test.ts`, which reads the source folder off disk. Those three are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The four exceptions are the ones `npm run test:no_browser` names: `tests/adapter_registry_sync.test.ts`, whose subject is whether the registry and the manifest still match the adapter folders, `tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, and `tests/source_boundary.test.ts`, which reads the source folder off disk. Those four are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 
@@ -174,7 +175,13 @@ There is no registry, no signing, no review pipeline, no telemetry, and no autom
 
 ## Contributing
 
-The point of this project is that other people write the adapters. [CONTRIBUTING.md](CONTRIBUTING.md) says what a pull request must carry, how to judge whether a site is worth an adapter at all, and which checks run where. [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide to writing one.
+The point of this project is that other people write the adapters. Covering a new site starts with one command, which writes the folder, the verification runner, the two documents, and the registration, all of it already passing the build.
+
+```bash
+npm run new-adapter -- https://example.com
+```
+
+[CONTRIBUTING.md](CONTRIBUTING.md) says what a pull request must carry, how to judge whether a site is worth an adapter at all, and which checks run where. [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide to filling the folder in.
 
 What is still missing before somebody who is not the maintainer can write an adapter, publish it, and use it without waiting for a merge here is listed in [issue #8](https://github.com/jeromeetienne/webmcp_everywhere/issues/8), and the plan for it is [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9).
 

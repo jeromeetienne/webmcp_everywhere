@@ -1,4 +1,5 @@
 import type { AdapterToolDefinition } from '../../adapter_format/adapter_types.js';
+import { PageWaiting } from '../../adapter_toolkit/page_waiting.js';
 import type { FeatureKind } from './openstreetmap_types.js';
 import { OpenStreetMapPage } from './openstreetmap_page.js';
 import {
@@ -310,7 +311,7 @@ export const openStreetMapDrivingTools: AdapterToolDefinition[] = [
 					OpenStreetMapPage._changesetIds().length > 0
 				);
 			}, OpenStreetMapPage.SETTLE_TIMEOUT);
-			await OpenStreetMapPage._pause(OpenStreetMapPage.POLL_INTERVAL);
+			await PageWaiting.pause(OpenStreetMapPage.POLL_INTERVAL);
 			if (latitude !== null && longitude !== null) {
 				const settled = OpenStreetMapPage._changesetIds();
 				const zoom = OpenStreetMapToolInput.numberField(input, 'zoom') ?? DEFAULT_HISTORY_ZOOM;
@@ -319,7 +320,7 @@ export const openStreetMapDrivingTools: AdapterToolDefinition[] = [
 					return OpenStreetMapPage._changesetIds() !== settled;
 				}, OpenStreetMapPage.REFRESH_TIMEOUT);
 			} else if (before.length > 0) {
-				await OpenStreetMapPage._pause(OpenStreetMapPage.POLL_INTERVAL);
+				await PageWaiting.pause(OpenStreetMapPage.POLL_INTERVAL);
 			}
 			const recent = OpenStreetMapPage._readRecentChangesets();
 			if (recent === null) {

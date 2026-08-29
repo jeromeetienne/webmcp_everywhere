@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ADAPTER_FORMAT_VERSION } from '../../src/adapter_format/adapter_format_version.js';
 import { ToolNaming } from '../../src/adapter_format/tool_naming.js';
 import { PermissionAudit } from './permission_audit.js';
 import type { Adapter } from '../../src/adapter_format/adapter_types.js';
@@ -9,8 +10,6 @@ import type { Adapter } from '../../src/adapter_format/adapter_types.js';
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** The adapter format version this file validates. */
-export const ADAPTER_FORMAT_VERSION = '0.1.0';
 
 /** Validates the three permission classes. */
 export const PERMISSION_CLASS_SCHEMA = z.enum(['readOnly', 'acting', 'sensitive']);
