@@ -72,6 +72,14 @@ export class PermissionAudit {
 			why: 'rewrites text',
 		},
 		{
+			pattern: /document\s*\.\s*title\s*=[^=]/,
+			why: 'rewrites the page title',
+		},
+		{
+			pattern: /document\s*\.\s*cookie\s*=[^=]/,
+			why: 'writes a cookie',
+		},
+		{
 			pattern: /location\s*\.\s*(href|assign|replace|reload)/,
 			why: 'navigates the page',
 		},

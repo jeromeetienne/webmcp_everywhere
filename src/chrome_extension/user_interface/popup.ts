@@ -24,6 +24,38 @@ type RuntimeReportShape = {
 	errors: string[];
 };
 
+/** One adapter the extension knows about, as the service worker describes it. */
+type AdapterSummary = {
+	/** The adapter's site slug, which is also the key its switch is stored under. */
+	siteSlug: string;
+	/** The human-readable site name. */
+	siteName: string;
+	/** The pages it covers. */
+	matchPatterns: string[];
+	/** How many tools it carries. */
+	toolCount: number;
+	/** The folder it was read from. Only a loaded adapter has one. */
+	sourceFolder?: string;
+	/** Who wrote it. Only a loaded adapter reports this here. */
+	author?: string;
+};
+
+/** Everything the service worker knows about adapters and about what is registered. */
+type AdaptersShape = {
+	/** The adapters bundled into this build. */
+	bundled: AdapterSummary[];
+	/** The adapters the native messaging host read from folders. */
+	loaded: AdapterSummary[];
+	/** What the registrar last did, or `null` before its first pass. */
+	injection: {
+		active: Array<{ siteSlug: string; origin: string }>;
+		withheld: Array<{ siteSlug: string; reason: string }>;
+		errors: string[];
+	} | null;
+	/** Whether Chrome is letting this extension register user scripts at all. */
+	areUserScriptsAllowed: boolean;
+};
+
 /**
  * The extension's user interface.
  *
@@ -55,10 +87,14 @@ class Popup {
 			tabId: tab.id,
 		})) as RuntimeReportShape | null;
 
+		const adapters = (await chrome.runtime.sendMessage({
+			kind: 'getAdapters',
+		})) as AdaptersShape;
+
 		const origin = new URL(tab.url).origin;
 		const settings = await ExtensionStorage.read();
 		const sightings = await InjectionWatch.sightings();
-		Popup._render(body, report, origin, settings.globallyEnabled, sightings);
+		Popup._render(body, report, origin, settings.globallyEnabled, sightings, adapters);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -83,6 +119,7 @@ class Popup {
 		origin: string,
 		globallyEnabled: boolean,
 		sightings: InjectionSighting[],
+		adapters: AdaptersShape,
 	): void {
 		body.textContent = '';
 
@@ -92,6 +129,7 @@ class Popup {
 
 		if (report === null || report.siteSlug === null) {
 			body.append(Popup._paragraph('No adapter covers this page.', 'none'));
+			body.append(Popup._adapterSection(adapters));
 			body.append(Popup._killSwitchRow(globallyEnabled));
 			return;
 		}
@@ -129,7 +167,88 @@ class Popup {
 		}
 
 		body.append(Popup._actingRow(origin));
+		body.append(Popup._adapterSection(adapters));
 		body.append(Popup._killSwitchRow(globallyEnabled));
+	}
+
+	/**
+	 * Builds the list of adapters, each with the switch that decides whether it runs at all.
+	 *
+	 * The extension manifest names no site, so this list is the only place a user can see what this
+	 * extension is able to reach, and the only place they can change it. An adapter bundled into this
+	 * build starts switched on, because its source is in this repository and the build checked it. An
+	 * adapter loaded from a folder starts switched off, because nobody here reviewed it.
+	 *
+	 * @param adapters - What the service worker knows.
+	 * @returns The section element.
+	 */
+	static _adapterSection(adapters: AdaptersShape): HTMLElement {
+		const wrapper = document.createElement('div');
+
+		const heading = document.createElement('h1');
+		heading.textContent = 'Adapters';
+		wrapper.append(heading);
+
+		if (adapters.loaded.length > 0 && adapters.areUserScriptsAllowed === false) {
+			wrapper.append(
+				Popup._paragraph(
+					'Adapters loaded from a folder cannot run until you turn on "Allow User Scripts" ' +
+						'for this extension at chrome://extensions.',
+					'warn',
+				),
+			);
+		}
+
+		const withheldReasons = new Map(
+			(adapters.injection?.withheld ?? []).map((entry) => [entry.siteSlug, entry.reason]),
+		);
+
+		for (const adapter of [...adapters.bundled, ...adapters.loaded]) {
+			const isLoaded = adapter.sourceFolder !== undefined;
+			wrapper.append(Popup._adapterRow(adapter, isLoaded, withheldReasons.get(adapter.siteSlug)));
+		}
+
+		if (adapters.bundled.length + adapters.loaded.length === 0) {
+			wrapper.append(Popup._paragraph('This build carries no adapter at all.', 'none'));
+		}
+
+		return wrapper;
+	}
+
+	/**
+	 * Builds one adapter's row: its switch, what it covers, and where it came from.
+	 *
+	 * @param adapter - The adapter to draw.
+	 * @param isLoaded - Whether it came from a folder rather than from this build.
+	 * @param withheldReason - Why it is not registered, when it is not.
+	 * @returns The row element.
+	 */
+	static _adapterRow(adapter: AdapterSummary, isLoaded: boolean, withheldReason?: string): HTMLElement {
+		const row = document.createElement('div');
+		row.className = 'row';
+
+		const label = document.createElement('label');
+		const toggle = document.createElement('input');
+		toggle.type = 'checkbox';
+		void ExtensionStorage.read().then((settings) => {
+			toggle.checked = ExtensionStorage.isAdapterEnabled(settings, adapter.siteSlug, isLoaded === false);
+		});
+		toggle.addEventListener('change', () => {
+			void ExtensionStorage.setAdapterEnabled(adapter.siteSlug, toggle.checked);
+		});
+		label.append(toggle);
+		label.append(
+			document.createTextNode(` ${adapter.siteName} — ${adapter.toolCount} tools`),
+		);
+		row.append(label);
+
+		const detail = document.createElement('div');
+		detail.className = 'slug';
+		const source = isLoaded === true ? `loaded from ${adapter.sourceFolder}, by ${adapter.author}` : 'in this build';
+		detail.textContent = withheldReason === undefined ? source : `${source} — ${withheldReason}`;
+		row.append(detail);
+
+		return row;
 	}
 
 	/**

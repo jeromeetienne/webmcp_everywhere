@@ -41,6 +41,7 @@ class BuildExtension {
 	static ENTRY_POINTS = [
 		'page_injection/content_main.ts',
 		'page_injection/content_isolated.ts',
+		'page_injection/external_adapter_main.ts',
 		'native_host_link/background_service_worker.ts',
 		'user_interface/popup.ts',
 	];

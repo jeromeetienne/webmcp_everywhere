@@ -52,7 +52,8 @@ node --test tests/native_host.test.ts
 | [`tests/site_adapters/caniuse.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/caniuse.test.ts) | Drives `https://caniuse.com/` the same way |
 | [`tests/site_adapters/openstreetmap.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/openstreetmap.test.ts) | Drives `https://www.openstreetmap.org/` the same way |
 | [`tests/native_host.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host.test.ts) | The real delivery path, from the HTTP endpoint through to the page |
-| [`tests/adapter_registry_sync.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/adapter_registry_sync.test.ts) | That the registry, the manifest, and the runners still match the folders under `src/site_adapters/` |
+| [`tests/adapter_registry_sync.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/adapter_registry_sync.test.ts) | That the registry and the runners still match the folders under `src/site_adapters/`, and that the manifest still names no site |
+| [`tests/loaded_adapter.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/loaded_adapter.test.ts) | That an adapter written outside this repository is checked, installed, and run with no rebuild |
 | [`tests/endpoint_file.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/endpoint_file.test.ts) | That `endpoint.json` always names a host that is really listening |
 | [`tests/native_host_install.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/native_host_install.test.ts) | That installing announces every file first, and that uninstalling removes every one of them |
 | [`tests/injection_defence.test.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/injection_defence.test.ts) | Writes hostile content onto the page and attacks through it |
@@ -71,6 +72,7 @@ Every other runner drives a real Chrome against a real public site. That is the 
 
 - **You changed an adapter.** Run that adapter's own runner: `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`.
 - **You changed the extension or the native messaging host.** Run `node --test tests/native_host.test.ts`, which is the only runner covering the real delivery path.
+- **You changed how an adapter is loaded, checked, or registered.** Run `node --test tests/loaded_adapter.test.ts`, which is the only runner covering the path from a folder outside this repository to a running tool.
 - **`node --test tests/native_host.test.ts` fails and you cannot tell why.** Run the adapter's own runner. If that passes, the adapter is fine and the fault is in delivery. `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` narrows it further, because the bridge reaches the page without the extension or the host in the way.
 - **You touched how the host takes its port, stops, or writes `endpoint.json`.** Run `node --test tests/endpoint_file.test.ts`.
 - **You touched what the installation writes into Chrome, or what the uninstallation takes back out.** Run `node --test tests/native_host_install.test.ts`.

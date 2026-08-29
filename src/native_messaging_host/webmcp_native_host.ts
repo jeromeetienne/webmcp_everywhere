@@ -6,6 +6,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { HostStateFiles } from './host_state_files.ts';
+import { LoadedAdapterStore } from './loaded_adapter_store.ts';
 import { NativeMessagingCodec } from './native_messaging_codec.ts';
 import type {
 	ExtensionAnswer,
@@ -209,6 +210,7 @@ export class WebmcpNativeHost {
 		};
 		this.channel.start();
 		this.extensionConnected = true;
+		this._sendLoadedAdapters();
 
 		this.httpServer = Http.createServer((request, response) => {
 			void this._onHttpRequest(request, response);
@@ -219,6 +221,24 @@ export class WebmcpNativeHost {
 
 		await this._claimPort(true);
 		return this.serving === true ? this.port : null;
+	}
+
+	/**
+	 * Tells the extension about every adapter installed from a folder.
+	 *
+	 * This is the one message the host sends that is not a request expecting an answer. The extension
+	 * cannot read a folder and cannot run code to judge an adapter, so the adapters have to arrive from
+	 * this side, already checked by `npm run load-adapter`.
+	 *
+	 * @returns Nothing.
+	 */
+	_sendLoadedAdapters(): void {
+		const adapters = LoadedAdapterStore.read();
+		WebmcpNativeHost._log(`sending ${adapters.length} installed adapters to the extension`);
+		this.channel?.send({
+			kind: 'loadedAdapters',
+			adapters: adapters,
+		});
 	}
 
 	///////////////////////////////////////////////////////////////////////////////

@@ -45,13 +45,43 @@ export class AdapterRuntime {
 	static _registration: AbortController | null = null;
 
 	/**
+	 * The registration in flight, so that a second one waits for it rather than racing it.
+	 *
+	 * Two grants arrive close together on every page load: the isolated world sends one as soon as it
+	 * starts, and sends another when the main world asks. Both used to start a registration, both got
+	 * past the wait for the previous tools to disappear, and both then registered the same names — so
+	 * one tool of the several came back `InvalidStateError: Duplicate tool name` and was silently
+	 * missing, and the kill switch afterwards aborted only one of the two registrations and left the
+	 * other one's tools on the page.
+	 */
+	static _inFlight: Promise<unknown> = Promise.resolve();
+
+	/**
 	 * Registers an adapter's tools, subject to the user's grant and the site's own tools.
+	 *
+	 * Registrations are run one after another, never side by side. Everything below assumes it is the
+	 * only thing touching `document.modelContext` while it runs, and two at once breaks that.
 	 *
 	 * @param adapter - The adapter to register.
 	 * @param grant - What the user has allowed on this origin.
 	 * @returns What was registered, what was withheld, and why.
 	 */
 	static async register(adapter: Adapter, grant: OriginGrant): Promise<RuntimeReport> {
+		const queued = AdapterRuntime._inFlight.then(
+			async () => await AdapterRuntime._registerNow(adapter, grant),
+		);
+		AdapterRuntime._inFlight = queued.catch(() => undefined);
+		return await queued;
+	}
+
+	/**
+	 * Does one registration, with nothing else registering at the same time.
+	 *
+	 * @param adapter - The adapter to register.
+	 * @param grant - What the user has allowed on this origin.
+	 * @returns What was registered, what was withheld, and why.
+	 */
+	static async _registerNow(adapter: Adapter, grant: OriginGrant): Promise<RuntimeReport> {
 		const report: RuntimeReport = {
 			origin: window.location.origin,
 			siteSlug: adapter.siteSlug,

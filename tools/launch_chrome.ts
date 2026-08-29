@@ -9,6 +9,7 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
+import { GrantActing } from './grant_acting.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 
 const __filename = import.meta.filename;
@@ -95,6 +96,12 @@ export class LaunchChrome {
 	/** The page the extension is built to adapt. */
 	static TARGET_URL = 'https://demo.playwright.dev/todomvc/';
 
+	/** The identifier prefix the extension gives every script it registers. */
+	static REGISTRATION_PREFIX = 'webmcp_everywhere_';
+
+	/** How long to wait for the extension to register its first script, in milliseconds. */
+	static REGISTRATION_TIMEOUT = 10000;
+
 	/**
 	 * Prepares a throwaway profile, launches Chrome, installs the extension, and opens the target page.
 	 *
@@ -162,6 +169,8 @@ export class LaunchChrome {
 		});
 		browser.close();
 
+		await LaunchChrome._waitUntilAdaptersRegistered(port);
+
 		const page = await CdpClient.connectToPage(port, 'about:blank');
 		await page.navigate(url);
 		page.close();
@@ -178,6 +187,43 @@ export class LaunchChrome {
 	//	Helpers
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Waits until the extension has told Chrome which scripts to run on which sites.
+	 *
+	 * The manifest names no site any more, so nothing runs on a page until the service worker has
+	 * called `chrome.scripting.registerContentScripts`. That happens after the extension is installed
+	 * and takes a moment, and a page opened during that moment gets no adapter at all — the tool list
+	 * comes back empty and every check after it fails for a reason that looks nothing like the cause.
+	 *
+	 * @param port - The remote debugging port.
+	 * @returns Nothing.
+	 * @throws When the extension registers nothing within `REGISTRATION_TIMEOUT`.
+	 */
+	static async _waitUntilAdaptersRegistered(port: number): Promise<void> {
+		const worker = await GrantActing.waitForServiceWorker(port);
+		const client = new CdpClient(port);
+		await client.connect(worker.webSocketDebuggerUrl);
+		const expression = `
+			(async () => {
+				const deadline = Date.now() + ${LaunchChrome.REGISTRATION_TIMEOUT};
+				while (Date.now() < deadline) {
+					const scripts = await chrome.scripting.getRegisteredContentScripts();
+					const ours = scripts.filter((script) => script.id.startsWith(${JSON.stringify(LaunchChrome.REGISTRATION_PREFIX)}));
+					if (ours.length > 0) {
+						return ours.length;
+					}
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
+				return 0;
+			})()
+		`;
+		const registered = await client.evaluate<number>(expression);
+		client.close();
+		if (registered === 0) {
+			throw new Error('the extension registered no content scripts, so no adapter would run');
+		}
+	}
 
 	/**
 	 * Writes the two settings files that have to be in place before Chrome starts.

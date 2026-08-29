@@ -5,7 +5,7 @@ import Path from 'node:path';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	SyncAdapterRegistry — writes the registry and the manifest from the adapter folders
+//	SyncAdapterRegistry — writes the adapter registry from the adapter folders
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +21,6 @@ const registryPath = Path.join(
 	'shared_state',
 	'adapter_registry.ts',
 );
-const manifestPath = Path.join(repositoryRoot, 'src', 'chrome_extension', 'manifest.json');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
 const probePath = Path.join(repositoryRoot, 'build', '.probe_adapters.mjs');
 
@@ -43,18 +42,16 @@ export type DiscoveredAdapter = {
 	siteSlug: string;
 	/** The adapter's human-readable site name, used only in the report this tool prints. */
 	siteName: string;
-	/** The match patterns that activate it, which become the manifest's three lists. */
+	/** The match patterns that activate it, which the service worker registers its scripts for. */
 	matchPatterns: string[];
 };
 
-/** What the two written files should hold, given the folders that exist right now. */
+/** What the generated file should hold, given the folders that exist right now. */
 export type RenderedFiles = {
-	/** Every adapter found, in the order the two files list them. */
+	/** Every adapter found, in the order the file lists them. */
 	adapters: DiscoveredAdapter[];
 	/** What `src/chrome_extension/shared_state/adapter_registry.ts` should hold. */
 	registrySource: string;
-	/** What `src/chrome_extension/manifest.json` should hold. */
-	manifestSource: string;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -64,16 +61,18 @@ export type RenderedFiles = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Writes the adapter registry and the extension manifest from the folders under `src/site_adapters/`.
+ * Writes the adapter registry from the folders under `src/site_adapters/`.
  *
  * Registering an adapter used to be four hand edits: the registry, and the match patterns in all three
  * lists in the manifest. Forgetting the third list registered an adapter that never ran, and nothing
- * said so. Now the folder is the only thing an author adds, and this tool writes the four places.
+ * said so. The manifest now names no site at all — the service worker registers each adapter's scripts
+ * for its own match patterns when the user switches that adapter on — so the folder is the only thing
+ * an author adds, and this tool writes the one place that still lists adapters.
  *
- * Nothing is picked up silently, which is the property the four hand edits were protecting. This tool
- * runs when a person asks it to, its output is committed, and `tests/adapter_registry_sync.test.ts`
- * refuses a working copy where the committed files and the folders disagree. So the change still
- * arrives as a diff a reviewer reads, and it is no longer a diff an author writes by hand.
+ * Nothing is picked up silently, which is the property the hand edits were protecting. This tool runs
+ * when a person asks it to, its output is committed, and `tests/adapter_registry_sync.test.ts` refuses
+ * a working copy where the committed file and the folders disagree. So the change still arrives as a
+ * diff a reviewer reads, and it is no longer a diff an author writes by hand.
  */
 export class SyncAdapterRegistry {
 	/** The line that opens the generated import block in `adapter_registry.ts`. */
@@ -134,12 +133,11 @@ export class SyncAdapterRegistry {
 		return {
 			adapters: adapters,
 			registrySource: SyncAdapterRegistry._renderRegistry(adapters),
-			manifestSource: SyncAdapterRegistry._renderManifest(adapters),
 		};
 	}
 
 	/**
-	 * Writes the two files, and reports which of them actually changed.
+	 * Writes the registry, and reports whether it actually changed.
 	 *
 	 * @returns The adapters found, and the paths that were rewritten.
 	 */
@@ -147,15 +145,9 @@ export class SyncAdapterRegistry {
 		const rendered = await SyncAdapterRegistry.render();
 		const written: string[] = [];
 
-		for (const [path, source] of [
-			[registryPath, rendered.registrySource],
-			[manifestPath, rendered.manifestSource],
-		] as Array<[string, string]>) {
-			if (Fs.readFileSync(path, 'utf8') === source) {
-				continue;
-			}
-			Fs.writeFileSync(path, source);
-			written.push(Path.relative(repositoryRoot, path));
+		if (Fs.readFileSync(registryPath, 'utf8') !== rendered.registrySource) {
+			Fs.writeFileSync(registryPath, rendered.registrySource);
+			written.push(Path.relative(repositoryRoot, registryPath));
 		}
 
 		return {
@@ -175,9 +167,6 @@ export class SyncAdapterRegistry {
 
 		if (Fs.readFileSync(registryPath, 'utf8') !== rendered.registrySource) {
 			outOfDate.push(Path.relative(repositoryRoot, registryPath));
-		}
-		if (Fs.readFileSync(manifestPath, 'utf8') !== rendered.manifestSource) {
-			outOfDate.push(Path.relative(repositoryRoot, manifestPath));
 		}
 
 		return outOfDate;
@@ -323,38 +312,6 @@ export class SyncAdapterRegistry {
 	}
 
 	/**
-	 * Writes every adapter's match patterns into the three lists the manifest keeps them in.
-	 *
-	 * The three lists have to agree: `host_permissions` is what the extension may reach, and the two
-	 * `content_scripts` entries are the pages the main-world and isolated-world scripts run on. An
-	 * adapter missing from any one of them never runs.
-	 *
-	 * @param adapters - The adapters found.
-	 * @returns What the file should hold.
-	 */
-	static _renderManifest(adapters: DiscoveredAdapter[]): string {
-		const patterns: string[] = [];
-		for (const adapter of adapters) {
-			for (const pattern of adapter.matchPatterns) {
-				if (patterns.includes(pattern) === false) {
-					patterns.push(pattern);
-				}
-			}
-		}
-
-		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8')) as {
-			host_permissions: string[];
-			content_scripts: Array<{ matches: string[] }>;
-		};
-		manifest.host_permissions = patterns;
-		for (const contentScript of manifest.content_scripts) {
-			contentScript.matches = patterns;
-		}
-
-		return `${JSON.stringify(manifest, null, '\t')}\n`;
-	}
-
-	/**
 	 * Replaces the lines between two markers, keeping the markers themselves.
 	 *
 	 * @param source - The file text to rewrite.
@@ -385,7 +342,7 @@ if (import.meta.filename === process.argv[1]) {
 		console.log(`  ${adapter.siteSlug}: ${adapter.matchPatterns.length} match patterns (${adapter.siteName})`);
 	}
 	if (result.written.length === 0) {
-		console.log('the registry and the manifest already match the adapter folders, nothing written');
+		console.log('the registry already matches the adapter folders, nothing written');
 	} else {
 		for (const path of result.written) {
 			console.log(`wrote: ${path}`);

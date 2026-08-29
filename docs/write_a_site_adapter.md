@@ -4,6 +4,16 @@ This is the task-shaped guide to covering a new site. Read [adapter_format.md](a
 
 The worked example throughout is the Playwright TodoMVC adapter in [`src/site_adapters/demo_playwright_dev/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters/demo_playwright_dev).
 
+## Two places an adapter can live, and how to choose
+
+An adapter is the same TypeScript either way. What differs is where the folder sits and how it reaches a browser.
+
+**Your own folder, outside this repository.** You write the adapter, run `npm run load-adapter -- <your folder>`, switch it on in the popup, and your agent has its tools. Nothing is merged here, nothing is rebuilt, and nobody waits for a review. This is the ordinary way, and it is what the whole of milestone 3 of [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9) exists to make possible: the maintainer of this repository is not on your critical path.
+
+**A folder under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), contributed here.** The adapter ships inside the extension, is on by default, and is maintained by this repository. This is for the two or three adapters that exist to show what an adapter looks like, not for the catalogue — [CONTRIBUTING.md](../CONTRIBUTING.md) says what this repository takes and what it does not.
+
+Steps two, five, and six below are the same either way. Steps one, three, and four differ, and each says how.
+
 ## Before writing anything: probe the live site
 
 Every rule in all three existing adapters is a failure that a probe found first. None of them was written by reading the site's source.
@@ -18,17 +28,21 @@ Write down what you found. It goes into the folder's `CONTEXT.md` as a rule, and
 
 ## Step one: run the scaffold
 
+`npm run new-adapter` writes an adapter into this repository, which is what a contributed adapter needs.
+
 ```bash
 npm run new-adapter -- https://example.com
 ```
 
-That writes five things, all of them already passing `npm run build`:
+Writing an adapter of your own outside this repository needs no scaffold and no clone of this repository. Copy one of the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters) into a folder of your own and edit it. The rules are the same, and `npm run load-adapter` refuses the same things `npm run build` does. What the folder must hold is one `*_adapter.ts` or `*_adapter.js` file exporting an adapter, and nothing else is required.
+
+For a contributed adapter, the scaffold writes five things, all of them already passing `npm run build`:
 
 - `src/site_adapters/example_com/example_adapter.ts` — the adapter, with one read-only tool that already works, and the page-reading class beside it.
 - `src/site_adapters/example_com/CONTEXT.md` — the rules for editing this adapter, waiting to be replaced by yours.
 - `src/site_adapters/example_com/README.md` — what an agent can do on this site, waiting to be written.
 - `tests/site_adapters/example.test.ts` — the verification runner, with two checks that already pass against the live site.
-- The registration: the adapter list in `adapter_registry.ts`, and the match patterns in all three lists in `manifest.json`.
+- The registration: the adapter list in `adapter_registry.ts`. The extension manifest names no site at all — which adapter runs where is decided in the browser, when the user switches an adapter on.
 
 The folder is named after the origin in `snake_case`, and that name is also the adapter's `siteSlug`; the two have to agree, because every tool name is namespaced by the slug. The scaffold takes both from the address you gave it.
 
@@ -44,9 +58,9 @@ One file, holding two exports: the adapter object itself, and a class holding th
 
 The rules that apply while writing it:
 
-- **Use [`src/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/adapter_toolkit) rather than writing the same helper again.** `PageWaiting.waitUntil` and `PageWaiting.waitUntilChanged` are the waiting every adapter needs; `PageDriving.writeIntoInputField` and `PageDriving.pressEnter` are the two interactions a framework only notices when they are done a particular way. What stays in your own folder is this site's own figures, such as how long it takes to settle.
-- **Import from `../../adapter_format/` and `../../adapter_toolkit/` and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
-- **Never reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
+- **Use [`src/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/adapter_toolkit) rather than writing the same helper again.** `PageWaiting.waitUntil` and `PageWaiting.waitUntilChanged` are the waiting every adapter needs; `PageDriving.writeIntoInputField` and `PageDriving.pressEnter` are the two interactions a framework only notices when they are done a particular way. What stays in your own folder is this site's own figures, such as how long it takes to settle. **An adapter in a folder of your own cannot import any of that**, because the folder is not inside this repository: copy the helpers you need into your own folder, and say in the file where they came from.
+- **A contributed adapter imports from `../../adapter_format/` and `../../adapter_toolkit/` and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension). An adapter in a folder of your own imports nothing outside that folder.
+- **Never reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Set a `yieldCondition`.** An adapter that cannot stand down when the site ships its own tools is not finished.
 - **Declare the permission class honestly.** The build reads your handler's source and disagrees with a wrong one. A handler that names `PageDriving` at all is acting, because every helper in that file changes the page.
 - **A read-only handler must not name `location`.** The audit cannot tell reading it from assigning to it. Read the address through a helper outside the handler, which is what the scaffolded `_address` is for.
@@ -56,21 +70,40 @@ The rules that apply while writing it:
 
 ## Step three: keep the registration in step
 
-The scaffold registered the adapter. The one thing that changes it afterwards is editing `matchPatterns`, because those patterns are also the three lists in the extension manifest.
+**Your own folder, outside this repository.** There is nothing to keep in step. The match patterns in your adapter are the whole of it, and they travel with the adapter when it is loaded.
+
+**A contributed adapter.** The scaffold registered it. The one thing that changes it afterwards is editing `matchPatterns`.
 
 ```bash
 npm run sync:adapters
 ```
 
-That rewrites the adapter list in [`adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) and the three match pattern lists in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) from the folders that exist. Both files are committed, so the change still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where they disagree, and continuous integration runs it, so forgetting the command costs a failed check rather than an adapter that is registered and never runs.
+That rewrites the adapter list in [`adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) from the folders that exist. The file is committed, so the change still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree, and continuous integration runs it, so forgetting the command costs a failed check rather than an adapter that is registered and never runs.
 
-## Step four: build
+## Step four: install it, or build it
+
+**Your own folder, outside this repository.**
+
+```bash
+npm run load-adapter -- ~/my_adapters/example_com
+```
+
+It runs the same checks the build runs, prints every tool with its permission class, and writes the adapter to `~/.webmcp_everywhere/adapters/`. A failing check prints `REJECTED` with the reason and installs nothing.
+
+Installing it does not run it. Two more things have to be true, and both are yours to decide:
+
+- **Turn on "Allow User Scripts" for this extension** at `chrome://extensions`. Chrome hides the one interface for running code an extension did not ship until you do.
+- **Switch the adapter on in the popup.** A loaded adapter is off by default, because nobody at this repository reviewed it.
+
+`npm run unload-adapter -- example_com` is the way back out.
+
+**A contributed adapter.**
 
 ```bash
 npm run build
 ```
 
-The build runs every check over every adapter before it bundles anything, and prints one line per adapter naming how many tools it carries in each permission class. A failing check prints `REJECTED` with the reason and stops the build. What each check is, and why it lives at build time, is in [adapter_format.md](adapter_format.md).
+The build runs every check over every adapter before it bundles anything, and prints one line per adapter naming how many tools it carries in each permission class. A failing check prints `REJECTED` with the reason and stops the build. What each check is, and why it runs before a browser ever sees the adapter, is in [adapter_format.md](adapter_format.md).
 
 ## Step five: check it against the live site
 
@@ -91,7 +124,7 @@ When a check fails, `node --test tests/devtools_protocol_bridge/webmcp_bridge.te
 
 ## Step six: fill in the two documents
 
-The scaffold wrote both, and both say what to replace.
+Both belong in an adapter that lives in a folder of your own as much as in one contributed here — the next person to read your adapter is you, six months later. The scaffold wrote both, and both say what to replace.
 
 **`CONTEXT.md`** — the rules for editing this adapter. Every fact you established by probing becomes one rule here, in the present tense. An adapter whose `CONTEXT.md` still holds only the scaffold's rules has not been checked against its site.
 

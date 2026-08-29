@@ -10,9 +10,23 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **Zero extensions are installed and the log says nothing.** Chrome was launched with `--load-extension`. Chrome 151 ignores it silently. Install with the Chrome DevTools Protocol method `Extensions.loadUnpacked` instead, which is what `npm run chrome` does.
 
-**The extension runs, but not on this site.** The adapter's match pattern is missing from [`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json). It has to be in `host_permissions` and in **both** `content_scripts` entries, the `MAIN` one and the `ISOLATED` one. A registered adapter whose pattern is missing there never runs.
+**The extension runs, but not on this site.** The manifest names no site, so nothing is registered until the background service worker registers it. Open the popup: it lists every adapter with a switch, and says why each withheld one is withheld. Three reasons are possible — the adapter is switched off, another adapter already covers that host, or **Allow User Scripts** is off.
 
-**The adapter is not registered.** Adapters are added to [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) by hand. There is no automatic discovery.
+**The adapter is missing from the registry.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) is generated. Run `npm run sync:adapters`, which rewrites it from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters). `node --test tests/adapter_registry_sync.test.ts` fails when the committed file and the folders disagree.
+
+**The page loaded before the extension registered anything.** Registration happens after the service worker starts, so a page opened in the first moment of a launch gets no adapter. Reload the page. `LaunchChrome` waits for the first registration before it opens anything, which is why a verification runner does not hit this.
+
+## An adapter loaded from a folder does not run
+
+**The popup says "turn on Allow User Scripts for this extension".** Chrome hides `chrome.userScripts` until you turn that on, per extension, at `chrome://extensions`. It is the one interface for running code an extension did not ship, so nothing loaded from a folder can run without it.
+
+**The popup says "loaded from a folder and not switched on yet".** A loaded adapter is off by default. Switch it on in the popup.
+
+**The popup says "another adapter already covers ...".** One page carries one adapter. Switch the other one off first.
+
+**The popup lists no loaded adapters at all.** Either nothing is installed — check `~/.webmcp_everywhere/adapters/` and run `npm run load-adapter -- <folder>` — or the native messaging host is not connected, which is the same failure as an agent not reaching the endpoint, below. The host reads that folder and reports it when the extension connects, so no host means no loaded adapters.
+
+**`npm run load-adapter` refused it.** The refusal names what was found, and it is the same set of checks as the build's. See "The build refuses", below, which lists every one of them.
 
 ## Every check passes but you are testing old code
 
@@ -66,7 +80,11 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **A tool call aborted part way through.** The runtime re-registered while the call was in flight. Registration re-runs only when the matching adapter actually changes, and it waits until `getTools` stops listing the old names before registering again.
 
-## The build refuses
+**`InvalidStateError: Duplicate tool name`, and a tool silently missing.** Two registrations ran side by side. Two grants arrive close together on every page load — the isolated world sends one as soon as it starts, and another when the main world asks — and both used to get past the wait for the old names to disappear. `AdapterRuntime` now runs registrations one after another, never side by side.
+
+## The build refuses, or `npm run load-adapter` does
+
+Both run the same checks, so every line below applies to both.
 
 **`REJECTED ... adapters may never reach the network`.** A handler names `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, or a dynamic import.
 
@@ -97,5 +115,6 @@ When `node --test tests/native_host.test.ts` fails and you cannot tell where the
 - `~/.webmcp_everywhere/host.log` — everything the native messaging host has to say.
 - `~/.webmcp_everywhere/endpoint.json` — the address, and only while a host is really listening.
 - `~/.webmcp_everywhere/token` — the bearer token, and the only place it is kept.
+- `~/.webmcp_everywhere/adapters/` — one file per adapter installed with `npm run load-adapter`.
 - `chrome://extensions` — where the unpacked extension shows up, where you reload it, and where you read its errors.
 - The popup — which adapter matched, which tools are live, which are held and why, and any injection sighting.

@@ -13,15 +13,15 @@ const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 /**
- * Checks the four places an adapter has to appear, and that they still agree with each other.
+ * Checks that an adapter folder is still the only thing an adapter author adds.
  *
- * Registering an adapter used to be four hand edits, and forgetting the third of them — the match
- * patterns in the second `content_scripts` entry — registered an adapter that never ran, with nothing
- * anywhere saying so. `npm run sync:adapters` writes all four now, and these checks are what makes
- * running it obligatory rather than optional: a working copy where the committed files and the folders
- * disagree fails here, naming the command to fix it.
+ * Registering an adapter used to be four hand edits, and forgetting one of them registered an adapter
+ * that never ran, with nothing anywhere saying so. `npm run sync:adapters` writes the registry now,
+ * and the extension manifest names no site at all, so these checks are what keeps both true: a working
+ * copy where the committed registry and the folders disagree fails here, naming the command to fix it,
+ * and a manifest that has started listing sites again fails here too.
  *
- * No browser is started. The subject is the source folder and two generated files on disk.
+ * No browser is started. The subject is the source folder and the files on disk.
  */
 class AdapterRegistrySyncTest {
 	/** The repository root, worked out from this file's own location. */
@@ -46,7 +46,11 @@ class AdapterRegistrySyncTest {
 	 *
 	 * @returns The three match pattern lists, and nothing else this file needs.
 	 */
-	static readManifest(): { host_permissions: string[]; content_scripts: Array<{ world: string; matches: string[] }> } {
+	static readManifest(): {
+		permissions: string[];
+		host_permissions: string[];
+		content_scripts?: Array<{ world: string; matches: string[] }>;
+	} {
 		const manifestPath = Path.join(
 			AdapterRegistrySyncTest.REPOSITORY_ROOT,
 			'src',
@@ -63,16 +67,16 @@ class AdapterRegistrySyncTest {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-NodeTest.test('the committed registry and manifest match the adapter folders', async (t) => {
+NodeTest.test('the committed registry matches the adapter folders', async (t) => {
 	const outOfDate = await SyncAdapterRegistry.findOutOfDate();
 
 	if (outOfDate.length > 0) {
 		throw new Error(
-			`${outOfDate.join(' and ')} no longer match the folders under src/site_adapters/. ` +
+			`${outOfDate.join(' and ')} no longer matches the folders under src/site_adapters/. ` +
 				'Run: npm run sync:adapters',
 		);
 	}
-	t.diagnostic('the registry and the manifest are what the adapter folders say they should be');
+	t.diagnostic('the registry is what the adapter folders say it should be');
 });
 
 NodeTest.test('every adapter folder holds one adapter whose slug is its folder name', async (t) => {
@@ -89,29 +93,31 @@ NodeTest.test('every adapter folder holds one adapter whose slug is its folder n
 	t.diagnostic(`${adapters.length} adapters: ${adapters.map((adapter) => adapter.siteSlug).join(', ')}`);
 });
 
-NodeTest.test('every match pattern is in all three lists in the manifest', async (t) => {
-	const adapters = await SyncAdapterRegistry.discover();
+NodeTest.test('the extension manifest names no site at all', async (t) => {
 	const manifest = AdapterRegistrySyncTest.readManifest();
 
-	if (manifest.content_scripts.length !== 2) {
-		throw new Error(`the manifest holds ${manifest.content_scripts.length} content script entries, expected 2`);
+	if (manifest.content_scripts !== undefined) {
+		throw new Error(
+			'the manifest declares content scripts again. The service worker registers them per adapter ' +
+				'when the user switches that adapter on, so a static list here would ask every user for ' +
+				'every site in the catalogue at install time.',
+		);
 	}
-	for (const adapter of adapters) {
-		for (const pattern of adapter.matchPatterns) {
-			if (manifest.host_permissions.includes(pattern) === false) {
-				throw new Error(`${pattern} of ${adapter.siteSlug} is missing from host_permissions`);
-			}
-			for (const contentScript of manifest.content_scripts) {
-				if (contentScript.matches.includes(pattern) === false) {
-					throw new Error(
-						`${pattern} of ${adapter.siteSlug} is missing from the ${contentScript.world} content script, ` +
-							'so that adapter would be registered and never run',
-					);
-				}
-			}
+	for (const pattern of manifest.host_permissions) {
+		if (pattern !== '*://*/*') {
+			throw new Error(
+				`host_permissions names ${pattern}. It names no site, only *://*/*, because a list that ` +
+					'grows with the catalogue is re-reviewed by the extension store and re-installed by ' +
+					'every user for each new adapter.',
+			);
 		}
 	}
-	t.diagnostic(`${manifest.host_permissions.length} match patterns, in all three lists`);
+	for (const needed of ['scripting', 'userScripts']) {
+		if (manifest.permissions.includes(needed) === false) {
+			throw new Error(`the manifest is missing the ${needed} permission, which nothing can register without`);
+		}
+	}
+	t.diagnostic('the manifest names no site, and can register scripts and user scripts at runtime');
 });
 
 NodeTest.test('every adapter folder has a verification runner named after it', async (t) => {

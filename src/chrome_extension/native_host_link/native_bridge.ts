@@ -1,3 +1,4 @@
+import type { LoadedAdapter } from '../../adapter_format/loaded_adapter_types.js';
 import { AdapterRegistry } from '../shared_state/adapter_registry.js';
 import { ExtensionStorage } from '../shared_state/extension_storage.js';
 import { InjectionWatch } from '../shared_state/injection_watch.js';
@@ -70,6 +71,14 @@ export class NativeBridge {
 
 	/** The open connection to the host, or null when it is not connected. */
 	static _port: chrome.runtime.Port | null = null;
+
+	/**
+	 * What to do when the host reports the adapters installed from folders.
+	 *
+	 * The service worker sets this. It is a callback rather than a direct call so that this file keeps
+	 * knowing nothing about registration, which is the service worker's job.
+	 */
+	static onLoadedAdapters: (adapters: LoadedAdapter[]) => Promise<unknown> = async () => undefined;
 
 	/** How long to wait before trying to reconnect after the host goes away, in milliseconds. */
 	static _reconnectDelay = 1000;
@@ -309,7 +318,12 @@ export class NativeBridge {
 		kind?: string;
 		name?: string;
 		args?: Record<string, unknown>;
+		adapters?: LoadedAdapter[];
 	}): Promise<void> {
+		if (message?.kind === 'loadedAdapters') {
+			await NativeBridge.onLoadedAdapters(message.adapters ?? []);
+			return;
+		}
 		if (message?.id === undefined) {
 			return;
 		}

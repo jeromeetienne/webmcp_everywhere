@@ -23,6 +23,8 @@ export type GrantActingOptions = {
 	actingAllowed?: boolean;
 	/** Whether the extension is on at all. */
 	globallyEnabled?: boolean;
+	/** Which adapters to switch on, named by site slug. Absent leaves every adapter at its default. */
+	enabledAdapters?: string[];
 };
 
 /**
@@ -62,11 +64,17 @@ export class GrantActing {
 
 		const worker = await GrantActing.waitForServiceWorker(port);
 
+		const adapterEnabledBySlug: Record<string, boolean> = {};
+		for (const siteSlug of options.enabledAdapters ?? []) {
+			adapterEnabledBySlug[siteSlug] = true;
+		}
+
 		const settings = {
 			globallyEnabled: globallyEnabled,
 			actingAllowedByOrigin: {
 				[origin]: actingAllowed,
 			},
+			adapterEnabledBySlug: adapterEnabledBySlug,
 		};
 
 		const client = new CdpClient(port);

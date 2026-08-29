@@ -82,11 +82,11 @@ Three things happen to the content before it is framed, and the two policies dif
 
 Nothing here stops prompt injection, and it must never be described as though it does. The honest account is in [security_model.md](security_model.md).
 
-## What the build checks
+## What the checks check
 
-`npm run build` runs [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) over every adapter in `AdapterRegistry` before it bundles anything. A failure stops the build, so an adapter that fails never reaches a browser.
+`npm run build` runs [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) over every adapter in `AdapterRegistry` before it bundles anything. `npm run load-adapter` runs the same two checks over an adapter written outside this repository before it installs it. A failure stops each of them, so an adapter that fails never reaches a browser by either route.
 
-These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), not in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and they run in Node.js at build time rather than in the page. Validating in the page meant bundling the schema library into a main-world content script, at about 150 kilobytes on every page the user visits, for no protection at all — adapters are bundled, so by the time a page loads there is nothing left to decide.
+These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), not in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and they run in Node.js before installation rather than in the page. Validating in the page meant bundling the schema library into a main-world content script, at about 150 kilobytes on every page the user visits, for no protection at all — code already running in the page can simply not call a checker. Refusing before installation is the one moment where refusing means anything.
 
 **The schema**, in [`adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/adapter_schema.ts), built with Zod:
 
@@ -99,8 +99,8 @@ These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhe
 
 **The permission audit**, in [`permission_audit.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/permission_audit.ts), which reads handler source:
 
-- A handler that clicks, submits, dispatches an event, removes an element, assigns to `value`, `checked`, `innerHTML`, or `textContent`, navigates, changes session history, or writes to local or session storage is acting, whatever its `permissionClass` field says. Declaring such a handler `readOnly` fails the build, and the failure names the evidence.
-- No adapter may reach the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
+- A handler that clicks, submits, dispatches an event, removes an element, assigns to `value`, `checked`, `innerHTML`, or `textContent`, rewrites `document.title`, writes `document.cookie`, navigates, changes session history, writes to local or session storage, or calls anything in `PageDriving` is acting, whatever its `permissionClass` field says. Declaring such a handler `readOnly` is refused, and the refusal names the evidence.
+- No adapter may reach the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused.
 
 **Across adapters**, in [`validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts):
 
@@ -110,6 +110,12 @@ The audit is a lint, not a proof: it reads only the handler's own source, so a h
 
 One consequence catches adapter authors out. `PermissionAudit` cannot tell reading `location` apart from assigning to it, so a read-only handler that even names `location` is rejected. An adapter that needs the current address reads it through a helper outside the handler — the Can I use... adapter uses `CaniusePage._currentUrl` for exactly this.
 
-## Registration is by hand
+## How an adapter reaches a browser
 
-Adapters are added to [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) by hand, and their match patterns are added to [`src/chrome_extension/manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) by hand. There is no automatic discovery, because a build that silently picks up a new file is a build that silently ships one.
+Two routes, and neither of them is automatic discovery. A build that silently picks up a new file is a build that silently ships one.
+
+**Bundled into this build.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) names every adapter this build carries. `npm run sync:adapters` rewrites that file from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), and the file is committed, so a new adapter still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree.
+
+**Loaded from a folder.** `npm run load-adapter -- <folder>` checks an adapter written anywhere and writes it to `~/.webmcp_everywhere/adapters/`. The native messaging host reads that folder and reports what it finds to the extension. Nothing is rebuilt and nothing is merged here.
+
+The extension manifest names no site by either route. Which adapter runs where is decided in the browser, by `InjectionRegistrar`, from the adapter's own `matchPatterns` and the user's per-adapter switch. See [permissions_and_trust.md](permissions_and_trust.md).

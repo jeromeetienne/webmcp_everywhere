@@ -1,12 +1,20 @@
 # Contributing to WebMCP Everywhere
 
-The point of this project is that other people write the adapters. This repository keeps the engine and a small number of example adapters, and the catalogue is meant to grow from contributions rather than from the maintainer. So a pull request that covers a new site is the most useful thing you can send.
+The point of this project is that other people write the adapters. This repository keeps the engine and a small number of example adapters, and the catalogue is meant to grow from other people's work rather than from the maintainer.
+
+## You do not need this repository to write an adapter
+
+Read this before anything else, because it is the shortest path and most contributors want it rather than a pull request.
+
+An adapter can live in a folder of your own, in a repository of your own, with your name on it. You write it, run `npm run load-adapter -- <your folder>`, switch it on in the extension's popup, and your agent has its tools. Nothing is merged here, nothing is rebuilt, and nobody waits for a review — not even you waiting for the maintainer. [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide, and [docs/permissions_and_trust.md](docs/permissions_and_trust.md) says what a person is agreeing to when they load one.
+
+That is the ordinary way to cover a site. Everything below is about the smaller number of changes that do belong in this repository.
 
 ## What this project takes
 
-- **An adapter for a site nobody has covered.** This is the main one. Read [Before you write an adapter](#before-you-write-an-adapter) first, because two of the three questions there have already dropped sites that looked like good candidates.
-- **A repair to an adapter whose site changed under it.** Sites change and adapters break. Open [an adapter has stopped working](https://github.com/jeromeetienne/webmcp_everywhere/issues/new?template=an_adapter_has_stopped_working.yml) or send the repair.
-- **A fix or an improvement to the engine**: the adapter format, the extension, the native messaging host, the build, or the verification runners.
+- **A fix or an improvement to the engine**: the adapter format, the extension, the native messaging host, the build, the loading commands, or the verification runners. This is the main one now that an adapter needs no merge here.
+- **An adapter for a site nobody has covered**, where it earns its place as an example of a technique the three existing adapters do not show. The bundled adapters are examples, not a catalogue; an adapter that covers a site well but shows nothing new is better as a repository of your own. Read [Before you write an adapter](#before-you-write-an-adapter) first either way, because two of the three questions there have already dropped sites that looked like good candidates, and they apply to an adapter of your own just as much.
+- **A repair to one of the adapters in this repository, whose site changed under it.** Sites change and adapters break. Open [an adapter has stopped working](https://github.com/jeromeetienne/webmcp_everywhere/issues/new?template=an_adapter_has_stopped_working.yml) or send the repair.
 - **A correction to the documentation.** Anything in `docs/` that is wrong or out of date is worth a pull request on its own.
 
 ## The licence of what you send
@@ -23,13 +31,15 @@ A site is worth an adapter only where a browser session gives an agent something
 
 You do not have to open an issue before sending a pull request. Opening [request an adapter for a site](https://github.com/jeromeetienne/webmcp_everywhere/issues/new?template=request_an_adapter.yml) is the cheap way to find out that a site is not a candidate before you spend a day on it.
 
-## How to write one
+## How to write one for this repository
 
 Start with the scaffold, which writes the folder, the runner, the two documents, and the registration, all of it already passing the build and the live check.
 
 ```bash
 npm run new-adapter -- https://example.com
 ```
+
+For an adapter of your own, outside this repository, there is no scaffold: copy one of the three folders below into a folder of your own, edit it, and load it with `npm run load-adapter`.
 
 [docs/write_a_site_adapter.md](docs/write_a_site_adapter.md) is the guide, in the order to do things in. Read [docs/adapter_format.md](docs/adapter_format.md) first for what an adapter is.
 
@@ -58,7 +68,7 @@ The pull request template asks for these as checkboxes. A pull request that adds
 - The folder's `CONTEXT.md` and the folder's `README.md`.
 - The registration, which `npm run sync:adapters` writes for you and which is committed alongside your folder.
 
-`npm run new-adapter` writes all five, so the folder is the only thing you add by hand. The registration used to be four hand edits, and forgetting one of them registered an adapter that never ran; `node --test tests/adapter_registry_sync.test.ts` now refuses a working copy where the committed files and the folders disagree.
+`npm run new-adapter` writes all five, so the folder is the only thing you add by hand. The registration used to be four hand edits, and forgetting one of them registered an adapter that never ran; `node --test tests/adapter_registry_sync.test.ts` now refuses a working copy where the committed registry and the folders disagree.
 
 ## Running the checks
 
@@ -113,11 +123,17 @@ It does not run anything that starts a browser. Those runners drive the real pub
 - **Every folder has a `CONTEXT.md`** holding the rules for editing that folder. Read the one for any folder you touch, before you touch it. It is short, and every rule in it is a failure somebody already had.
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
 - **`src/` holds the product and nothing else.** It imports from neither `tools/` nor `tests/`, and `node --test tests/source_boundary.test.ts` refuses a relative import that leaves it.
-- **Nothing under `src/site_adapters/` may reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.
+- **No adapter may reach the network**, wherever it lives. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Use `src/adapter_toolkit/` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.
 - **Never wrap a paragraph in a document at a fixed column.** One paragraph is one line.
 
+## Prove the assumption before you build on it
+
+Before writing code that rests on something outside this repository behaving a particular way — a Chrome interface, a site's markup, a transport — name the one assumption that would make the work impossible, and settle it with the smallest live check against the real thing. Not a headless stand-in for the real transport, not an empty page standing in for a real one. A check that did not exercise the actual constraint has not passed, whatever it printed.
+
+Milestone 3 of [issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9) is the worked example: six live probes established what Chrome actually allows — that `chrome.userScripts` is absent until a per-extension switch is on, that `chrome.permissions.request` never settles without a user gesture — before any of the loading code was written, and one of those probes changed the design.
+
 ## Where this project is going
 
-[Issue #8](https://github.com/jeromeetienne/webmcp_everywhere/issues/8) lists what is still missing before somebody who is not the maintainer can write an adapter, publish it, and use it without waiting for a merge here. [Issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9) is the plan for it. Reading both is the fastest way to see what is worth working on.
+[Issue #8](https://github.com/jeromeetienne/webmcp_everywhere/issues/8) lists what was missing before somebody who is not the maintainer could write an adapter and use it without waiting for a merge here. [Issue #9](https://github.com/jeromeetienne/webmcp_everywhere/issues/9) is the plan for it, and milestones 1 to 3 of it are done. Reading both is the fastest way to see what is worth working on.

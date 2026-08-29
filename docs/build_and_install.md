@@ -1,11 +1,13 @@
 # Building, installing, and launching
 
-Four commands, each doing one thing.
+Six commands, each doing one thing.
 
 ```bash
 npm run build           # checks every adapter, then bundles the extension
 npm run install:host    # registers the native messaging host with Chrome
 npm run chrome          # launches a throwaway Chrome with the extension installed
+npm run load-adapter    # checks an adapter folder, and installs it without a rebuild
+npm run unload-adapter  # takes an installed adapter back out again
 npm run uninstall:host  # takes the registration back out of Chrome
 ```
 
@@ -21,11 +23,12 @@ You need Google Chrome 149 or later; the WebMCP origin trial runs from Chrome 14
 
 **Three: it copies the two static files.** [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) and [`user_interface/popup.html`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.html), each keeping its path. Chrome loads an unpacked extension from the folder that holds [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json), so both have to sit beside the bundles rather than stay behind in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
 
-**Four: it bundles the four entry points with esbuild.**
+**Four: it bundles the five entry points with esbuild.**
 
 | Source | Output | Where it runs |
 | --- | --- | --- |
-| [`page_injection/content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) | `dist/content_main.js` | the page's main world |
+| [`page_injection/content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) | `dist/content_main.js` | the page's main world, for an adapter bundled into this build |
+| [`page_injection/external_adapter_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/external_adapter_main.ts) | `dist/external_adapter_main.js` | the page's main world, for an adapter loaded from a folder |
 | [`page_injection/content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) | `dist/content_isolated.js` | the isolated world |
 | [`native_host_link/background_service_worker.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/native_host_link/background_service_worker.ts) | `dist/background_service_worker.js` | the background service worker |
 | [`user_interface/popup.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.ts) | `dist/popup.js` | the popup |
@@ -41,6 +44,7 @@ build/chrome_extension/
 	manifest.json
 	user_interface/popup.html
 	dist/content_main.js
+	dist/external_adapter_main.js
 	dist/content_isolated.js
 	dist/background_service_worker.js
 	dist/popup.js
@@ -87,18 +91,54 @@ Afterwards Google Chrome no longer starts the native messaging host for this ext
 
 [`tools/launch_chrome.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/launch_chrome.ts) launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
 
-It handles four steps that are each silent when they go wrong.
+It handles five steps that are each silent when they go wrong.
 
 1. **`enable-webmcp-testing@1` goes into the profile's `Local State`**, under `browser.enabled_labs_experiments`. Without it `document.modelContext` is simply absent.
 2. **`extensions.ui.developer_mode` goes into `Preferences`.** Without it the extension installs but its content scripts never run, which is a failure with no error message anywhere.
 3. **Chrome launches with `--enable-unsafe-extension-debugging`**, alongside `--user-data-dir`, `--remote-debugging-port`, `--no-first-run`, `--no-default-browser-check`, `--disable-sync`, and `--headless=new` unless the visibility is `visible`.
-4. **The extension is installed with `Extensions.loadUnpacked`** over the Chrome DevTools Protocol, and then the target page is opened.
+4. **The extension is installed with `Extensions.loadUnpacked`** over the Chrome DevTools Protocol.
+5. **The launch waits until the extension has registered its first content script**, and only then opens the target page. The manifest names no site any more, so nothing runs on a page until the background service worker has called `chrome.scripting.registerContentScripts`, and a page opened during that moment gets no adapter at all — the tool list comes back empty and every check after it fails for a reason that looks nothing like the cause.
 
 Two more things it does. It installs the native messaging host manifest **into the throwaway profile and nowhere else**, so the host works there while the everyday Chrome is left exactly as it was. A Chrome started with a custom `--user-data-dir` reads host manifests from inside that directory and never looks at the everyday Chrome's, so covering the everyday one would modify a browser you installed in order to run a check that does not use it. And **it deletes the profile before every launch**: Chrome does not re-read an unpacked extension it has already installed, so keeping the profile silently runs the previous build, and every check still passes while testing old code.
 
 **Do not reach for `--load-extension`.** Chrome 151 ignores it, leaving zero extensions installed and nothing in the log.
 
 The launch refuses to start at all if `build/chrome_extension/dist/content_main.js` is missing, with "the extension is not built; run npm run build first".
+
+## `npm run load-adapter` and `npm run unload-adapter`
+
+These two are what make an adapter usable without rebuilding anything. Nothing here has to be merged into this repository, and the extension is not rebuilt.
+
+```bash
+npm run load-adapter -- ~/my_adapters/example_com
+```
+
+[`tools/load_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/load_adapter.ts) does four things, in this order.
+
+**One: it finds the adapter.** The folder must hold exactly one `*_adapter.ts` or `*_adapter.js` file. Two of them, or none, is refused by name.
+
+**Two: it runs the same review checks a bundled adapter faces.** `AdapterSchema` for the adapter's shape and `PermissionAudit` for its source, bundled for Node.js and run as a child process, exactly as `npm run build` does. An adapter that reaches the network, mislabels an acting tool as read-only, or declares a tool name that collides is refused, and the refusal names what was found.
+
+**Three: it prints every tool with its permission class**, so the person running the command reads what they are about to allow before anything is installed.
+
+**Four: it bundles the adapter for the browser and writes it** to `~/.webmcp_everywhere/adapters/<site slug>.json`, alongside its match patterns, its tool list, its author, and the folder it came from.
+
+The checks run here, in Node.js, rather than in the browser. A Chrome extension may not run code it did not ship, and code already in the page can simply not call a checker — so refusing before installation is the only moment where refusing means anything. What each check is is in [adapter_format.md](adapter_format.md); what it is worth is in [security_model.md](security_model.md).
+
+Installing an adapter does not run it. Two more things have to be true first, and both are decisions a person makes deliberately:
+
+- **Switch the adapter on in the popup.** A loaded adapter is off by default, because nobody at this repository reviewed it.
+- **Turn on "Allow User Scripts" for this extension** at `chrome://extensions`. `chrome.userScripts` is the one interface Chrome offers for running code an extension did not ship, and Chrome keeps it hidden until you turn it on. Until then the popup lists the adapter as withheld and says exactly this.
+
+[`tools/unload_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/unload_adapter.ts) is the way back, and it takes a site slug rather than a folder:
+
+```bash
+npm run unload-adapter -- example_com
+```
+
+Run with no site slug, it prints what is installed instead of guessing.
+
+Writing the adapter in the first place is [write_a_site_adapter.md](write_a_site_adapter.md). What you are agreeing to by loading one is [permissions_and_trust.md](permissions_and_trust.md).
 
 ## What the native messaging host writes
 
@@ -107,6 +147,8 @@ When Chrome starts the host, it writes three files under `~/.webmcp_everywhere/`
 - **`endpoint.json`** — the address it is serving on, and the process identifier of the host holding the port.
 - **`token`** — the bearer token an agent must present, and the only place it is kept. It is made once and never changes, so an agent registered with it goes on working across restarts.
 - **`host.log`** — everything the host has to say. It goes here and to standard error, never to standard output, which belongs entirely to the native messaging channel.
+
+A fourth thing lives in that directory but is not written by the host. **`adapters/`** holds one JSON file per adapter installed with `npm run load-adapter`. The host reads that folder and reports what it finds to the extension the moment the extension connects, which is how an adapter that is in no build reaches a browser.
 
 **`endpoint.json` exists only while a host is really listening.** The host writes it at the moment it takes the port, and removes it when it stops. So a missing file means no host is running, rather than a host you have to guess at, and a file that is there names an address you can use. A host that cannot get the port writes nothing at all rather than an address it does not hold.
 
@@ -135,6 +177,7 @@ Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what
 | `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. |
 | `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | The one port the native messaging host serves Model Context Protocol over HTTP on. It never moves to another port; a host that cannot have this one waits for it. |
 | `WEBMCP_EVERYWHERE_STATE_DIR` | a directory | `~/.webmcp_everywhere` | Where the native messaging host keeps `endpoint.json`, `token`, and `host.log`. `node --test tests/endpoint_file.test.ts` sets it to a throwaway directory so its hosts never touch the one you are really using. |
+| `WEBMCP_EVERYWHERE_ADAPTERS_DIR` | a directory | `adapters/` inside the state directory | Where `npm run load-adapter` writes an installed adapter, and where the native messaging host reads them from. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |
 

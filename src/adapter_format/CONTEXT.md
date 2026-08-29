@@ -1,11 +1,12 @@
 # Directory Context: `/src/adapter_format`
 
 ## Purpose
-Defines what an adapter is, how its tools are named, and how everything a page returns is framed before an agent sees it. The checks an adapter must pass live in `tools/adapter_validation/`, because they run at build time and are never bundled into a page.
+Defines what an adapter is, how its tools are named, and how everything a page returns is framed before an agent sees it. The checks an adapter must pass live in `tools/adapter_validation/`, because they run in Node.js before an adapter reaches a browser and are never bundled into a page.
 
 ## Key Exports & Entry Points
 - `adapter_types.ts`: `Adapter`, `AdapterToolDefinition`, `PermissionClass`, `OriginGrant`. The shape everything else agrees on.
 - `adapter_format_version.ts`: `ADAPTER_FORMAT_VERSION` — the version every adapter must carry, in a file holding nothing else so that Node.js can import it without bundling.
+- `loaded_adapter_types.ts`: `LoadedAdapter`, `LoadedToolSummary`, `LOADED_ADAPTER_GLOBAL` — what an adapter installed from a folder looks like as it travels from `npm run load-adapter` through the native messaging host to the extension.
 - `tool_naming.ts`: `ToolNaming` — qualifies `list_todos` into `demo_playwright_dev__list_todos`.
 - `untrusted_content.ts`: `UntrustedContent` — cleans, bounds, frames, and flags everything a page returns.
 - `webmcp_globals.d.ts`: Ambient declarations for `document.modelContext`, written from probing Chrome 151.
@@ -15,7 +16,7 @@ Defines what an adapter is, how its tools are named, and how everything a page r
 - A tool's `permissionClass` is checked against its handler's source by `tools/adapter_validation/permission_audit.ts`, never trusted. A handler that clicks, submits, navigates, or assigns to `value` is acting, whatever the field says.
 - Every tool result passes through `UntrustedContent.frame` before an agent sees it. This happens in the runtime, not in each adapter, so no author can forget it and no hostile adapter can skip it.
 - Invisible characters are removed; visible instruction-shaped text is flagged and kept. Removing the visible text would be defeated by rephrasing and would hide the attack from the user.
-- No adapter may reach the network. `PermissionAudit.findNetworkEgress`, in `tools/adapter_validation/`, fails the build on `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, or a dynamic import.
+- No adapter may reach the network. `PermissionAudit.findNetworkEgress`, in `tools/adapter_validation/`, refuses `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, or a dynamic import, in `npm run build` and in `npm run load-adapter` alike.
 - `webmcp_globals.d.ts` describes Chrome's real behaviour, not the specification's WebIDL, where the two disagree.
 
 ## Background

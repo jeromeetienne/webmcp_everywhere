@@ -1,3 +1,7 @@
+import type { LoadedAdapter } from '../../adapter_format/loaded_adapter_types.js';
+import { AdapterRegistry } from '../shared_state/adapter_registry.js';
+import { InjectionRegistrar } from '../shared_state/injection_registrar.js';
+import type { InjectionReport } from '../shared_state/injection_registrar.js';
 import { NativeBridge } from './native_bridge.js';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -12,14 +16,22 @@ import { NativeBridge } from './native_bridge.js';
  * Named `BackgroundServiceWorker` rather than `ServiceWorker` because the latter is already a Document
  * Object Model interface, and shadowing it makes every reference in this file ambiguous.
  *
- * It exists for two reasons: the popup needs somewhere to read the current page's report from, and an
- * acting tool invocation has to be visible somewhere the user will notice. Issue #1 puts visible
- * invocation among the mitigations that matter, on the grounds that silence is what turns a small
- * compromise into a large one.
+ * It exists for three reasons. The popup needs somewhere to read the current page's report from. An
+ * acting tool invocation has to be visible somewhere the user will notice, because issue #1 puts
+ * visible invocation among the mitigations that matter, on the grounds that silence is what turns a
+ * small compromise into a large one. And the manifest names no site any more, so this is what decides
+ * which adapter's scripts are registered for which pages, and re-decides it whenever the user changes
+ * their mind or the native messaging host reports a different set of loaded adapters.
  */
 class BackgroundServiceWorker {
 	/** The most recent report from each tab, keyed by tab identifier. */
 	static _reportByTab = new Map<number, unknown>();
+
+	/** The adapters the native messaging host read from folders, empty until it reports any. */
+	static _loadedAdapters: LoadedAdapter[] = [];
+
+	/** What the last pass of the registrar did, which is what the popup shows. */
+	static _injectionReport: InjectionReport | null = null;
 
 	/**
 	 * Starts listening for messages from the isolated world and from the popup.
@@ -46,6 +58,11 @@ class BackgroundServiceWorker {
 				return true;
 			}
 
+			if (message?.kind === 'getAdapters') {
+				sendResponse(BackgroundServiceWorker._describeAdapters());
+				return true;
+			}
+
 			return undefined;
 		});
 
@@ -53,7 +70,37 @@ class BackgroundServiceWorker {
 			BackgroundServiceWorker._reportByTab.delete(tabId);
 		});
 
+		chrome.storage.onChanged.addListener(() => {
+			void BackgroundServiceWorker.applyInjections();
+		});
+
+		NativeBridge.onLoadedAdapters = async (adapters) =>
+			await BackgroundServiceWorker.setLoadedAdapters(adapters);
+
+		void BackgroundServiceWorker.applyInjections();
 		NativeBridge.connect();
+	}
+
+	/**
+	 * Registers the scripts of every switched-on adapter, and removes the rest.
+	 *
+	 * @returns What is registered now.
+	 */
+	static async applyInjections(): Promise<InjectionReport> {
+		const report = await InjectionRegistrar.apply(BackgroundServiceWorker._loadedAdapters);
+		BackgroundServiceWorker._injectionReport = report;
+		return report;
+	}
+
+	/**
+	 * Takes a new set of adapters from the native messaging host and registers what the user allows.
+	 *
+	 * @param loadedAdapters - Every adapter the host read from a folder and passed its review checks.
+	 * @returns What is registered now.
+	 */
+	static async setLoadedAdapters(loadedAdapters: LoadedAdapter[]): Promise<InjectionReport> {
+		BackgroundServiceWorker._loadedAdapters = loadedAdapters;
+		return await BackgroundServiceWorker.applyInjections();
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -61,6 +108,32 @@ class BackgroundServiceWorker {
 	//	Helpers
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Describes every adapter the extension knows about, for the popup's list of switches.
+	 *
+	 * @returns The bundled adapters, the loaded ones, and what the registrar last did with them.
+	 */
+	static _describeAdapters(): unknown {
+		return {
+			bundled: AdapterRegistry.ADAPTERS.map((adapter) => ({
+				siteSlug: adapter.siteSlug,
+				siteName: adapter.siteName,
+				matchPatterns: adapter.matchPatterns,
+				toolCount: adapter.tools.length,
+			})),
+			loaded: BackgroundServiceWorker._loadedAdapters.map((adapter) => ({
+				siteSlug: adapter.siteSlug,
+				siteName: adapter.siteName,
+				matchPatterns: adapter.matchPatterns,
+				toolCount: adapter.tools.length,
+				sourceFolder: adapter.sourceFolder,
+				author: adapter.metadata.author,
+			})),
+			injection: BackgroundServiceWorker._injectionReport,
+			areUserScriptsAllowed: typeof chrome.userScripts !== 'undefined',
+		};
+	}
 
 	/**
 	 * Shows how many tools are registered on a tab, so the user can tell at a glance.

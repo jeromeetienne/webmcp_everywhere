@@ -12,6 +12,11 @@ export type StoredSettings = {
 	globallyEnabled: boolean;
 	/** Whether acting tools are allowed, keyed by origin. Absent means not allowed. */
 	actingAllowedByOrigin: Record<string, boolean>;
+	/**
+	 * Whether each adapter is switched on, keyed by site slug. Absent means the default for that
+	 * adapter: an adapter bundled into this build is on, and an adapter loaded from a folder is off.
+	 */
+	adapterEnabledBySlug: Record<string, boolean>;
 };
 
 /**
@@ -24,10 +29,11 @@ export class ExtensionStorage {
 	/** The single key everything is stored under. */
 	static readonly KEY = 'webmcp_everywhere_settings';
 
-	/** What a fresh install looks like: on, and read-only everywhere. */
+	/** What a fresh install looks like: on, read-only everywhere, and nothing decided per adapter. */
 	static readonly DEFAULTS: StoredSettings = {
 		globallyEnabled: true,
 		actingAllowedByOrigin: {},
+		adapterEnabledBySlug: {},
 	};
 
 	/**
@@ -42,6 +48,8 @@ export class ExtensionStorage {
 			globallyEnabled: settings?.globallyEnabled ?? ExtensionStorage.DEFAULTS.globallyEnabled,
 			actingAllowedByOrigin:
 				settings?.actingAllowedByOrigin ?? ExtensionStorage.DEFAULTS.actingAllowedByOrigin,
+			adapterEnabledBySlug:
+				settings?.adapterEnabledBySlug ?? ExtensionStorage.DEFAULTS.adapterEnabledBySlug,
 		};
 	}
 
@@ -81,6 +89,39 @@ export class ExtensionStorage {
 		const settings = await ExtensionStorage.read();
 		settings.actingAllowedByOrigin[origin] = allowed;
 		await ExtensionStorage.write(settings);
+	}
+
+	/**
+	 * Switches one adapter on or off.
+	 *
+	 * @param siteSlug - The adapter to change.
+	 * @param enabled - Whether its scripts are registered at all.
+	 * @returns Nothing.
+	 */
+	static async setAdapterEnabled(siteSlug: string, enabled: boolean): Promise<void> {
+		const settings = await ExtensionStorage.read();
+		settings.adapterEnabledBySlug[siteSlug] = enabled;
+		await ExtensionStorage.write(settings);
+	}
+
+	/**
+	 * Says whether an adapter is switched on, applying the default for its kind.
+	 *
+	 * The defaults differ on purpose. An adapter bundled into this build was reviewed here and its
+	 * source is in the repository, so it is on. An adapter loaded from a folder was reviewed by nobody,
+	 * so it stays off until the user says otherwise.
+	 *
+	 * @param settings - The settings already read.
+	 * @param siteSlug - The adapter to look up.
+	 * @param isBundled - Whether this adapter is bundled into this build.
+	 * @returns `true` when the adapter's scripts should be registered.
+	 */
+	static isAdapterEnabled(settings: StoredSettings, siteSlug: string, isBundled: boolean): boolean {
+		const decided = settings.adapterEnabledBySlug[siteSlug];
+		if (decided !== undefined) {
+			return decided;
+		}
+		return isBundled;
 	}
 
 	/**
