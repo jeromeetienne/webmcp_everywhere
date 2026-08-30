@@ -84,11 +84,11 @@ Nothing here stops prompt injection, and it must never be described as though it
 
 ## What the checks check
 
-`npm run build` runs [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) over every adapter in `AdapterRegistry` before it bundles anything. `npm run load-adapter` runs the same two checks over an adapter written outside this repository before it installs it. A failure stops each of them, so an adapter that fails never reaches a browser by either route.
+`npm run build` runs [`tools/site_adapter/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapter/validate_all_adapters.ts) over every adapter in `AdapterRegistry` before it bundles anything. `npm run load-adapter` runs the same two checks over an adapter written outside this repository before it installs it. A failure stops each of them, so an adapter that fails never reaches a browser by either route.
 
 These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), not in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), and they run in Node.js before installation rather than in the page. Validating in the page meant bundling the schema library into a main-world content script, at about 150 kilobytes on every page the user visits, for no protection at all — code already running in the page can simply not call a checker. Refusing before installation is the one moment where refusing means anything.
 
-**The schema**, in [`adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/adapter_schema.ts), built with Zod:
+**The schema**, in [`adapter_schema.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapter/adapter_schema.ts), built with Zod:
 
 - `siteSlug` and every tool `name` are lower-case `snake_case`.
 - Every tool has a title, a description of at least ten characters, an input schema, a permission class, and a function to run.
@@ -97,12 +97,12 @@ These checks live in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhe
 - No tool name is used twice inside one adapter.
 - `metadata.adapterFormatVersion` equals the `ADAPTER_FORMAT_VERSION` this runtime speaks.
 
-**The permission audit**, in [`permission_audit.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/permission_audit.ts), which reads handler source:
+**The permission audit**, in [`permission_audit.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapter/permission_audit.ts), which reads handler source:
 
 - A handler that clicks, submits, dispatches an event, removes an element, assigns to `value`, `checked`, `innerHTML`, or `textContent`, rewrites `document.title`, writes `document.cookie`, navigates, changes session history, writes to local or session storage, or calls anything in `PageDriving` is acting, whatever its `permissionClass` field says. Declaring such a handler `readOnly` is refused, and the refusal names the evidence.
 - No adapter may reach the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused.
 
-**Across adapters**, in [`validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts):
+**Across adapters**, in [`validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapter/validate_all_adapters.ts):
 
 - No qualified tool name is produced by two different adapters.
 

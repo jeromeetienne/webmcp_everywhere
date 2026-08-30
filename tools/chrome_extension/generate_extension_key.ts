@@ -6,8 +6,8 @@
 
 import Crypto from 'node:crypto';
 import Fs from 'node:fs';
-import { ExtensionIdentifier } from '../packages/webmcp_everywhere/src/extension_identifier.ts';
-import { WorkingCopyLayout } from './working_copy_layout.ts';
+import { ExtensionIdentifier } from '../../packages/webmcp_everywhere/src/extension_identifier.ts';
+import { WorkingCopyLayout } from '../webmcp_everywhere/working_copy_layout.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

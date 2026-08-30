@@ -184,7 +184,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 - `packages/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads. Chrome starts it by path; it is imported as `@webmcp_everywhere/native_messaging_host`.
 - `contribs/site_adapters/` — one folder per target site this build ships.
 - `contribs/chrome_extension/` — the Manifest Version 3 extension.
-- `tools/` — build, launch, register the host in this working copy, the commands that write a new adapter, load one and unload one, plus the adapter checks and the Chrome DevTools Protocol connection. Nothing here ships.
+- `tools/` — one folder per subject, each named after the folder under `packages/` or `contribs/` it acts on: `chrome_extension/` builds and launches the extension, `site_adapters/` writes a new adapter and loads one, `site_adapter/` holds the checks an adapter must pass, and `webmcp_everywhere/` packages a release and registers the host in this working copy. `chrome_devtools_protocol/` and `environment_reports/` keep their own subject names. Nothing here ships.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.

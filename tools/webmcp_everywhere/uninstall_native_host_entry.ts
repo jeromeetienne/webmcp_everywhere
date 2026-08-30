@@ -1,6 +1,6 @@
 import Os from 'node:os';
 import Path from 'node:path';
-import { UninstallNativeHost } from '../packages/webmcp_everywhere/src/uninstall_native_host.ts';
+import { UninstallNativeHost } from '../../packages/webmcp_everywhere/src/uninstall_native_host.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

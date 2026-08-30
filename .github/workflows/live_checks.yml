@@ -45,7 +45,7 @@ jobs:
       # make it one folder and one hand edit somebody forgets.
       - name: Read the folders under contribs/site_adapters/
         id: read_the_folders
-        run: echo "adapters=$(node tools/adapter_freshness.ts matrix)" >> "$GITHUB_OUTPUT"
+        run: echo "adapters=$(node tools/site_adapters/adapter_freshness.ts matrix)" >> "$GITHUB_OUTPUT"
 
   check_one_adapter:
     name: ${{ matrix.adapter.siteSlug }}
@@ -148,7 +148,7 @@ jobs:
           cat all_results.json
 
       - name: Write the table
-        run: node tools/adapter_freshness.ts table all_results.json "$(date -u +%Y-%m-%d)"
+        run: node tools/site_adapters/adapter_freshness.ts table all_results.json "$(date -u +%Y-%m-%d)"
 
       # The table is committed rather than published elsewhere, because README.md is the one page
       # everybody already reads, and a freshness report nobody opens is not a report.

@@ -8,8 +8,8 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { GrantActing } from '../../tools/grant_acting.ts';
-import { LaunchChrome } from '../../tools/launch_chrome.ts';
+import { GrantActing } from '../../tools/chrome_extension/grant_acting.ts';
+import { LaunchChrome } from '../../tools/chrome_extension/launch_chrome.ts';
 import type {
 	CountTodosResult,
 	ListTodosResult,

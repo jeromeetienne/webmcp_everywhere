@@ -1,7 +1,7 @@
 # Directory Context: `/packages/site_adapter`
 
 ## Purpose
-Everything a site adapter is written against, whether it lives in `contribs/site_adapters/` or in a folder of somebody else's. It has two halves that are not the same kind of thing, and `src/index.ts` is where that is said: `src/format/` is a contract meant to stop changing, `src/toolkit/` is a helper library meant to grow. The checks an adapter must pass live in `tools/adapter_validation/`, because they run in Node.js before an adapter reaches a browser and are never bundled into a page.
+Everything a site adapter is written against, whether it lives in `contribs/site_adapters/` or in a folder of somebody else's. It has two halves that are not the same kind of thing, and `src/index.ts` is where that is said: `src/format/` is a contract meant to stop changing, `src/toolkit/` is a helper library meant to grow. The checks an adapter must pass live in `tools/site_adapter/`, because they run in Node.js before an adapter reaches a browser and are never bundled into a page.
 
 ## Key Exports & Entry Points
 - `src/index.ts`: the whole of `@webmcp_everywhere/site_adapter`, and the only entry point `package.json` names. It re-exports both halves under one name and carries the ambient declarations for `document.modelContext` with a triple-slash reference.

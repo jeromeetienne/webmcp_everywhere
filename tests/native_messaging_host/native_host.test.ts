@@ -9,8 +9,8 @@ import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
 import { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
-import { GrantActing } from '../../tools/grant_acting.ts';
-import { LaunchChrome } from '../../tools/launch_chrome.ts';
+import { GrantActing } from '../../tools/chrome_extension/grant_acting.ts';
+import { LaunchChrome } from '../../tools/chrome_extension/launch_chrome.ts';
 import type { HostEndpoint, HttpOutcome, ToolCallOutcome } from '../libs/host_call_types.ts';
 
 const ENDPOINT_FILE = Path.join(Os.homedir(), '.webmcp_everywhere', 'endpoint.json');

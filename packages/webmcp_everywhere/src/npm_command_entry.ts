@@ -252,7 +252,7 @@ export class NpmCommandEntry {
 	 * Reads the version out of the extension manifest this package carries.
 	 *
 	 * The packaged release holds a manifest of its own that npm publishes it with, and the version there
-	 * and the version here are the same number; `tools/package_release.ts` refuses to package them apart.
+	 * and the version here are the same number; `tools/webmcp_everywhere/package_release.ts` refuses to package them apart.
 	 * This one is read because it is the version of the thing a person loads into Chrome.
 	 *
 	 * @returns The version string, or `unknown` when the manifest is missing or unreadable.

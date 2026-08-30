@@ -12,9 +12,9 @@ import ChildProcess from 'node:child_process';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const sourceDir = Path.join(__dirname, '..', 'contribs', 'chrome_extension');
-const tsconfigPath = Path.join(__dirname, '..', 'tsconfig.json');
-const outDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
+const sourceDir = Path.join(__dirname, '..', '..', 'contribs', 'chrome_extension');
+const tsconfigPath = Path.join(__dirname, '..', '..', 'tsconfig.json');
+const outDir = Path.join(__dirname, '..', '..', 'build', 'chrome_extension');
 const bundleDir = Path.join(outDir, 'dist');
 
 /**
@@ -100,7 +100,7 @@ class BuildExtension {
 			recursive: true,
 		});
 		await Esbuild.build({
-			entryPoints: [Path.join(__dirname, 'adapter_validation', 'validate_all_adapters.ts')],
+			entryPoints: [Path.join(__dirname, '..', 'site_adapter', 'validate_all_adapters.ts')],
 			outfile: bundlePath,
 			bundle: true,
 			format: 'esm',

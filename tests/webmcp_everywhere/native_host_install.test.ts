@@ -5,7 +5,7 @@ import NodeTest from 'node:test';
 import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
 import { UninstallNativeHost } from '../../packages/webmcp_everywhere/src/uninstall_native_host.ts';
 import type { InstallNativeHostOptions } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
-import { WorkingCopyLayout } from '../../tools/working_copy_layout.ts';
+import { WorkingCopyLayout } from '../../tools/webmcp_everywhere/working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

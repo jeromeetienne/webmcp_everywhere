@@ -13,7 +13,7 @@ import { SyncAdapterRegistry } from './sync_adapter_registry.ts';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

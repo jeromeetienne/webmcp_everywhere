@@ -9,7 +9,7 @@ The library half of `@webmcp_everywhere/site_adapter`: the page helpers an adapt
 - Both reach the outside through `../index.ts`, never by their own path.
 
 ## Rules
-- **Every helper in `page_driving.ts` changes the page, and no helper in `page_waiting.ts` does.** `tools/adapter_validation/permission_audit.ts` reads a handler that names `PageDriving` as acting, whatever the tool declared, so a helper filed on the wrong side either lets an acting tool call itself read-only or makes the audit refuse an honest read-only one.
+- **Every helper in `page_driving.ts` changes the page, and no helper in `page_waiting.ts` does.** `tools/site_adapter/permission_audit.ts` reads a handler that names `PageDriving` as acting, whatever the tool declared, so a helper filed on the wrong side either lets an acting tool call itself read-only or makes the audit refuse an honest read-only one.
 - A helper moves in at its second caller, never at its first. A four-argument helper with one caller is harder to read than the code it replaced, and nothing yet says which of its arguments the second caller would have wanted.
 - **Nothing here imports `../format/`.** These helpers know about pages, not about what an adapter is, and the one time they would need a type from the format is the moment to ask whether the helper belongs in an adapter instead.
 - This half is bundled into a main-world content script on every covered page, so it stays small enough that its size never becomes a reason to argue about it.

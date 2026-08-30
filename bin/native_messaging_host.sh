@@ -2,7 +2,7 @@
 #
 # The executable Chrome starts for the native messaging host.
 #
-# Chrome reads the path of this file from the host manifest that `tools/install_native_host.ts`
+# Chrome reads the path of this file from the host manifest that `packages/webmcp_everywhere/src/install_native_host.ts`
 # writes, and starts it with a very small environment. So the script holds no absolute path of its
 # own: it works the repository root out from its own location, and it looks for a Node.js instead of
 # naming one. The whole program is one `exec`, because Chrome talks to the process it starts over

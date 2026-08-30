@@ -11,7 +11,7 @@ import { SyncAdapterRegistry } from './sync_adapter_registry.ts';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -177,7 +177,7 @@ if (import.meta.filename === process.argv[1]) {
 		const resultsPath = process.argv[3];
 		const checkedOn = process.argv[4];
 		if (resultsPath === undefined || checkedOn === undefined) {
-			console.error('usage: node tools/adapter_freshness.ts table <results.json> <YYYY-MM-DD>');
+			console.error('usage: node tools/site_adapters/adapter_freshness.ts table <results.json> <YYYY-MM-DD>');
 			process.exit(1);
 		}
 		const results = JSON.parse(Fs.readFileSync(resultsPath, 'utf8')) as FreshnessResult[];

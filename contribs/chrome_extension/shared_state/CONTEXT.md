@@ -18,4 +18,4 @@ The state that more than one execution context reads: the adapters this build ca
 - A bundled adapter defaults to on and a loaded one to off. A bundled adapter was reviewed here and its source is in the repository; a loaded one was reviewed by nobody.
 
 ## Background
-- `validate_all_adapters.ts` in `tools/adapter_validation/` imports `adapter_registry.ts` on purpose and only ever runs in Node.js — see [`../../../tools/adapter_validation/CONTEXT.md`](../../../tools/adapter_validation/CONTEXT.md).
+- `validate_all_adapters.ts` in `tools/site_adapter/` imports `adapter_registry.ts` on purpose and only ever runs in Node.js — see [`../../../tools/site_adapter/CONTEXT.md`](../../../tools/site_adapter/CONTEXT.md).

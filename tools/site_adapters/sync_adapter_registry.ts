@@ -12,7 +12,7 @@ import Path from 'node:path';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 const siteAdaptersDir = Path.join(repositoryRoot, 'contribs', 'site_adapters');
 const registryPath = Path.join(
 	repositoryRoot,

@@ -49,7 +49,7 @@ jobs:
       - name: Package the release
         id: package_it
         run: |
-          node tools/package_release.ts
+          node tools/webmcp_everywhere/package_release.ts
           echo "archive=build/webmcp_everywhere_release.zip" >> "$GITHUB_OUTPUT"
 
       # This is the whole point of the job. A runner has no other Chrome on it, so the packaged host
@@ -127,7 +127,7 @@ jobs:
       - name: Build the package npm publishes
         run: |
           npm run build
-          node tools/package_release.ts
+          node tools/webmcp_everywhere/package_release.ts
 
       - name: Publish it, when there is an account to publish as
         env:

@@ -28,9 +28,9 @@ Only one of these may be registered with Chrome at a time. The host manifest nam
 
 ## `npm run build`
 
-[`tools/build_extension.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/build_extension.ts) does four things, in this order.
+[`tools/chrome_extension/build_extension.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/chrome_extension/build_extension.ts) does four things, in this order.
 
-**One: it checks every adapter.** [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
+**One: it checks every adapter.** [`tools/site_adapter/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapter/validate_all_adapters.ts) is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
 
 **Two: it empties `build/chrome_extension/`.** Nothing is ever written into [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
 
@@ -102,7 +102,7 @@ Afterwards Google Chrome no longer starts the native messaging host for this ext
 
 ## `npm run chrome`
 
-[`tools/launch_chrome.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/launch_chrome.ts) launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
+[`tools/chrome_extension/launch_chrome.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/chrome_extension/launch_chrome.ts) launches a throwaway Chrome with the extension installed. It uses a throwaway profile in the system temporary directory and never touches your everyday Chrome.
 
 It handles five steps that are each silent when they go wrong.
 
@@ -126,7 +126,7 @@ These two are what make an adapter usable without rebuilding anything. Nothing h
 npm run load-adapter -- ~/my_adapters/example_com
 ```
 
-[`tools/load_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/load_adapter.ts) does four things, in this order.
+[`tools/site_adapters/load_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapters/load_adapter.ts) does four things, in this order.
 
 **One: it finds the adapter.** The folder must hold exactly one `*_adapter.ts` or `*_adapter.js` file. Two of them, or none, is refused by name.
 
@@ -143,7 +143,7 @@ Installing an adapter does not run it. Two more things have to be true first, an
 - **Switch the adapter on in the popup.** A loaded adapter is off by default, because nobody at this repository reviewed it.
 - **Turn on "Allow User Scripts" for this extension** at `chrome://extensions`. `chrome.userScripts` is the one interface Chrome offers for running code an extension did not ship, and Chrome keeps it hidden until you turn it on. Until then the popup lists the adapter as withheld and says exactly this.
 
-[`tools/unload_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/unload_adapter.ts) is the way back, and it takes a site slug rather than a folder:
+[`tools/site_adapters/unload_adapter.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/site_adapters/unload_adapter.ts) is the way back, and it takes a site slug rather than a folder:
 
 ```bash
 npm run unload-adapter -- example_com
@@ -161,7 +161,7 @@ Everything above assumes a working copy on disk: the launcher walks up from its 
 npm run package:release
 ```
 
-[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
+[`tools/webmcp_everywhere/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/webmcp_everywhere/package_release.ts) builds the extension folder and the three bundles into [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
 
 | What | Why it is there |
 | --- | --- |

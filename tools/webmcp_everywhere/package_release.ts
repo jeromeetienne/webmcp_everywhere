@@ -2,7 +2,7 @@ import ChildProcess from 'node:child_process';
 import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ReleaseLayout } from '../packages/webmcp_everywhere/src/release_layout.ts';
+import { ReleaseLayout } from '../../packages/webmcp_everywhere/src/release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,7 +13,7 @@ import { ReleaseLayout } from '../packages/webmcp_everywhere/src/release_layout.
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
 const packageDir = Path.join(repositoryRoot, 'packages', 'webmcp_everywhere');
 

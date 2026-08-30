@@ -1,7 +1,7 @@
 import Os from 'node:os';
 import Path from 'node:path';
-import { InstallNativeHost } from '../packages/webmcp_everywhere/src/install_native_host.ts';
-import type { InstallNativeHostOptions } from '../packages/webmcp_everywhere/src/install_native_host.ts';
+import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
+import type { InstallNativeHostOptions } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
 import { WorkingCopyLayout } from './working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////

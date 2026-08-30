@@ -11,7 +11,7 @@ What the community writes: the adapters, and the browser extension that loads th
 - Nothing here imports from `tools/` or from `tests/`. `node --test tests/repository_layout/source_boundary.test.ts` refuses any relative import that leaves `contribs/`, which is what keeps build tooling and verification code from drifting back in. A workspace package is reached by its `@webmcp_everywhere/` name instead, never by a relative path into `packages/`.
 - Nothing under `contribs/` reaches the network at runtime. Adapters read and drive their own page and nothing else, and the one program that listens on a socket is `packages/native_messaging_host/`, on the loopback interface only.
 - Everything every adapter is written against is one package rather than a folder here: `@webmcp_everywhere/site_adapter`, holding both the shape and the framing an adapter conforms to and the waiting and driving helpers it shares. It imports nothing from `contribs/`, so an adapter can be checked without a browser and an author outside this repository can install it.
-- Anything an adapter needs at runtime must be cheap. Validation belongs in `tools/adapter_validation/`, because bundling the schema library into a main-world content script cost about 150 kilobytes on every page for no protection at all.
+- Anything an adapter needs at runtime must be cheap. Validation belongs in `tools/site_adapter/`, because bundling the schema library into a main-world content script cost about 150 kilobytes on every page for no protection at all.
 
 ## Background
 - The whole layout implements [issue #1](https://github.com/jeromeetienne/webmcp_everywhere/issues/1); the slice being built is [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).

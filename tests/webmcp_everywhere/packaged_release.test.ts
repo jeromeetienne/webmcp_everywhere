@@ -9,8 +9,8 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { LaunchChrome } from '../../tools/launch_chrome.ts';
-import { PackageRelease } from '../../tools/package_release.ts';
+import { LaunchChrome } from '../../tools/chrome_extension/launch_chrome.ts';
+import { PackageRelease } from '../../tools/webmcp_everywhere/package_release.ts';
 import { PackagedReleaseInstallation } from '../../packages/webmcp_everywhere/src/packaged_release_installation.ts';
 import { ReleaseLayout } from '../../packages/webmcp_everywhere/src/release_layout.ts';
 

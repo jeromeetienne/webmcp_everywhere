@@ -7,7 +7,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { SyncAdapterRegistry } from '../../tools/sync_adapter_registry.ts';
+import { SyncAdapterRegistry } from '../../tools/site_adapters/sync_adapter_registry.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

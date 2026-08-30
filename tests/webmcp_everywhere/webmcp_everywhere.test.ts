@@ -13,10 +13,10 @@ import NodeTest from 'node:test';
 import { ExtensionIdentifier } from '../../packages/webmcp_everywhere/src/extension_identifier.ts';
 import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
 import { InstallationStatus } from '../../packages/webmcp_everywhere/src/installation_status.ts';
-import { PackageRelease } from '../../tools/package_release.ts';
+import { PackageRelease } from '../../tools/webmcp_everywhere/package_release.ts';
 import { PackagedReleaseInstallation } from '../../packages/webmcp_everywhere/src/packaged_release_installation.ts';
 import { ReleaseLayout } from '../../packages/webmcp_everywhere/src/release_layout.ts';
-import { VersionAgreement } from '../../tools/version_agreement.ts';
+import { VersionAgreement } from '../../tools/webmcp_everywhere/version_agreement.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

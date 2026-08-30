@@ -9,7 +9,7 @@ import Path from 'node:path';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 
 /**
  * The counterpart of `ReleaseLayout`, for the repository rather than for the package.
@@ -46,7 +46,7 @@ export class WorkingCopyLayout {
 		'manifest.json',
 	);
 
-	/** Where `tools/generate_extension_key.ts` writes the private half of the key pair. */
+	/** Where `tools/chrome_extension/generate_extension_key.ts` writes the private half of the key pair. */
 	static readonly EXTENSION_PRIVATE_KEY = Path.join(repositoryRoot, 'extension_private_key.pem');
 
 	/**

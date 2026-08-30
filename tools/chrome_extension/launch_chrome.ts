@@ -1,4 +1,4 @@
-import { WorkingCopyLayout } from './working_copy_layout.ts';
+import { WorkingCopyLayout } from '../webmcp_everywhere/working_copy_layout.ts';
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 //	LaunchChrome — brings up a Chrome that speaks WebMCP with the extension installed
@@ -9,10 +9,10 @@ import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
-import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
-import { InstallNativeHost } from '../packages/webmcp_everywhere/src/install_native_host.ts';
-import type { InstallNativeHostOptions } from '../packages/webmcp_everywhere/src/install_native_host.ts';
+import { CdpClient } from '../chrome_devtools_protocol/cdp_client.ts';
+import { ServiceWorkerEvaluation } from '../chrome_devtools_protocol/service_worker_evaluation.ts';
+import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
+import type { InstallNativeHostOptions } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -149,7 +149,7 @@ export class LaunchChrome {
 		const profileDir = options.profileDir ?? Path.join(Os.tmpdir(), 'webmcp_everywhere_profile');
 		const url = options.url ?? LaunchChrome.TARGET_URL;
 		const visibility = options.visibility ?? LaunchChrome._visibilityFromEnvironment() ?? 'hidden';
-		const extensionDir = options.extensionDir ?? Path.join(__dirname, '..', 'build', 'chrome_extension');
+		const extensionDir = options.extensionDir ?? Path.join(__dirname, '..', '..', 'build', 'chrome_extension');
 
 		if (Fs.existsSync(Path.join(extensionDir, 'dist', 'content_main.js')) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');

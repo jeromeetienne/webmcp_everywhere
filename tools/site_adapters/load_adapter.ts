@@ -15,7 +15,7 @@ import { LoadedAdapterStore } from '@webmcp_everywhere/native_messaging_host';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,7 +145,7 @@ export class LoadAdapter {
 	/**
 	 * Runs the review checks over the adapter, in a Node.js process of its own.
 	 *
-	 * The checks live in `tools/adapter_validation/` and read types that assume a browser, so they are
+	 * The checks live in `tools/site_adapter/` and read types that assume a browser, so they are
 	 * bundled before they run, exactly as `npm run build` bundles them. Running them in a child process
 	 * rather than importing them keeps an adapter's own top-level code out of this process.
 	 *
@@ -214,8 +214,8 @@ export class LoadAdapter {
 	 * @returns The program's source.
 	 */
 	static _reviewerSource(adapterFile: string): string {
-		const schemaPath = Path.join(repositoryRoot, 'tools', 'adapter_validation', 'adapter_schema.ts');
-		const auditPath = Path.join(repositoryRoot, 'tools', 'adapter_validation', 'permission_audit.ts');
+		const schemaPath = Path.join(repositoryRoot, 'tools', 'site_adapter', 'adapter_schema.ts');
+		const auditPath = Path.join(repositoryRoot, 'tools', 'site_adapter', 'permission_audit.ts');
 		return [
 			`import * as module from ${JSON.stringify(adapterFile)};`,
 			`import { AdapterSchema } from ${JSON.stringify(schemaPath)};`,
