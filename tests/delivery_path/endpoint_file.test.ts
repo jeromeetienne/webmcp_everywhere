@@ -10,8 +10,8 @@ import Http from 'node:http';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { WebmcpNativeHost } from '../src/native_messaging_host/webmcp_native_host.ts';
-import type { HostEndpointRecord, HostHealth } from '../src/native_messaging_host/webmcp_native_host_types.ts';
+import { WebmcpNativeHost } from '../../src/native_messaging_host/webmcp_native_host.ts';
+import type { HostEndpointRecord, HostHealth } from '../../src/native_messaging_host/webmcp_native_host_types.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -33,7 +33,14 @@ const __dirname = import.meta.dirname;
  */
 class EndpointFileTest {
 	/** The host program the checks start, the same file the installed host manifest names. */
-	static readonly HOST_SCRIPT = Path.join(__dirname, '..', 'src', 'native_messaging_host', 'webmcp_native_host.ts');
+	static readonly HOST_SCRIPT = Path.join(
+		__dirname,
+		'..',
+		'..',
+		'src',
+		'native_messaging_host',
+		'webmcp_native_host.ts',
+	);
 
 	/**
 	 * A process that starts one host and then stays put, so killing it orphans the host.

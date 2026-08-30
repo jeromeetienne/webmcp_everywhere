@@ -12,7 +12,7 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **The extension runs, but not on this site.** The manifest names no site, so nothing is registered until the background service worker registers it. Open the popup: it lists every adapter with a switch, and says why each withheld one is withheld. Three reasons are possible — the adapter is switched off, another adapter already covers that host, or **Allow User Scripts** is off.
 
-**The adapter is missing from the registry.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) is generated. Run `npm run sync:adapters`, which rewrites it from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters). `node --test tests/adapter_registry_sync.test.ts` fails when the committed file and the folders disagree.
+**The adapter is missing from the registry.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) is generated. Run `npm run sync:adapters`, which rewrites it from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters). `node --test tests/repository_layout/adapter_registry_sync.test.ts` fails when the committed file and the folders disagree.
 
 **The page loaded before the extension registered anything.** Registration happens after the service worker starts, so a page opened in the first moment of a launch gets no adapter. Reload the page. `LaunchChrome` waits for the first registration before it opens anything, which is why a verification runner does not hit this.
 
@@ -108,13 +108,13 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Types and imports
 
-**`node --test tests/source_boundary.test.ts` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has a relative import that leaves the folder it is written in. Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and a package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
+**`node --test tests/repository_layout/source_boundary.test.ts` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has a relative import that leaves the folder it is written in. Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and a package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
 
 **`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) directly and only strips types, so those files stay within erasable syntax.
 
 ## Telling an adapter fault from a delivery fault
 
-When `node --test tests/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
+When `node --test tests/delivery_path/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
 
 1. Run the adapter's own runner — `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
 2. Run `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts`. The stdio bridge reaches the page over the Chrome DevTools Protocol, still bypassing the extension and the host. If it passes, WebMCP registration on the page is fine.

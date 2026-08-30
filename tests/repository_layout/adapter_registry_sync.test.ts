@@ -7,7 +7,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { SyncAdapterRegistry } from '../tools/sync_adapter_registry.ts';
+import { SyncAdapterRegistry } from '../../tools/sync_adapter_registry.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -25,7 +25,7 @@ const __dirname = import.meta.dirname;
  */
 class AdapterRegistrySyncTest {
 	/** The repository root, worked out from this file's own location. */
-	static readonly REPOSITORY_ROOT = Path.join(__dirname, '..');
+	static readonly REPOSITORY_ROOT = Path.join(__dirname, '..', '..');
 
 	/** Where the adapters live, one folder each. */
 	static readonly SITE_ADAPTERS_DIR = Path.join(

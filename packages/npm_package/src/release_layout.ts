@@ -52,7 +52,7 @@ export class ReleaseLayout {
 	 * That folder holds two things a user must never receive: `src/`, which is bundled into the three
 	 * files above rather than shipped, and `CONTEXT.md`, which rules the folder for whoever edits it
 	 * here. So the copy into a user's installation, the archive attached to a release, and the `files`
-	 * list in the published manifest all name the same entries, and `tests/npm_package.test.ts` checks
+	 * list in the published manifest all name the same entries, and `tests/installation/npm_package.test.ts` checks
 	 * that this list and that manifest still agree.
 	 */
 	static readonly PUBLISHED_ENTRIES = [

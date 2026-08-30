@@ -176,7 +176,7 @@ npm run package:release
 
 Node.js is still needed, because bundling removes the repository rather than the runtime. The launcher searches for one exactly as the repository's does, since Chrome starts it with a very small environment.
 
-`node --test tests/packaged_release.test.ts` copies what that package publishes out of the repository, registers its host with a throwaway Chrome, and asks the endpoint for its tools. It is the only check that proves the host works with nothing above it, and the release workflow attaches no archive until it has passed.
+`node --test tests/installation/packaged_release.test.ts` copies what that package publishes out of the repository, registers its host with a throwaway Chrome, and asks the endpoint for its tools. It is the only check that proves the host works with nothing above it, and the release workflow attaches no archive until it has passed.
 
 That runner needs port 8765, which serves one browser at a time on purpose, so it skips with its reason when your everyday Chrome already owns the port. Continuous integration has no other browser, which is where it really runs.
 
@@ -217,7 +217,7 @@ Every variable this project reads is named `WEBMCP_EVERYWHERE_` followed by what
 | `WEBMCP_EVERYWHERE_CHROME_PATH` | a path | the first Chrome found | Which Chrome to launch. Without it the paths are tried in order: the macOS one, then `/usr/bin/google-chrome`, `google-chrome-stable`, `/opt/google/chrome/chrome`, and Chromium. |
 | `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` | `visible` or `hidden` | `hidden`, except `npm run chrome`, which shows a window | Whether a launched Chrome puts a window on the screen. Hidden runs Chrome with `--headless=new`, which still installs the extension, still runs the content scripts, and still starts the native messaging host. |
 | `WEBMCP_EVERYWHERE_HOST_PORT` | a port number | `8765` | The one port the native messaging host serves Model Context Protocol over HTTP on. It never moves to another port; a host that cannot have this one waits for it. |
-| `WEBMCP_EVERYWHERE_STATE_DIR` | a directory | `~/.webmcp_everywhere` | Where the native messaging host keeps `endpoint.json`, `token`, and `host.log`. `node --test tests/endpoint_file.test.ts` sets it to a throwaway directory so its hosts never touch the one you are really using. |
+| `WEBMCP_EVERYWHERE_STATE_DIR` | a directory | `~/.webmcp_everywhere` | Where the native messaging host keeps `endpoint.json`, `token`, and `host.log`. `node --test tests/delivery_path/endpoint_file.test.ts` sets it to a throwaway directory so its hosts never touch the one you are really using. |
 | `WEBMCP_EVERYWHERE_ADAPTERS_DIR` | a directory | `adapters/` inside the state directory | Where `npm run load-adapter` writes an installed adapter, and where the native messaging host reads them from. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PORT` | a port number | `9333` | Which Chrome debugging port the stdio Model Context Protocol bridge attaches to. |
 | `WEBMCP_EVERYWHERE_BRIDGE_PAGE` | part of a page address | `todomvc` | Which open page the stdio bridge attaches to, matched on the address. |

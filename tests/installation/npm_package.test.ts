@@ -10,13 +10,13 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { ExtensionIdentifier } from '../packages/npm_package/src/extension_identifier.ts';
-import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
-import { InstallationStatus } from '../packages/npm_package/src/installation_status.ts';
-import { PackageRelease } from '../tools/package_release.ts';
-import { PackagedReleaseInstallation } from '../packages/npm_package/src/packaged_release_installation.ts';
-import { ReleaseLayout } from '../packages/npm_package/src/release_layout.ts';
-import { VersionAgreement } from '../tools/version_agreement.ts';
+import { ExtensionIdentifier } from '../../packages/npm_package/src/extension_identifier.ts';
+import { InstallNativeHost } from '../../packages/npm_package/src/install_native_host.ts';
+import { InstallationStatus } from '../../packages/npm_package/src/installation_status.ts';
+import { PackageRelease } from '../../tools/package_release.ts';
+import { PackagedReleaseInstallation } from '../../packages/npm_package/src/packaged_release_installation.ts';
+import { ReleaseLayout } from '../../packages/npm_package/src/release_layout.ts';
+import { VersionAgreement } from '../../tools/version_agreement.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -337,7 +337,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 		// only the entries the package publishes: that folder is the workspace package, so it also holds
 		// the `src/` that is bundled into the three files rather than shipped, and its `CONTEXT.md`
 		const released = NpmPackageTest.digestEveryFile(
-			Path.join(__dirname, '..', 'packages', 'npm_package'),
+			Path.join(__dirname, '..', '..', 'packages', 'npm_package'),
 			ReleaseLayout.PUBLISHED_ENTRIES,
 		);
 		const installed = NpmPackageTest.digestEveryFile(NpmPackageTest.installationDir());
@@ -422,7 +422,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 		}
 
 		const identifier = ExtensionIdentifier.fromManifest(
-			Path.join(__dirname, '..', 'build', ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
+			Path.join(__dirname, '..', '..', 'build', ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
 		);
 		const expected = `chrome-extension://${identifier}/`;
 		if (manifest.allowed_origins.includes(expected) === false) {

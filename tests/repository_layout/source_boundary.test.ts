@@ -11,7 +11,7 @@ import NodeTest from 'node:test';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ type Offence = {
  * decided here, so a package that starts publishing its source starts being checked on the same day.
  *
  * A bare specifier such as `@webmcp_everywhere/adapter_toolkit` is not checked here. That is a dependency
- * npm resolves, and the manifests are what `tests/workspace_packages.test.ts` reads.
+ * npm resolves, and the manifests are what `tests/repository_layout/workspace_packages.test.ts` reads.
  */
 class SourceBoundaryTest {
 	/** Where the workspace packages live, each one a folder no relative import may leave. */

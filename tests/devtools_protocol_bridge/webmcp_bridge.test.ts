@@ -13,7 +13,7 @@ import { LaunchChrome } from '../../tools/launch_chrome.ts';
 import type {
 	CountTodosResult,
 	ListTodosResult,
-} from '../site_adapters/todomvc_result_types.ts';
+} from '../site_adapters/libs/todomvc_result_types.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -68,7 +68,7 @@ class WebmcpBridgeTest {
 		await WebmcpBridgeTest._pause(2500);
 		const transport = new StdioClientTransport({
 			command: process.execPath,
-			args: [Path.join(__dirname, 'webmcp_bridge.ts')],
+			args: [Path.join(__dirname, 'libs', 'webmcp_bridge.ts')],
 		});
 		const client = new Client(
 			{

@@ -9,13 +9,13 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { AllowUserScripts } from '../tools/allow_user_scripts.ts';
-import { CdpClient } from '../tools/chrome_devtools_protocol/cdp_client.ts';
-import { GrantActing } from '../tools/grant_acting.ts';
-import { LaunchChrome } from '../tools/launch_chrome.ts';
-import { LoadAdapter } from '../tools/load_adapter.ts';
-import { LoadedAdapterStore } from '../src/native_messaging_host/loaded_adapter_store.ts';
-import { UnloadAdapter } from '../tools/unload_adapter.ts';
+import { AllowUserScripts } from '../../tools/allow_user_scripts.ts';
+import { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
+import { GrantActing } from '../../tools/grant_acting.ts';
+import { LaunchChrome } from '../../tools/launch_chrome.ts';
+import { LoadAdapter } from '../../tools/load_adapter.ts';
+import { LoadedAdapterStore } from '../../src/native_messaging_host/loaded_adapter_store.ts';
+import { UnloadAdapter } from '../../tools/unload_adapter.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -189,7 +189,7 @@ export const exampleAdapter = {
 				'\t',
 			)}\n`,
 		);
-		const packagesDir = Path.join(__dirname, '..', 'packages');
+		const packagesDir = Path.join(__dirname, '..', '..', 'packages');
 		const installed = ChildProcess.spawnSync(
 			'npm',
 			[

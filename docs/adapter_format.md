@@ -114,7 +114,7 @@ One consequence catches adapter authors out. `PermissionAudit` cannot tell readi
 
 Two routes, and neither of them is automatic discovery. A build that silently picks up a new file is a build that silently ships one.
 
-**Bundled into this build.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) names every adapter this build carries. `npm run sync:adapters` rewrites that file from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), and the file is committed, so a new adapter still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree.
+**Bundled into this build.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) names every adapter this build carries. `npm run sync:adapters` rewrites that file from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), and the file is committed, so a new adapter still arrives as a diff a reviewer reads. `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree.
 
 **Loaded from a folder.** `npm run load-adapter -- <folder>` checks an adapter written anywhere and writes it to `~/.webmcp_everywhere/adapters/`. The native messaging host reads that folder and reports what it finds to the extension. Nothing is rebuilt and nothing is merged here.
 

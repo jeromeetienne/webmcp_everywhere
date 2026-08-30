@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from '../live_page_harness.ts';
+import { LivePageHarness } from '../libs/live_page_harness.ts';
 import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 
 const TARGET_URL = 'https://caniuse.com/css-grid';

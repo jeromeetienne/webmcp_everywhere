@@ -1,32 +1,25 @@
 # Directory Context: `/tests`
 
 ## Purpose
-Everything that exists only to check the product: the runners, the live browser they share, and the stdio Model Context Protocol bridge one of them checks.
+Everything that exists only to check the product: the runners, grouped one folder per subject, the live browser they share, and the stdio Model Context Protocol bridge one of them checks.
 
 ## Key Exports & Entry Points
+- `repository_layout/`: That the repository agrees with itself — the registry against the folders, the imports against the boundaries, the packages against their manifests — see its own CONTEXT.md.
+- `delivery_path/`: The path from an agent's HTTP request to the page and back, and the file that names its address — see its own CONTEXT.md.
+- `installation/`: What a user installs, from the host manifest file through the npm package to a release with no repository under it — see its own CONTEXT.md.
+- `code_from_outside/`: Content and code this repository did not write — a hostile page, and an adapter from a stranger — see its own CONTEXT.md.
 - `site_adapters/`: One verification runner per adapted site — see its own CONTEXT.md.
 - `devtools_protocol_bridge/`: The stdio Model Context Protocol bridge and the runner driving it — see its own CONTEXT.md.
-- `adapter_registry_sync.test.ts`: `AdapterRegistrySyncTest` — 5 checks that the registry and the runners match the folders under `src/site_adapters/`, and the manifest names no site.
-- `loaded_adapter.test.ts`: `LoadedAdapterTest` — 5 checks that an adapter written outside here, importing both packages, is refused when dishonest and otherwise run with no rebuild.
-- `packaged_release.test.ts`: `PackagedReleaseTest` — 3 checks that a release copied out of the repository installs its host and serves an agent.
-- `npm_package.test.ts`: `NpmPackageTest` — 13 checks that the published package names one version, is byte for byte what Chrome is driven against, installs into a home of its own, and comes back out.
-- `native_host.test.ts`, `endpoint_file.test.ts`: 10 checks over the delivery path, endpoint to page; 10 that `endpoint.json` names a host really listening.
-- `native_host_install.test.ts`: `NativeHostInstallTest` — 7 checks that installing announces every file first and uninstalling removes each one.
-- `injection_defence.test.ts`: `InjectionDefenceTest` — attacks through hostile page content.
-- `source_boundary.test.ts`: `SourceBoundaryTest` — refuses a relative import that leaves `src/`, or that leaves a package under `packages/`.
-- `workspace_packages.test.ts`: `WorkspacePackagesTest` — 6 checks over the three packages: what each offers, which one is published, and how the two an author installs behave once packed.
-- `live_page_harness.ts`: `LivePageHarness` — the live browser the site checks share, from launching Chrome to calling a tool.
+- `libs/`: The two files that hold no check and that the runner folders share — see its own CONTEXT.md.
 - Commands: `npm test`; `npm run test:no_browser`; one alone, `node --test <runner>`.
 
 ## Rules
 - A runner is named after its subject and ends in `.test.ts`, so `node --test` finds it with no file list. A file with no check keeps a plain name.
-- `package.json` holds no script for a single runner, except `npm run test:no_browser`, which names the six starting no browser.
-- Imports run one way only: `tests/` from `tools/` and `src/`, `tools/` from `src/`, `src/` from neither. `tests/source_boundary.test.ts` checks the last, for `src/` and for every package.
+- Every runner lives in the subfolder for its subject, and no `.ts` file sits loose at the top of `tests/`. A file that holds no check lives in `libs/`.
+- `package.json` holds no script for a single runner, except `npm run test:no_browser`, which names the six starting no browser. Those six are spread across `repository_layout/`, `delivery_path/` and `installation/`, so the folders and that list are two different groupings of the same runners and neither replaces the other.
+- Imports run one way only: `tests/` from `tools/` and `src/`, `tools/` from `src/`, `src/` from neither. `tests/repository_layout/source_boundary.test.ts` checks the last, for `src/` and for every package.
 - Verification asserts against state read back out of the live page. Nothing is mocked, and a check that cannot fail is not a check.
-- The six starting no browser are what `npm run test:no_browser` names, and none mocks anything: `endpoint_file.test.ts` starts a real host over a real pipe, and `npm_package.test.ts` and `workspace_packages.test.ts` really pack and install.
-- Nothing here writes into the browser the user installed, which [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4) refuses: `native_host_install.test.ts` passes `isEverydayChromeCovered: false`, and `npm_package.test.ts` sets `HOME` elsewhere.
-- `loaded_adapter.test.ts` writes its adapter folder into the system temporary directory, installs both packages into it out of this clone, and removes what it installed: an adapter left in `~/.webmcp_everywhere/adapters/` would run in the browser of whoever ran the checks.
-- `packaged_release.test.ts` copies the release out of the repository first: one inside `build/` has a repository above it, so a path reaching for one would resolve while the thing it checks was broken. It needs port 8765 and skips, saying why, when another Chrome owns it.
+- Nothing here writes into the browser the user installed, which [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4) refuses: `installation/native_host_install.test.ts` passes `isEverydayChromeCovered: false`, and `installation/npm_package.test.ts` sets `HOME` elsewhere.
 - One shape everywhere: `NodeTest.before` prepares the live browser, `NodeTest.after` closes it, and a check throws its own message rather than calling `node:assert`, because those messages are what the runner is for. Detail goes to `t.diagnostic`. Checks in one file share one live page and run in order, so anything that must happen between two belongs in a nested `NodeTest.describe`'s `NodeTest.before`.
 - `npm test` runs with `--test-concurrency=1`: every browser runner takes the same port and profile.
 - Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.

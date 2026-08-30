@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from '../live_page_harness.ts';
+import { LivePageHarness } from '../libs/live_page_harness.ts';
 import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 import type {
 	ChangesetResult,
@@ -19,7 +19,7 @@ import type {
 	RouteResultShape,
 	SearchResultsResult,
 	SelectedFeatureResult,
-} from './openstreetmap_result_types.ts';
+} from './libs/openstreetmap_result_types.ts';
 
 const TARGET_URL = 'https://www.openstreetmap.org/#map=18/48.8584/2.2945';
 

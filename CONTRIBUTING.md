@@ -68,7 +68,7 @@ The pull request template asks for these as checkboxes. A pull request that adds
 - The folder's `CONTEXT.md` and the folder's `README.md`.
 - The registration, which `npm run sync:adapters` writes for you and which is committed alongside your folder.
 
-`npm run new-adapter` writes all five, so the folder is the only thing you add by hand. The registration used to be four hand edits, and forgetting one of them registered an adapter that never ran; `node --test tests/adapter_registry_sync.test.ts` now refuses a working copy where the committed registry and the folders disagree.
+`npm run new-adapter` writes all five, so the folder is the only thing you add by hand. The registration used to be four hand edits, and forgetting one of them registered an adapter that never ran; `node --test tests/repository_layout/adapter_registry_sync.test.ts` now refuses a working copy where the committed registry and the folders disagree.
 
 ## Running the checks
 
@@ -124,7 +124,7 @@ Two other workflows run away from pull requests. [live_checks.yml](.github/workf
 
 - **Every folder has a `CONTEXT.md`** holding the rules for editing that folder. Read the one for any folder you touch, before you touch it. It is short, and every rule in it is a failure somebody already had.
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
-- **`src/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
+- **`src/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/repository_layout/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
 - **No adapter may reach the network**, wherever it lives. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Use `@webmcp_everywhere/adapter_toolkit` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder. An adapter outside this repository installs that package and `@webmcp_everywhere/adapter_format` rather than copying either.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.

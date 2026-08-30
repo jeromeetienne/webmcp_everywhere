@@ -80,8 +80,9 @@ export type RenderedFiles = {
  * an author adds, and this tool writes the one place that still lists adapters.
  *
  * Nothing is picked up silently, which is the property the hand edits were protecting. This tool runs
- * when a person asks it to, its output is committed, and `tests/adapter_registry_sync.test.ts` refuses
- * a working copy where the committed file and the folders disagree. So the change still arrives as a
+ * when a person asks it to, its output is committed, and
+ * `tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the committed
+ * file and the folders disagree. So the change still arrives as a
  * diff a reviewer reads, and it is no longer a diff an author writes by hand.
  */
 export class SyncAdapterRegistry {

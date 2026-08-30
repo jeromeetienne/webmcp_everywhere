@@ -94,7 +94,7 @@ The rules that apply while writing it:
 npm run sync:adapters
 ```
 
-That rewrites the adapter list in [`adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) from the folders that exist. The file is committed, so the change still arrives as a diff a reviewer reads. `node --test tests/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree, and continuous integration runs it, so forgetting the command costs a failed check rather than an adapter that is registered and never runs.
+That rewrites the adapter list in [`adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) from the folders that exist. The file is committed, so the change still arrives as a diff a reviewer reads. `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the file and the folders disagree, and continuous integration runs it, so forgetting the command costs a failed check rather than an adapter that is registered and never runs.
 
 ## Step four: install it, or build it
 

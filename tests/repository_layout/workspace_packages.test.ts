@@ -15,7 +15,7 @@ import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/adapter_format';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const repositoryRoot = Path.join(__dirname, '..');
+const repositoryRoot = Path.join(__dirname, '..', '..');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

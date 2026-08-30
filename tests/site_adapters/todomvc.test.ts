@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import NodeTest from 'node:test';
-import { LivePageHarness } from '../live_page_harness.ts';
+import { LivePageHarness } from '../libs/live_page_harness.ts';
 import type { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 import type {
 	ActiveFilterResult,
@@ -13,7 +13,7 @@ import type {
 	ClearCompletedResult,
 	CountTodosResult,
 	ListTodosResult,
-} from './todomvc_result_types.ts';
+} from './libs/todomvc_result_types.ts';
 
 const TARGET_URL = 'https://demo.playwright.dev/todomvc/';
 

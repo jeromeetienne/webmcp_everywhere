@@ -282,7 +282,7 @@ export class NewAdapter {
 			separator,
 			'',
 			"import NodeTest from 'node:test';",
-			"import { LivePageHarness } from '../live_page_harness.ts';",
+			"import { LivePageHarness } from '../libs/live_page_harness.ts';",
 			'',
 			`const TARGET_URL = '${names.origin}/';`,
 			'',
