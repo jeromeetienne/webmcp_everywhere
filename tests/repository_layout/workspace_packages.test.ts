@@ -10,7 +10,7 @@ import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
 import Esbuild from 'esbuild';
-import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/adapter_format';
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -70,21 +70,20 @@ class WorkspacePackagesTest {
 	 * it — the rule [issue #19](https://github.com/jeromeetienne/webmcp_everywhere/issues/19) wrote in
 	 * place of the one milestone 4 of
 	 * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) left. The reason each of
-	 * these four is one:
+	 * these three is one:
 	 *
-	 * - `@webmcp_everywhere/adapter_format` and `@webmcp_everywhere/adapter_toolkit` are what an adapter
-	 *   is written against, and an author outside this repository installs both.
+	 * - `@webmcp_everywhere/site_adapter` is what an adapter is written against, both the format it
+	 *   conforms to and the page helpers it shares, and an author outside this repository installs it.
 	 * - `@webmcp_everywhere/native_messaging_host` is a self-contained Node.js program with its own
 	 *   dependencies, and `packages/webmcp_everywhere/src/` and `tools/` import it by name.
 	 * - `webmcp_everywhere` is what npmjs carries and what `npx webmcp_everywhere` fetches.
 	 *
-	 * A fifth package is not forbidden. It is asked about: this list is what a new one has to be added
+	 * A fourth package is not forbidden. It is asked about: this list is what a new one has to be added
 	 * to, beside the reason, so that growing the workspace is something somebody decided rather than
 	 * something that happened. What makes a folder a package is written in `packages/CONTEXT.md`.
 	 */
 	static readonly DECIDED_PACKAGES = [
-		'@webmcp_everywhere/adapter_format',
-		'@webmcp_everywhere/adapter_toolkit',
+		'@webmcp_everywhere/site_adapter',
 		'@webmcp_everywhere/native_messaging_host',
 		'webmcp_everywhere',
 	];
@@ -92,7 +91,7 @@ class WorkspacePackagesTest {
 	/** Where everything this runner writes goes, well away from the repository. */
 	static readonly WORKING_DIR = Path.join(Os.tmpdir(), 'webmcp_everywhere_workspace_packages');
 
-	/** The folder standing in for an adapter author's own folder, holding the installed packages. */
+	/** The folder standing in for an adapter author's own folder, holding the installed package. */
 	static readonly CONSUMER_DIR = Path.join(WorkspacePackagesTest.WORKING_DIR, 'adapter_of_my_own');
 
 	/**
@@ -201,18 +200,18 @@ class WorkspacePackagesTest {
 	}
 
 	/**
-	 * Writes an adapter that imports both packages by name, the way an author outside this repository would.
+	 * Writes an adapter that imports the package by name and takes something from each of its two halves,
+	 * the way an author outside this repository would.
 	 *
 	 * @param fileName - What to call the file inside the consumer's folder.
 	 * @returns The path written.
 	 */
-	static writeAdapterImportingBoth(fileName: string): string {
+	static writeAdapterImportingBothHalves(fileName: string): string {
 		const filePath = Path.join(WorkspacePackagesTest.CONSUMER_DIR, fileName);
 		Fs.writeFileSync(
 			filePath,
 			[
-				"import { ADAPTER_FORMAT_VERSION, ToolNaming } from '@webmcp_everywhere/adapter_format';",
-				"import { PageWaiting } from '@webmcp_everywhere/adapter_toolkit';",
+				"import { ADAPTER_FORMAT_VERSION, PageWaiting, ToolNaming } from '@webmcp_everywhere/site_adapter';",
 				'',
 				'export const probe = {',
 				'\tformatVersion: ADAPTER_FORMAT_VERSION,',
@@ -316,12 +315,12 @@ NodeTest.describe('Every workspace package', () => {
 		t.diagnostic(`it publishes ${found.manifest.files.join(', ')}`);
 	});
 
-	NodeTest.test('the adapter format package and ADAPTER_FORMAT_VERSION name one version', (t) => {
+	NodeTest.test('the site adapter package and ADAPTER_FORMAT_VERSION name one version', (t) => {
 		const found = WorkspacePackagesTest.packages().find(
-			({ manifest }) => manifest.name === '@webmcp_everywhere/adapter_format',
+			({ manifest }) => manifest.name === '@webmcp_everywhere/site_adapter',
 		);
 		if (found === undefined) {
-			throw new Error('@webmcp_everywhere/adapter_format is not a package under packages/');
+			throw new Error('@webmcp_everywhere/site_adapter is not a package under packages/');
 		}
 		if (found.manifest.version !== ADAPTER_FORMAT_VERSION) {
 			throw new Error(
@@ -333,7 +332,7 @@ NodeTest.describe('Every workspace package', () => {
 		t.diagnostic(`both say ${ADAPTER_FORMAT_VERSION}`);
 	});
 
-	NodeTest.describe('installed as real folders, the way an author outside this repository gets them', () => {
+	NodeTest.describe('installed as a real folder, the way an author outside this repository gets it', () => {
 		NodeTest.before(() => {
 			WorkspacePackagesTest.installPacked();
 		});
@@ -345,8 +344,8 @@ NodeTest.describe('Every workspace package', () => {
 			});
 		});
 
-		NodeTest.test('esbuild bundles an adapter that imports both by name', async (t) => {
-			const adapterPath = WorkspacePackagesTest.writeAdapterImportingBoth('adapter_bundled.ts');
+		NodeTest.test('esbuild bundles an adapter that imports the package by name', async (t) => {
+			const adapterPath = WorkspacePackagesTest.writeAdapterImportingBothHalves('adapter_bundled.ts');
 			const built = await Esbuild.build({
 				entryPoints: [adapterPath],
 				bundle: true,
@@ -358,7 +357,7 @@ NodeTest.describe('Every workspace package', () => {
 				logLevel: 'silent',
 			});
 			const bundled = built.outputFiles[0].text;
-			// each of these is written in one of the two packages and nowhere in the adapter itself
+			// each of these is written in one of the package's two halves and nowhere in the adapter itself
 			const fromThePackages = {
 				'the adapter format version': ADAPTER_FORMAT_VERSION,
 				'the ToolNaming class': 'ToolNaming = class',
@@ -370,11 +369,11 @@ NodeTest.describe('Every workspace package', () => {
 					throw new Error(`the bundle carries no ${what}, so a package was not inlined into it`);
 				}
 			}
-			t.diagnostic(`${bundled.length} bytes bundled from two installed packages, no repository above them`);
+			t.diagnostic(`${bundled.length} bytes bundled from the installed package, no repository above it`);
 		});
 
-		NodeTest.test('Node.js refuses the same installed packages, which is why esbuild is the only way in', (t) => {
-			const adapterPath = WorkspacePackagesTest.writeAdapterImportingBoth('adapter_imported.ts');
+		NodeTest.test('Node.js refuses the same installed package, which is why esbuild is the only way in', (t) => {
+			const adapterPath = WorkspacePackagesTest.writeAdapterImportingBothHalves('adapter_imported.ts');
 			const ran = ChildProcess.spawnSync(process.execPath, [adapterPath], {
 				cwd: WorkspacePackagesTest.CONSUMER_DIR,
 				encoding: 'utf8',

@@ -1,5 +1,5 @@
-import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/adapter_format';
-import type { Adapter } from '@webmcp_everywhere/adapter_format';
+import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/site_adapter';
+import type { Adapter } from '@webmcp_everywhere/site_adapter';
 import { AdapterRegistry } from '../shared_state/adapter_registry.js';
 import { MainWorldRuntime } from './main_world_runtime.js';
 

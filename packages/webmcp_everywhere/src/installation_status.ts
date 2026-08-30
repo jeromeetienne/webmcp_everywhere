@@ -1,6 +1,6 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ToolNaming } from '@webmcp_everywhere/adapter_format';
+import { ToolNaming } from '@webmcp_everywhere/site_adapter';
 import { HostStateFiles } from '@webmcp_everywhere/native_messaging_host';
 import { PackagedReleaseInstallation } from './packaged_release_installation.ts';
 import { ReleaseLayout } from './release_layout.ts';

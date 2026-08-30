@@ -1,4 +1,4 @@
-import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
+import type { LoadedAdapter } from '@webmcp_everywhere/site_adapter';
 import { AdapterRegistry } from '../shared_state/adapter_registry.js';
 import { InjectionRegistrar } from '../shared_state/injection_registrar.js';
 import type { InjectionReport } from '../shared_state/injection_registrar.js';

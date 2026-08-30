@@ -60,7 +60,7 @@ type Offence = {
  * `files` list says so. Whether a package publishes its source is read out of that list rather than
  * decided here, so a package that starts publishing its source starts being checked on the same day.
  *
- * A bare specifier such as `@webmcp_everywhere/adapter_toolkit` is not checked here. That is a dependency
+ * A bare specifier such as `@webmcp_everywhere/site_adapter` is not checked here. That is a dependency
  * npm resolves, and the manifests are what `tests/repository_layout/workspace_packages.test.ts` reads.
  */
 class SourceBoundaryTest {

@@ -2,8 +2,8 @@ import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
 import ChildProcess from 'node:child_process';
-import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/adapter_format';
-import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
+import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/site_adapter';
+import type { LoadedAdapter } from '@webmcp_everywhere/site_adapter';
 import { LoadedAdapterStore } from '@webmcp_everywhere/native_messaging_host';
 
 ///////////////////////////////////////////////////////////////////////////////

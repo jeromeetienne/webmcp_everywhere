@@ -1,7 +1,7 @@
 import ChildProcess from 'node:child_process';
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/adapter_format';
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter';
 import { SyncAdapterRegistry } from './sync_adapter_registry.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -171,7 +171,7 @@ export class NewAdapter {
 	static _renderAdapter(names: AdapterNames): string {
 		const separator = '/'.repeat(79);
 		return [
-			"import type { Adapter } from '@webmcp_everywhere/adapter_format';",
+			"import type { Adapter } from '@webmcp_everywhere/site_adapter';",
 			'',
 			separator,
 			separator,
@@ -187,7 +187,7 @@ export class NewAdapter {
 			' * you, and what the site ignores are the three things to find out first, and each of them becomes',
 			' * a rule in this folder\'s CONTEXT.md.',
 			' *',
-			' * For waiting and for driving, use `@webmcp_everywhere/adapter_toolkit`: `PageWaiting` for waiting on the page,',
+			' * For waiting and for driving, use `@webmcp_everywhere/site_adapter`: `PageWaiting` for waiting on the page,',
 			' * and `PageDriving` for writing into a field or pressing a key. Do not write either again here.',
 			' */',
 			`export class ${names.pageClassName} {`,
@@ -369,7 +369,7 @@ export class NewAdapter {
 			'## Rules',
 			'- **Replace every rule below with what the live site taught you.** Each one is a sentence in the present tense, and each one is a failure a probe found first. An adapter whose rules are still the ones written here has not been checked against its site.',
 			'- Nothing here imports from another adapter, or from anything under `chrome_extension/`. Types come from ' +
-				'`@webmcp_everywhere/adapter_format`, and waiting and driving from `@webmcp_everywhere/adapter_toolkit`.',
+				'`@webmcp_everywhere/site_adapter`, which also carries the waiting and driving helpers.',
 			'- Nothing here reaches the network. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import each fail the build.',
 			'- `metadata.targetSiteVerifiedOn` is the date this adapter was last checked against the live site, and it moves every time the runner passes again.',
 			'',

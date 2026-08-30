@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-import type { FramedResult } from '@webmcp_everywhere/adapter_format';
+import type { FramedResult } from '@webmcp_everywhere/site_adapter';
 
 /**
  * How the verification runners reach the native messaging host.

@@ -103,8 +103,7 @@ The full account is in [permissions_and_trust.md](permissions_and_trust.md).
 
 | Folder | What it holds |
 | --- | --- |
-| [`packages/adapter_format/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/adapter_format) | What an adapter is, how its tools are named, and how page content is framed before an agent reads it, imported as `@webmcp_everywhere/adapter_format` |
-| [`packages/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/adapter_toolkit) | The page helpers every adapter shares, waiting and driving, imported as `@webmcp_everywhere/adapter_toolkit` |
+| [`packages/site_adapter/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter) | Everything an adapter is written against, imported as `@webmcp_everywhere/site_adapter`: `src/format/` is what an adapter is, how its tools are named, and how page content is framed before an agent reads it; `src/toolkit/` is the page helpers every adapter shares, waiting and driving |
 | [`packages/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host) | The native messaging host, Chrome's message framing, and the folder of loaded adapters it reads |
 | [`contribs/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/site_adapters) | One folder per target site this build ships |
 | [`contribs/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/chrome_extension) | The Manifest Version 3 extension: the page injection scripts, the background service worker, the popup, and the shared state |

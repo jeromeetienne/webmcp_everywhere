@@ -1,4 +1,4 @@
-import { PageWaiting } from '@webmcp_everywhere/adapter_toolkit';
+import { PageWaiting } from '@webmcp_everywhere/site_adapter';
 import type {
 	BoundingBox,
 	ChangesetDetail,

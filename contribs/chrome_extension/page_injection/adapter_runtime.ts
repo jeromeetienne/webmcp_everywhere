@@ -1,5 +1,5 @@
-import { ToolNaming, UntrustedContent } from '@webmcp_everywhere/adapter_format';
-import type { Adapter, AdapterToolDefinition, OriginGrant } from '@webmcp_everywhere/adapter_format';
+import { ToolNaming, UntrustedContent } from '@webmcp_everywhere/site_adapter';
+import type { Adapter, AdapterToolDefinition, OriginGrant } from '@webmcp_everywhere/site_adapter';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
