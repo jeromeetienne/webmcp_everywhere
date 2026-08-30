@@ -22,7 +22,7 @@ const repositoryRoot = Path.join(__dirname, '..');
 export type VersionAgreementReport = {
 	/** What `packages/npm_package/package.json` says, which is the version npm publishes under. */
 	packageVersion: string;
-	/** What `src/chrome_extension/manifest.json` says, which is the version Chrome shows. */
+	/** What `contribs/chrome_extension/manifest.json` says, which is the version Chrome shows. */
 	extensionVersion: string;
 	/** What the tag says with its leading `v` removed, or null when no tag was named. */
 	tagVersion: string | null;
@@ -42,7 +42,7 @@ export type VersionAgreementReport = {
  * Refuses a release whose version numbers do not agree.
  *
  * Three places carry the version: `package.json`, which is what npmjs lists the package under;
- * `src/chrome_extension/manifest.json`, which is what `chrome://extensions` shows a user; and the tag,
+ * `contribs/chrome_extension/manifest.json`, which is what `chrome://extensions` shows a user; and the tag,
  * which is what the GitHub release is called. A user reading one of them and a maintainer reading
  * another have no way to tell they are talking about different builds, and every later report becomes
  * unreadable. So they are compared before anything is published rather than after somebody notices.
@@ -65,7 +65,7 @@ export class VersionAgreement {
 	/** Where the extension version is read from, which is the source rather than a build of it. */
 	static readonly EXTENSION_MANIFEST = Path.join(
 		repositoryRoot,
-		'src',
+		'contribs',
 		'chrome_extension',
 		'manifest.json',
 	);
@@ -83,7 +83,7 @@ export class VersionAgreement {
 
 		const named: [string, string][] = [
 			['packages/npm_package/package.json', packageVersion],
-			['src/chrome_extension/manifest.json', extensionVersion],
+			['contribs/chrome_extension/manifest.json', extensionVersion],
 		];
 		if (tagVersion !== null) {
 			named.push([`the tag ${tag}`, tagVersion]);

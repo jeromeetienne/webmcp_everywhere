@@ -1,4 +1,4 @@
-# Directory Context: `/src/chrome_extension/page_injection`
+# Directory Context: `/contribs/chrome_extension/page_injection`
 
 ## Purpose
 The scripts injected into a page, one entry point per execution context and per kind of adapter, and the messages that cross between them. This folder is where an adapter is matched to a page, where the grant is checked, and where a tool is registered into `document.modelContext`.

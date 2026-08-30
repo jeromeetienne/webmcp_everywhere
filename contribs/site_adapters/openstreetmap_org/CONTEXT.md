@@ -1,4 +1,4 @@
-# Directory Context: `/src/site_adapters/openstreetmap_org`
+# Directory Context: `/contribs/site_adapters/openstreetmap_org`
 
 ## Purpose
 The adapter for `https://www.openstreetmap.org/`, aimed at a mapper: what is in the view, what the tags say, and what changed here recently.

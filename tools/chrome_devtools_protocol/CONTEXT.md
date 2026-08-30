@@ -12,7 +12,7 @@ One WebSocket connection to a locally running Chrome, spoken over the Chrome Dev
 - `Page.addScriptToEvaluateOnNewDocument` is dropped when the client that added it disconnects, so add the script and navigate on one connection.
 - Every command carries a deadline, and a socket that closes rejects everything still waiting on it. A command with neither made a continuous integration run hang for twenty minutes with nothing to read, and it had to be cancelled by hand.
 - Nothing that evaluates in the background service worker assumes the worker is running. A Manifest V3 service worker is stopped while idle and started again on demand, so `ServiceWorkerEvaluation` finds the target again and retries rather than holding a reference.
-- Nothing in `src/` imports from here. The debugging port this speaks to is unauthenticated and reachable by every process on the machine, which is why the product reaches the browser through the native messaging host instead.
+- Nothing in `contribs/` imports from here. The debugging port this speaks to is unauthenticated and reachable by every process on the machine, which is why the product reaches the browser through the native messaging host instead.
 
 ## Background
-- This file sat in `src/devtools_protocol_bridge/` until the source folder was cut down to product code only. It is shared by `tools/launch_chrome.ts`, `tools/grant_acting.ts`, and several verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.
+- This file sat inside the folder holding the product until that folder was cut down to product code only. It is shared by `tools/launch_chrome.ts`, `tools/grant_acting.ts`, and several verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.

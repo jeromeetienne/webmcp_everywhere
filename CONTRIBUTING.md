@@ -45,9 +45,9 @@ For an adapter of your own, outside this repository, there is no scaffold: copy 
 
 The three existing adapters are examples, and each carries a `README.md` and a `CONTEXT.md` beside it. Read at least one of them before writing your own.
 
-- [The Playwright TodoMVC adapter](src/site_adapters/demo_playwright_dev/README.md) — the smallest one, and the one every engine milestone was written against.
-- [The Can I use... adapter](src/site_adapters/caniuse_com/README.md) — reads data the rendered page does not show.
-- [The OpenStreetMap adapter](src/site_adapters/openstreetmap_org/README.md) — the largest one, split across several files.
+- [The Playwright TodoMVC adapter](contribs/site_adapters/demo_playwright_dev/README.md) — the smallest one, and the one every engine milestone was written against.
+- [The Can I use... adapter](contribs/site_adapters/caniuse_com/README.md) — reads data the rendered page does not show.
+- [The OpenStreetMap adapter](contribs/site_adapters/openstreetmap_org/README.md) — the largest one, split across several files.
 
 ## What a pull request must carry
 
@@ -62,7 +62,7 @@ The pull request template asks for these as checkboxes. A pull request that adds
 
 **A pull request that adds an adapter**
 
-- The adapter, as one folder under `src/site_adapters/`.
+- The adapter, as one folder under `contribs/site_adapters/`.
 - A verification runner under `tests/site_adapters/` that asserts against state read back out of the live page.
 - That runner passing against the live site, with the date and the Chrome version written into the pull request. Continuous integration cannot run it, so that line is the only record of it.
 - The folder's `CONTEXT.md` and the folder's `README.md`.
@@ -124,7 +124,7 @@ Two other workflows run away from pull requests. [live_checks.yml](.github/workf
 
 - **Every folder has a `CONTEXT.md`** holding the rules for editing that folder. Read the one for any folder you touch, before you touch it. It is short, and every rule in it is a failure somebody already had.
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
-- **`src/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/repository_layout/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
+- **`contribs/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/repository_layout/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
 - **No adapter may reach the network**, wherever it lives. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Use `@webmcp_everywhere/adapter_toolkit` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved there, and a helper any second site would need belongs there rather than in your own folder. An adapter outside this repository installs that package and `@webmcp_everywhere/adapter_format` rather than copying either.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.

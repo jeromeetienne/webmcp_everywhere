@@ -1,4 +1,4 @@
-# Directory Context: `/src/site_adapters/demo_playwright_dev`
+# Directory Context: `/contribs/site_adapters/demo_playwright_dev`
 
 ## Purpose
 The adapter for the Playwright TodoMVC demonstration at `https://demo.playwright.dev/todomvc/`, the first site this project covers.

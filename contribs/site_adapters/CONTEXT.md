@@ -1,4 +1,4 @@
-# Directory Context: `/src/site_adapters`
+# Directory Context: `/contribs/site_adapters`
 
 ## Purpose
 Holds one folder per target site, each exporting a single adapter that gives that site a WebMCP tool surface it never shipped.
@@ -14,7 +14,7 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 - A helper that any second site would also need belongs in `packages/adapter_toolkit/`, not here, and it reaches every adapter author at once when it goes there. What stays here is this site's own figures and its own selectors: how long it takes to settle, where it keeps its state, which element means what.
 - Every adapter sets a `yieldCondition`. An adapter that cannot stand down when the site ships its own tools is not finished.
 - A tool that cannot serve a reasonable request returns a refusal object naming the tool to call next, rather than throwing. Chrome 151 replaces a thrown handler error with a fixed `UnknownError` text, so a thrown message reaches no agent.
-- A folder here is the only thing an adapter author adds. `npm run sync:adapters` writes the adapter list in `src/chrome_extension/shared_state/adapter_registry.ts` from these folders, and `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the two disagree. Nothing goes into `src/chrome_extension/manifest.json`, which names no site.
+- A folder here is the only thing an adapter author adds. `npm run sync:adapters` writes the adapter list in `contribs/chrome_extension/shared_state/adapter_registry.ts` from these folders, and `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the two disagree. Nothing goes into `contribs/chrome_extension/manifest.json`, which names no site.
 - Nothing is still picked up silently, which is what the hand edits used to protect: the command runs when a person asks it to, its output is committed, and the change arrives as a diff a reviewer reads.
 - A folder here is an adapter this build ships, and this build ships two or three as examples. An adapter that covers a site well but shows nothing the others show belongs in a folder of its own, installed with `npm run load-adapter` — see [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
 - Every folder here carries its own `CONTEXT.md` and `README.md`, and has a runner named after it in `tests/site_adapters/`. All three are checked.

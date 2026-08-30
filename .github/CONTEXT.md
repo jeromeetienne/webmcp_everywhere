@@ -13,7 +13,7 @@ Everything GitHub itself reads: the three workflows, the issue forms, and the pu
 
 ## Rules
 - No workflow that answers a pull request starts a browser. A live runner is slow, needs Chrome 149 or later with the WebMCP origin trial, and reports a site that changed the same way it reports a broken adapter, so it must never decide a merge. `live_checks.yml` runs those nightly instead, and a failure there marks the adapter stale.
-- `live_checks.yml` takes its job list from the folders under `src/site_adapters/`, never from a list written in the workflow. Adding an adapter has to stay one folder, and a workflow naming each adapter by hand would make it one folder and one hand edit somebody forgets.
+- `live_checks.yml` takes its job list from the folders under `contribs/site_adapters/`, never from a list written in the workflow. Adding an adapter has to stay one folder, and a workflow naming each adapter by hand would make it one folder and one hand edit somebody forgets.
 - Every job that drives a browser carries a `timeout-minutes`. A run that hangs holds a runner until the six-hour limit, which happened, cost twenty minutes of a stuck job, and had to be cancelled by hand.
 - `release.yml` publishes nothing that has not been started. Both the archive and the npmjs package wait on `tests/installation/packaged_release.test.ts` having copied the release out of the repository and driven it in a real Chrome.
 - `release.yml` runs `npm run check:versions` before anything slow. A package on npmjs, an extension in `chrome://extensions` and a tag naming different versions make every later report about that build unreadable.

@@ -1,5 +1,5 @@
 import { ToolNaming } from '@webmcp_everywhere/adapter_format';
-import { AdapterRegistry } from '../../src/chrome_extension/shared_state/adapter_registry.js';
+import { AdapterRegistry } from '../../contribs/chrome_extension/shared_state/adapter_registry.js';
 import { AdapterSchema } from './adapter_schema.js';
 import { PermissionAudit } from './permission_audit.js';
 

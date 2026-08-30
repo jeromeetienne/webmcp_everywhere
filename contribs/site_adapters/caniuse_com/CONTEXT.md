@@ -1,4 +1,4 @@
-# Directory Context: `/src/site_adapters/caniuse_com`
+# Directory Context: `/contribs/site_adapters/caniuse_com`
 
 ## Purpose
 The adapter for `https://caniuse.com/`, which turns the browser support tables into tools an agent can query instead of reading off the screen.

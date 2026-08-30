@@ -13,10 +13,10 @@ const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
 const repositoryRoot = Path.join(__dirname, '..');
-const siteAdaptersDir = Path.join(repositoryRoot, 'src', 'site_adapters');
+const siteAdaptersDir = Path.join(repositoryRoot, 'contribs', 'site_adapters');
 const registryPath = Path.join(
 	repositoryRoot,
-	'src',
+	'contribs',
 	'chrome_extension',
 	'shared_state',
 	'adapter_registry.ts',
@@ -30,7 +30,7 @@ const probePath = Path.join(repositoryRoot, 'build', '.probe_adapters.mjs');
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-/** One adapter found under `src/site_adapters/`, and everything the two written files need from it. */
+/** One adapter found under `contribs/site_adapters/`, and everything the two written files need from it. */
 export type DiscoveredAdapter = {
 	/** The folder the adapter lives in, which must equal its own `siteSlug`. */
 	folderName: string;
@@ -60,7 +60,7 @@ export type DiscoveredAdapter = {
 export type RenderedFiles = {
 	/** Every adapter found, in the order the file lists them. */
 	adapters: DiscoveredAdapter[];
-	/** What `src/chrome_extension/shared_state/adapter_registry.ts` should hold. */
+	/** What `contribs/chrome_extension/shared_state/adapter_registry.ts` should hold. */
 	registrySource: string;
 };
 
@@ -71,7 +71,7 @@ export type RenderedFiles = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Writes the adapter registry from the folders under `src/site_adapters/`.
+ * Writes the adapter registry from the folders under `contribs/site_adapters/`.
  *
  * Registering an adapter used to be four hand edits: the registry, and the match patterns in all three
  * lists in the manifest. Forgetting the third list registered an adapter that never ran, and nothing
@@ -99,7 +99,7 @@ export class SyncAdapterRegistry {
 	static readonly ADAPTERS_END = '\t\t// sync:adapters end adapters';
 
 	/**
-	 * Finds every adapter under `src/site_adapters/` and reads what the two written files need.
+	 * Finds every adapter under `contribs/site_adapters/` and reads what the two written files need.
 	 *
 	 * The values are read out of the adapters themselves rather than parsed out of their source, so an
 	 * adapter that builds its match patterns from a constant is read correctly.
@@ -145,7 +145,7 @@ export class SyncAdapterRegistry {
 	 * The rule is one line, and it had three separate copies of that line: the check that refuses an
 	 * adapter with no runner, the scaffold that writes one, and the nightly job that runs one each.
 	 *
-	 * @param adapterFile - The adapter's path, such as `src/site_adapters/caniuse_com/caniuse_adapter.ts`.
+	 * @param adapterFile - The adapter's path, such as `contribs/site_adapters/caniuse_com/caniuse_adapter.ts`.
 	 * @returns The runner's file name, such as `caniuse.test.ts`.
 	 */
 	static runnerFileNameFor(adapterFile: string): string {
@@ -209,7 +209,7 @@ export class SyncAdapterRegistry {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Lists the adapter file of every folder under `src/site_adapters/`.
+	 * Lists the adapter file of every folder under `contribs/site_adapters/`.
 	 *
 	 * @returns One path per adapter, relative to the repository root, ordered by folder name.
 	 * @throws When a folder holds no adapter file, or holds more than one.
@@ -229,11 +229,11 @@ export class SyncAdapterRegistry {
 			);
 			if (candidates.length !== 1) {
 				throw new Error(
-					`src/site_adapters/${folder}/ holds ${candidates.length} files ending in _adapter.ts, ` +
+					`contribs/site_adapters/${folder}/ holds ${candidates.length} files ending in _adapter.ts, ` +
 						'and every adapter folder holds exactly one',
 				);
 			}
-			files.push(`src/site_adapters/${folder}/${candidates[0]}`);
+			files.push(`contribs/site_adapters/${folder}/${candidates[0]}`);
 		}
 		return files;
 	}

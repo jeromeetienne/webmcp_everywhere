@@ -12,7 +12,7 @@ Almost every failure in this project is silent. Chrome does not report a flag it
 
 **The extension runs, but not on this site.** The manifest names no site, so nothing is registered until the background service worker registers it. Open the popup: it lists every adapter with a switch, and says why each withheld one is withheld. Three reasons are possible — the adapter is switched off, another adapter already covers that host, or **Allow User Scripts** is off.
 
-**The adapter is missing from the registry.** [`src/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/shared_state/adapter_registry.ts) is generated. Run `npm run sync:adapters`, which rewrites it from the folders under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters). `node --test tests/repository_layout/adapter_registry_sync.test.ts` fails when the committed file and the folders disagree.
+**The adapter is missing from the registry.** [`contribs/chrome_extension/shared_state/adapter_registry.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/shared_state/adapter_registry.ts) is generated. Run `npm run sync:adapters`, which rewrites it from the folders under [`contribs/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/site_adapters). `node --test tests/repository_layout/adapter_registry_sync.test.ts` fails when the committed file and the folders disagree.
 
 **The page loaded before the extension registered anything.** Registration happens after the service worker starts, so a page opened in the first moment of a launch gets no adapter. Reload the page. `LaunchChrome` waits for the first registration before it opens anything, which is why a verification runner does not hit this.
 
@@ -42,7 +42,7 @@ These fail only for somebody who installed the archive rather than the repositor
 
 **The throwaway profile was kept.** Chrome does not re-read an unpacked extension it has already installed. `LaunchChrome` deletes the profile before every launch for exactly this reason; keeping it silently runs the previous build.
 
-**The extension was not rebuilt.** Chrome loads `build/chrome_extension/`, not [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src). Run `npm run build`.
+**The extension was not rebuilt.** Chrome loads `build/chrome_extension/`, not [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs). Run `npm run build`.
 
 ## An agent cannot reach the endpoint
 
@@ -62,7 +62,7 @@ These fail only for somebody who installed the archive rather than the repositor
 
 **Chrome refuses the host manifest.** The field names in the manifest are Chrome's, not this project's: `name`, `description`, `path`, `type`, and `allowed_origins`. Chrome refuses a manifest with any other spelling and reports nothing useful when it does. The same applies to an unreplaced `{{placeholder}}`, which is why the installation treats one as an error.
 
-**The identifier does not match.** The host manifest's `allowed_origins` names one extension identifier. The identifier is pinned by the `key` field in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json), because an unpacked extension without a key gets an identifier derived from wherever its folder happens to sit.
+**The identifier does not match.** The host manifest's `allowed_origins` names one extension identifier. The identifier is pinned by the `key` field in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json), because an unpacked extension without a key gets an identifier derived from wherever its folder happens to sit.
 
 ## The connection dies for no reason
 
@@ -108,7 +108,7 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Types and imports
 
-**`node --test tests/repository_layout/source_boundary.test.ts` fails.** Something in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has a relative import that leaves the folder it is written in. Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and a package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
+**`node --test tests/repository_layout/source_boundary.test.ts` fails.** Something in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has a relative import that leaves the folder it is written in. Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), and a package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
 
 **`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`packages/native_messaging_host/src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host/src) directly and only strips types, so those files stay within erasable syntax.
 

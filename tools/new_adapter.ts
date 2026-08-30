@@ -27,7 +27,7 @@ export type AdapterNames = {
 	origin: string;
 	/** The match pattern the adapter activates on. */
 	matchPattern: string;
-	/** The folder under `src/site_adapters/`, which is also the adapter's `siteSlug`. */
+	/** The folder under `contribs/site_adapters/`, which is also the adapter's `siteSlug`. */
 	siteSlug: string;
 	/** The site's human-readable name, which the author is expected to correct. */
 	siteName: string;
@@ -119,9 +119,9 @@ export class NewAdapter {
 	 */
 	static async run(address: string, shortName?: string): Promise<{ names: AdapterNames; written: string[] }> {
 		const names = NewAdapter.namesFor(address, shortName);
-		const folder = Path.join(repositoryRoot, 'src', 'site_adapters', names.siteSlug);
+		const folder = Path.join(repositoryRoot, 'contribs', 'site_adapters', names.siteSlug);
 		if (Fs.existsSync(folder) === true) {
-			throw new Error(`src/site_adapters/${names.siteSlug}/ already exists, so this site is already covered`);
+			throw new Error(`contribs/site_adapters/${names.siteSlug}/ already exists, so this site is already covered`);
 		}
 
 		const files: Array<[string, string]> = [
@@ -357,7 +357,7 @@ export class NewAdapter {
 	 */
 	static _renderContext(names: AdapterNames): string {
 		return [
-			`# Directory Context: \`/src/site_adapters/${names.siteSlug}\``,
+			`# Directory Context: \`/contribs/site_adapters/${names.siteSlug}\``,
 			'',
 			'## Purpose',
 			`The WebMCP tool surface for ${names.origin}. **Say here what an agent can do on this site that it could not do without a browser session.**`,
@@ -445,7 +445,7 @@ if (import.meta.filename === process.argv[1]) {
 	console.log('');
 	console.log(`${result.names.siteSlug} is registered and already passes the build. Next:`);
 	console.log('  1. Probe the live site with the developer tools open, before writing any tool.');
-	console.log(`  2. Write the tools in src/site_adapters/${result.names.siteSlug}/${result.names.adapterFileName}`);
+	console.log(`  2. Write the tools in contribs/site_adapters/${result.names.siteSlug}/${result.names.adapterFileName}`);
 	console.log(`  3. node --test tests/site_adapters/${result.names.runnerFileName}`);
 	console.log('  Read docs/write_a_site_adapter.md, which is the order to do all of that in.');
 }

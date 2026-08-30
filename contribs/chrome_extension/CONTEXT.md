@@ -1,4 +1,4 @@
-# Directory Context: `/src/chrome_extension`
+# Directory Context: `/contribs/chrome_extension`
 
 ## Purpose
 The Manifest Version 3 extension: it decides which adapter's scripts are registered for which sites, matches a page against an adapter, injects into the main world, enforces the permission classes, and shows the user what an agent can currently do.

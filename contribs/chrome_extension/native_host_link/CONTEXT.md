@@ -1,4 +1,4 @@
-# Directory Context: `/src/chrome_extension/native_host_link`
+# Directory Context: `/contribs/chrome_extension/native_host_link`
 
 ## Purpose
 The background script and everything that answers the native messaging host: it aggregates the tools every adapted tab offers, routes a call to the right tab, refuses an acting tool once a page has tried to issue instructions, and decides which adapter's scripts are registered for which sites.

@@ -72,7 +72,7 @@ Every state a person can change is written through `ExtensionStorage`, never str
 
 **From the command line**, with `npm run grant`. [`tools/grant_acting.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/grant_acting.ts) writes the same settings object straight into extension storage over the Chrome DevTools Protocol. The popup is the real way to do this; this exists so an unattended verification run can reach the same state, and so a demonstration does not stall waiting for somebody to tick a box. It needs a Chrome launched with a debugging port, so it is a tool for the throwaway profile and not for your everyday browser.
 
-A grant change takes effect immediately. [`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) listens on `chrome.storage.onChanged` and sends the new grant into the page, and `AdapterRuntime` re-registers against it.
+A grant change takes effect immediately. [`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_isolated.ts) listens on `chrome.storage.onChanged` and sends the new grant into the page, and `AdapterRuntime` re-registers against it.
 
 ## What the user can see
 

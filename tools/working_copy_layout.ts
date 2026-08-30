@@ -22,7 +22,7 @@ const repositoryRoot = Path.join(__dirname, '..');
  * path that only exists in a working copy.
  */
 export class WorkingCopyLayout {
-	/** The launcher Chrome starts in a working copy, which runs the TypeScript under `src/` directly. */
+	/** The launcher Chrome starts in a working copy, which runs `packages/native_messaging_host/src/` directly. */
 	static readonly LAUNCHER = Path.join(repositoryRoot, 'bin', 'webmcp_native_host.sh');
 
 	/**
@@ -41,7 +41,7 @@ export class WorkingCopyLayout {
 	/** The extension manifest a working copy pins the extension identifier in. */
 	static readonly EXTENSION_MANIFEST = Path.join(
 		repositoryRoot,
-		'src',
+		'contribs',
 		'chrome_extension',
 		'manifest.json',
 	);

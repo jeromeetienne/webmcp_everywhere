@@ -40,10 +40,10 @@ jobs:
       - name: Install the dependencies the lock file names
         run: npm ci
 
-      # The list comes from the folders under src/site_adapters/, never from a list written here.
+      # The list comes from the folders under contribs/site_adapters/, never from a list written here.
       # Adding an adapter has to stay one folder, and a workflow naming each adapter by hand would
       # make it one folder and one hand edit somebody forgets.
-      - name: Read the folders under src/site_adapters/
+      - name: Read the folders under contribs/site_adapters/
         id: read_the_folders
         run: echo "adapters=$(node tools/adapter_freshness.ts matrix)" >> "$GITHUB_OUTPUT"
 

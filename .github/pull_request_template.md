@@ -13,13 +13,13 @@
 
 Leave this section out if this pull request touches no adapter. An adapter of your own, in a folder of your own, needs no pull request at all — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-- [ ] The adapter is one folder under `src/site_adapters/`, named after the origin in `snake_case`, matching its own `siteSlug`.
+- [ ] The adapter is one folder under `contribs/site_adapters/`, named after the origin in `snake_case`, matching its own `siteSlug`.
 - [ ] A verification runner under `tests/site_adapters/`, named after the adapter file with `_adapter` dropped, which asserts against state read back out of the live page.
 - [ ] `node --test tests/site_adapters/<the runner>.test.ts` passes against the live site. Say below when you last ran it, because continuous integration does not run it on a pull request.
 - [ ] The folder's `CONTEXT.md`, holding every fact the live site taught you, as a rule in the present tense.
 - [ ] The folder's `README.md`, saying what an agent can do on this site and which workflows are worth asking for.
 - [ ] `metadata.targetSiteVerifiedOn` is the date you last checked the adapter against the live site.
-- [ ] The adapter is registered in `src/chrome_extension/shared_state/adapter_registry.ts`, which `npm run sync:adapters` writes and which is committed alongside the folder. Nothing is added to `src/chrome_extension/manifest.json`, which names no site.
+- [ ] The adapter is registered in `contribs/chrome_extension/shared_state/adapter_registry.ts`, which `npm run sync:adapters` writes and which is committed alongside the folder. Nothing is added to `contribs/chrome_extension/manifest.json`, which names no site.
 
 **When the live check last passed, and on which Chrome version:**
 

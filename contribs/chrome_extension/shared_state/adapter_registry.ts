@@ -18,12 +18,12 @@ import { openStreetMapAdapter } from '../../site_adapters/openstreetmap_org/open
  * registry arrive with the catalogue, and neither is in this slice.
  *
  * **The two blocks between the `sync:adapters` markers are written by `npm run sync:adapters`**, from
- * the folders under `src/site_adapters/`, together with the three match pattern lists in
+ * the folders under `contribs/site_adapters/`, together with the three match pattern lists in
  * `manifest.json`. Editing either block by hand is undone by the next run, and
  * `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where they disagree.
  */
 export class AdapterRegistry {
-	/** Every adapter this build carries, one per folder under `src/site_adapters/`. */
+	/** Every adapter this build carries, one per folder under `contribs/site_adapters/`. */
 	static readonly ADAPTERS: Adapter[] = [
 		// sync:adapters begin adapters
 		caniuseAdapter,

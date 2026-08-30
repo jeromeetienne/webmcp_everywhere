@@ -10,9 +10,9 @@ The idea and its reasoning are in [issue #1](https://github.com/jeromeetienne/we
 
 Three sites are covered by adapters bundled into this build, as examples of what an adapter looks like rather than as a catalogue.
 
-- Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. See [the adapter's own README.md](src/site_adapters/demo_playwright_dev/README.md).
-- Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](src/site_adapters/caniuse_com/README.md).
-- Thirteen tools on `https://www.openstreetmap.org/` — six read-only and seven acting, aimed at a mapper: the tags on a feature, the areas containing a point, what changed in the view, and routing used as a test of the road network. See [the adapter's own README.md](src/site_adapters/openstreetmap_org/README.md).
+- Ten tools on `https://demo.playwright.dev/todomvc/` — three read-only and seven acting. See [the adapter's own README.md](contribs/site_adapters/demo_playwright_dev/README.md).
+- Seven tools on `https://caniuse.com/` — five read-only and two acting, turning the browser support tables into exact answers. See [the adapter's own README.md](contribs/site_adapters/caniuse_com/README.md).
+- Thirteen tools on `https://www.openstreetmap.org/` — six read-only and seven acting, aimed at a mapper: the tags on a feature, the areas containing a point, what changed in the view, and routing used as a test of the road network. See [the adapter's own README.md](contribs/site_adapters/openstreetmap_org/README.md).
 
 A site changes and an adapter breaks. [A run every night](.github/workflows/live_checks.yml) drives each of these against its real site and writes what it found here, so a stale adapter is visible before somebody's agent gets a wrong answer. "Author last checked" is the date in the adapter's own `metadata.targetSiteVerifiedOn`, which the extension's popup shows as well.
 
@@ -177,14 +177,14 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`src/` holds the product and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
+`contribs/` holds what the community writes and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
 
 - `packages/npm_package/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it.
 - `packages/adapter_format/` — what an adapter is, how its tools are named, and how page content is framed. Imported as `@webmcp_everywhere/adapter_format`.
 - `packages/adapter_toolkit/` — the page helpers every adapter shares: waiting on the page, and driving it. Imported as `@webmcp_everywhere/adapter_toolkit`.
 - `packages/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads. Chrome starts it by path; it is imported as `@webmcp_everywhere/native_messaging_host`.
-- `src/site_adapters/` — one folder per target site this build ships.
-- `src/chrome_extension/` — the Manifest Version 3 extension.
+- `contribs/site_adapters/` — one folder per target site this build ships.
+- `contribs/chrome_extension/` — the Manifest Version 3 extension.
 - `tools/` — build, launch, register the host in this working copy, the commands that write a new adapter, load one and unload one, plus the adapter checks and the Chrome DevTools Protocol connection. Nothing here ships.
 - `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
 - `docs/` — how all of it works.

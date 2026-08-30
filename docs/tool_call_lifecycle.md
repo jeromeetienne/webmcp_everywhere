@@ -16,9 +16,9 @@ If the connection cannot be opened, or is later lost, `NativeBridge` schedules a
 
 ## Before anything: registration
 
-[`content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) runs in the page's main world at `document_start`. It asks `AdapterRegistry.findForUrl(window.location.href)` for the adapter covering this page. If none covers it, nothing else happens.
+[`content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_main.ts) runs in the page's main world at `document_start`. It asks `AdapterRegistry.findForUrl(window.location.href)` for the adapter covering this page. If none covers it, nothing else happens.
 
-It then asks the isolated world for the user's grant, because the main world cannot read extension storage. [`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) reads `ExtensionStorage.grantForOrigin(window.location.origin)` and sends the grant back as a plain object on a custom Document Object Model event.
+It then asks the isolated world for the user's grant, because the main world cannot read extension storage. [`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_isolated.ts) reads `ExtensionStorage.grantForOrigin(window.location.origin)` and sends the grant back as a plain object on a custom Document Object Model event.
 
 `AdapterRuntime.register` then decides what may be registered.
 
@@ -104,11 +104,11 @@ If the tool is not read-only and `InjectionWatch` holds any sighting, the call i
 
 ### At the isolated world
 
-[`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) asks the main world for the tools currently registered, refuses a name that is not among them, and then reads the grant a second time. The first check happened at registration; this is the check on the path the agent's request actually travels, so enforcement does not rest on registration alone.
+[`content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_isolated.ts) asks the main world for the tools currently registered, refuses a name that is not among them, and then reads the grant a second time. The first check happened at registration; this is the check on the path the agent's request actually travels, so enforcement does not rest on registration alone.
 
 ### At the main world
 
-[`content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) looks the tool up by name inside the page and calls `document.modelContext.executeTool(tool, JSON.stringify(args))`.
+[`content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_main.ts) looks the tool up by name inside the page and calls `document.modelContext.executeTool(tool, JSON.stringify(args))`.
 
 Two details of Chrome 151 are load-bearing here. Input is passed as a JSON string, not as an object: Chrome rejects a plain object with `UnknownError: Failed to parse input arguments`, whatever the specification's WebIDL says. And a `RegisteredTool` carries a live `window` reference, so it cannot be moved out of the page — the lookup has to happen inside it.
 

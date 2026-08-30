@@ -30,7 +30,7 @@ class AdapterRegistrySyncTest {
 	/** Where the adapters live, one folder each. */
 	static readonly SITE_ADAPTERS_DIR = Path.join(
 		AdapterRegistrySyncTest.REPOSITORY_ROOT,
-		'src',
+		'contribs',
 		'site_adapters',
 	);
 
@@ -53,7 +53,7 @@ class AdapterRegistrySyncTest {
 	} {
 		const manifestPath = Path.join(
 			AdapterRegistrySyncTest.REPOSITORY_ROOT,
-			'src',
+			'contribs',
 			'chrome_extension',
 			'manifest.json',
 		);
@@ -72,7 +72,7 @@ NodeTest.test('the committed registry matches the adapter folders', async (t) =>
 
 	if (outOfDate.length > 0) {
 		throw new Error(
-			`${outOfDate.join(' and ')} no longer matches the folders under src/site_adapters/. ` +
+			`${outOfDate.join(' and ')} no longer matches the folders under contribs/site_adapters/. ` +
 				'Run: npm run sync:adapters',
 		);
 	}
@@ -83,7 +83,7 @@ NodeTest.test('every adapter folder holds one adapter whose slug is its folder n
 	const adapters = await SyncAdapterRegistry.discover();
 
 	if (adapters.length === 0) {
-		throw new Error('no adapter was found under src/site_adapters/, and the extension carries none');
+		throw new Error('no adapter was found under contribs/site_adapters/, and the extension carries none');
 	}
 	for (const adapter of adapters) {
 		if (adapter.siteSlug !== adapter.folderName) {
@@ -147,7 +147,7 @@ NodeTest.test('every adapter folder carries its own CONTEXT.md and README.md', a
 		for (const document of ['CONTEXT.md', 'README.md']) {
 			const path = Path.join(AdapterRegistrySyncTest.SITE_ADAPTERS_DIR, adapter.folderName, document);
 			if (Fs.existsSync(path) === false) {
-				missing.push(`src/site_adapters/${adapter.folderName}/${document}`);
+				missing.push(`contribs/site_adapters/${adapter.folderName}/${document}`);
 			}
 		}
 	}

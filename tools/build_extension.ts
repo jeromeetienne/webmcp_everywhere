@@ -12,7 +12,7 @@ import ChildProcess from 'node:child_process';
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 
-const sourceDir = Path.join(__dirname, '..', 'src', 'chrome_extension');
+const sourceDir = Path.join(__dirname, '..', 'contribs', 'chrome_extension');
 const tsconfigPath = Path.join(__dirname, '..', 'tsconfig.json');
 const outDir = Path.join(__dirname, '..', 'build', 'chrome_extension');
 const bundleDir = Path.join(outDir, 'dist');
@@ -124,7 +124,7 @@ class BuildExtension {
 	 * Copies the files the extension needs verbatim into the output directory.
 	 *
 	 * Chrome loads an unpacked extension from the folder that holds `manifest.json`, so the manifest and
-	 * the popup markup have to sit beside the bundles rather than stay behind in `src/`.
+	 * the popup markup have to sit beside the bundles rather than stay behind in `contribs/`.
 	 *
 	 * @returns Nothing.
 	 */

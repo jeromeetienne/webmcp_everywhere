@@ -49,9 +49,9 @@ type Offence = {
  * Checks that every folder holding product code holds product code only, by refusing any relative import
  * that resolves outside the folder it is written in.
  *
- * There are two kinds of such folder. `src/` is one: `tools/` and `tests/` may import from `src/`, and
- * `tests/` may import from `tools/`, and the reverse direction is what this check refuses, because that
- * is how build tooling and verification code drifted into `src/` before.
+ * There are two kinds of such folder. `contribs/` is one: `tools/` and `tests/` may import from
+ * `contribs/`, and `tests/` may import from `tools/`, and the reverse direction is what this check
+ * refuses, because that is how build tooling and verification code drifted into the product before.
  *
  * A workspace package that publishes its own source is the other: a path it reached back along would
  * work here and break for anybody who installed it, because the repository would not be there. A package
@@ -97,7 +97,7 @@ class SourceBoundaryTest {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Lists every folder holding product code: `src/`, and every workspace package under `packages/`.
+	 * Lists every folder holding product code: `contribs/`, and every workspace package under `packages/`.
 	 *
 	 * The packages are read off the disk rather than named here, so a package added tomorrow is checked
 	 * without this file being edited.
@@ -107,8 +107,8 @@ class SourceBoundaryTest {
 	static _collectProductRoots(): ProductRoot[] {
 		const productRoots: ProductRoot[] = [
 			{
-				directory: Path.join(repositoryRoot, 'src'),
-				name: 'src/',
+				directory: Path.join(repositoryRoot, 'contribs'),
+				name: 'contribs/',
 			},
 		];
 		for (const entry of Fs.readdirSync(SourceBoundaryTest.PACKAGES_DIR, {
@@ -213,7 +213,7 @@ class SourceBoundaryTest {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-NodeTest.test('src/ and every package publishing its source hold product code only', (t) => {
+NodeTest.test('contribs/ and every package publishing its source hold product code only', (t) => {
 	const { productRoots, filePaths, offences } = SourceBoundaryTest.run();
 	if (offences.length > 0) {
 		const listed = offences

@@ -22,6 +22,6 @@ The rules a person has to follow when editing the code are in the `CONTEXT.md` f
 
 What each adapter can do on its own site is in that adapter's own README.md, next to the adapter.
 
-- [The Playwright TodoMVC adapter](../src/site_adapters/demo_playwright_dev/README.md)
-- [The Can I use... adapter](../src/site_adapters/caniuse_com/README.md)
-- [The OpenStreetMap adapter](../src/site_adapters/openstreetmap_org/README.md)
+- [The Playwright TodoMVC adapter](../contribs/site_adapters/demo_playwright_dev/README.md)
+- [The Can I use... adapter](../contribs/site_adapters/caniuse_com/README.md)
+- [The OpenStreetMap adapter](../contribs/site_adapters/openstreetmap_org/README.md)

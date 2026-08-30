@@ -1,4 +1,4 @@
-# Directory Context: `/src/chrome_extension/user_interface`
+# Directory Context: `/contribs/chrome_extension/user_interface`
 
 ## Purpose
 The popup a person opens from the toolbar: it shows which adapter matched the current tab, which tools an agent can currently call, and lets a person grant acting, switch one adapter on or off, pull the kill switch, and clear an injection sighting.

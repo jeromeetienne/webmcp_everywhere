@@ -32,23 +32,23 @@ Only one of these may be registered with Chrome at a time. The host manifest nam
 
 **One: it checks every adapter.** [`tools/adapter_validation/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/adapter_validation/validate_all_adapters.ts) is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
 
-**Two: it empties `build/chrome_extension/`.** Nothing is ever written into [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
+**Two: it empties `build/chrome_extension/`.** Nothing is ever written into [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
 
-**Three: it copies the two static files.** [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json) and [`user_interface/popup.html`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.html), each keeping its path. Chrome loads an unpacked extension from the folder that holds [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json), so both have to sit beside the bundles rather than stay behind in [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src).
+**Three: it copies the two static files.** [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json) and [`user_interface/popup.html`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/user_interface/popup.html), each keeping its path. Chrome loads an unpacked extension from the folder that holds [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json), so both have to sit beside the bundles rather than stay behind in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
 
 **Four: it bundles the five entry points with esbuild.**
 
 | Source | Output | Where it runs |
 | --- | --- | --- |
-| [`page_injection/content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_main.ts) | `dist/content_main.js` | the page's main world, for an adapter bundled into this build |
-| [`page_injection/external_adapter_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/external_adapter_main.ts) | `dist/external_adapter_main.js` | the page's main world, for an adapter loaded from a folder |
-| [`page_injection/content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/page_injection/content_isolated.ts) | `dist/content_isolated.js` | the isolated world |
-| [`native_host_link/background_service_worker.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/native_host_link/background_service_worker.ts) | `dist/background_service_worker.js` | the background service worker |
-| [`user_interface/popup.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/user_interface/popup.ts) | `dist/popup.js` | the popup |
+| [`page_injection/content_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_main.ts) | `dist/content_main.js` | the page's main world, for an adapter bundled into this build |
+| [`page_injection/external_adapter_main.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/external_adapter_main.ts) | `dist/external_adapter_main.js` | the page's main world, for an adapter loaded from a folder |
+| [`page_injection/content_isolated.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/page_injection/content_isolated.ts) | `dist/content_isolated.js` | the isolated world |
+| [`native_host_link/background_service_worker.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/native_host_link/background_service_worker.ts) | `dist/background_service_worker.js` | the background service worker |
+| [`user_interface/popup.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/user_interface/popup.ts) | `dist/popup.js` | the popup |
 
 Everything is bundled as an immediately invoked function expression with its imports inlined, because content scripts cannot be ECMAScript modules.
 
-Each entry point keeps its folder in the source path and only its base name in the output name. Letting esbuild derive the output path recreates the subfolders inside `dist/` and breaks every path in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json).
+Each entry point keeps its folder in the source path and only its base name in the output name. Letting esbuild derive the output path recreates the subfolders inside `dist/` and breaks every path in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json).
 
 The result, which is what Chrome loads:
 
@@ -73,7 +73,7 @@ Both halves have to be right: the manifest points at an executable file, and it 
 
 **The launcher** is [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh), resolved to an absolute path. Chrome starts it with a very small environment, so the script holds no absolute path of its own: it works the repository root out from its own location with `BASH_SOURCE`, and it searches for a Node.js rather than naming one — the shell's own `node` first, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node` — refusing any older than 22.18.0. The whole program is one `exec`, because Chrome talks to the process it starts on standard input and standard output and any extra process in between would break that.
 
-**The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/src/chrome_extension/manifest.json). The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
+**The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json). The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
 
 **The manifest itself** is [`packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
 

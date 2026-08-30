@@ -21,7 +21,7 @@ Everything that builds, launches, packages, or loads the product in a working co
 - Nothing here ships. A file a user runs belongs in `packages/npm_package/src/`, where it is bundled; a file name inside a packaged release is spelled once, in that package's `release_layout.ts`.
 - Anything reading an adapter bundles it with esbuild and runs the bundle, never parses source: adapters import with a `.js` extension, which Node.js cannot resolve from `.ts`.
 - Only `npm run install:host` may write into the everyday Chrome from here; everything else passes `isEverydayChromeCovered: false`. Why an installation announces every file first, and why installing and uninstalling share one directory list, is in [packages/npm_package/CONTEXT.md](../packages/npm_package/CONTEXT.md).
-- Nothing in `src/` or in `packages/` imports from here, which `tests/repository_layout/source_boundary.test.ts` checks. Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.
+- Nothing in `contribs/` or in `packages/` imports from here, which `tests/repository_layout/source_boundary.test.ts` checks. Node.js runs these files directly, so they stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators.
 - Every step `LaunchChrome` takes prevents a silent failure, none is safe to drop, and all are named in [build_and_install.md](../docs/build_and_install.md).
 
 ## Background

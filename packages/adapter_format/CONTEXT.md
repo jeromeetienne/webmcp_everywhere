@@ -1,7 +1,7 @@
 # Directory Context: `/packages/adapter_format`
 
 ## Purpose
-Defines what an adapter is, how its tools are named, and how everything a page returns is framed before an agent sees it. This is the contract an adapter is written against, whether it lives in `src/site_adapters/` or in a folder of somebody else's. The checks an adapter must pass live in `tools/adapter_validation/`, because they run in Node.js before an adapter reaches a browser and are never bundled into a page.
+Defines what an adapter is, how its tools are named, and how everything a page returns is framed before an agent sees it. This is the contract an adapter is written against, whether it lives in `contribs/site_adapters/` or in a folder of somebody else's. The checks an adapter must pass live in `tools/adapter_validation/`, because they run in Node.js before an adapter reaches a browser and are never bundled into a page.
 
 ## Key Exports & Entry Points
 - `src/index.ts`: the whole of `@webmcp_everywhere/adapter_format`, and the only entry point `package.json` names.
@@ -15,7 +15,7 @@ Defines what an adapter is, how its tools are named, and how everything a page r
 
 ## Rules
 - `ADAPTER_FORMAT_VERSION` and the `version` field of `package.json` say the same thing, which `tests/repository_layout/workspace_packages.test.ts` checks. An author reading one and a check reading the other would otherwise disagree about which format an adapter must carry.
-- This package imports nothing: not `@webmcp_everywhere/adapter_toolkit`, not anything under `src/`, and no adapter. So an adapter can be checked without a browser.
+- This package imports nothing: not `@webmcp_everywhere/adapter_toolkit`, not anything under `contribs/`, and no adapter. So an adapter can be checked without a browser.
 - **Node.js reads this package only while npm links it.** `tools/` and `tests/` import it by name and Node.js resolves the link to a real path outside `node_modules`, which is what lets that work with no build step. An adapter author gets a real folder inside `node_modules` instead, where Node.js refuses to strip types, so esbuild is their only way in — `npm run load-adapter` bundles before anything runs. `tests/repository_layout/workspace_packages.test.ts` pins both halves.
 - `"sideEffects": false`, so esbuild drops what a bundle does not use. Without it, importing `ToolNaming` alone dragged 8 kilobytes of `UntrustedContent` into the `npx webmcp_everywhere` command.
 - A tool's `permissionClass` is checked against its handler's source by `tools/adapter_validation/permission_audit.ts`, never trusted. A handler that clicks, submits, navigates, or assigns to `value` is acting, whatever the field says.
