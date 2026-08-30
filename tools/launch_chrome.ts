@@ -11,8 +11,8 @@ import Os from 'node:os';
 import Path from 'node:path';
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
 import { ServiceWorkerEvaluation } from './chrome_devtools_protocol/service_worker_evaluation.ts';
-import { InstallNativeHost } from '../packages/npm_package/src/install_native_host.ts';
-import type { InstallNativeHostOptions } from '../packages/npm_package/src/install_native_host.ts';
+import { InstallNativeHost } from '../packages/webmcp_everywhere/src/install_native_host.ts';
+import type { InstallNativeHostOptions } from '../packages/webmcp_everywhere/src/install_native_host.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

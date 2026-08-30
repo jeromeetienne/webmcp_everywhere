@@ -1,5 +1,5 @@
 import { CdpClient } from './chrome_devtools_protocol/cdp_client.ts';
-import { ExtensionIdentifier } from '../packages/npm_package/src/extension_identifier.ts';
+import { ExtensionIdentifier } from '../packages/webmcp_everywhere/src/extension_identifier.ts';
 import { WorkingCopyLayout } from './working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -6,7 +6,7 @@
 
 // This package is two things at once, and only one of them is here.
 //
-// The half named below is imported: `packages/npm_package/src/` reads the state files and the shapes
+// The half named below is imported: `packages/webmcp_everywhere/src/` reads the state files and the shapes
 // they hold, and `tools/` reads the folder of loaded adapters. The other half is a program Chrome
 // starts, and a program is reached by its path rather than by an import — `bin/webmcp_native_host.sh`
 // names `src/webmcp_native_host.ts`, and `tools/package_release.ts` bundles the same file. So this

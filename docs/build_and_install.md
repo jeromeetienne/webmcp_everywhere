@@ -67,7 +67,7 @@ That folder is git-ignored.
 
 ## `npm run install:host`
 
-[`packages/npm_package/src/install_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/src/install_native_host.ts) writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
+[`packages/webmcp_everywhere/src/install_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/webmcp_everywhere/src/install_native_host.ts) writes the native messaging host manifest file, the JSON file that tells Chrome which program to start and which extension may connect to it.
 
 Both halves have to be right: the manifest points at an executable file, and it names the extension identifier.
 
@@ -75,7 +75,7 @@ Both halves have to be right: the manifest points at an executable file, and it 
 
 **The extension identifier** comes from `GenerateExtensionKey.currentIdentifier()`, which derives it from the `key` field pinned in [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json). The identifier is pinned with a key rather than left to Chrome because an unpacked extension without one gets an identifier derived from wherever its folder happens to sit, and the host manifest has to name a fixed identifier.
 
-**The manifest itself** is [`packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
+**The manifest itself** is [`packages/webmcp_everywhere/native_messaging_template/com.webmcp_everywhere.host.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/webmcp_everywhere/native_messaging_template/com.webmcp_everywhere.host.json), with `{{hostName}}`, `{{launcherPath}}`, and `{{extensionIdentifier}}` filled in. It lives there as a JSON document rather than as string literals, so the shape Chrome reads can be looked at and edited as the document it is. Every placeholder has to be replaced; an unreplaced one is an error rather than something written out to Chrome, which would refuse the manifest with no useful message.
 
 The rendered manifest is written into every Chrome `NativeMessagingHosts` directory found — on macOS `~/Library/Application Support/Google/Chrome/NativeMessagingHosts`, on Linux `~/.config/google-chrome/NativeMessagingHosts`, plus the same directory inside any user data directory passed in, which is how a throwaway profile gets one.
 
@@ -91,7 +91,7 @@ This command writes a file into a browser you installed, and from then on Google
 
 ## `npm run uninstall:host`
 
-[`packages/npm_package/src/uninstall_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/npm_package/src/uninstall_native_host.ts) removes the manifest from exactly the directories the installation writes it into. Both commands take that list from `InstallNativeHost.manifestDirectories`, because two lists that have to agree are one list.
+[`packages/webmcp_everywhere/src/uninstall_native_host.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/webmcp_everywhere/src/uninstall_native_host.ts) removes the manifest from exactly the directories the installation writes it into. Both commands take that list from `InstallNativeHost.manifestDirectories`, because two lists that have to agree are one list.
 
 For each directory it prints whether a manifest was there, and what program that manifest told Chrome to start. That last part matters for the manifest nobody can find on their own: a working copy that has since been moved or deleted leaves its manifest behind, still naming a program that no longer exists, and printing the dead path is how a person recognises what they are looking at.
 
@@ -161,7 +161,7 @@ Everything above assumes a working copy on disk: the launcher walks up from its 
 npm run package:release
 ```
 
-[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/npm_package/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/npm_package), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
+[`tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
 
 | What | Why it is there |
 | --- | --- |

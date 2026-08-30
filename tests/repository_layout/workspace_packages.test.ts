@@ -75,7 +75,7 @@ class WorkspacePackagesTest {
 	 * - `@webmcp_everywhere/adapter_format` and `@webmcp_everywhere/adapter_toolkit` are what an adapter
 	 *   is written against, and an author outside this repository installs both.
 	 * - `@webmcp_everywhere/native_messaging_host` is a self-contained Node.js program with its own
-	 *   dependencies, and `packages/npm_package/src/` and `tools/` import it by name.
+	 *   dependencies, and `packages/webmcp_everywhere/src/` and `tools/` import it by name.
 	 * - `webmcp_everywhere` is what npmjs carries and what `npx webmcp_everywhere` fetches.
 	 *
 	 * A fifth package is not forbidden. It is asked about: this list is what a new one has to be added

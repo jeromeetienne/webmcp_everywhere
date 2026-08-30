@@ -121,7 +121,7 @@ jobs:
       # this same commit's release in a real Chrome. The archive on the GitHub release is still the exact
       # folder that was driven, because that job keeps and attaches it.
       #
-      # `packages/npm_package/` is the package. Its manifest, its README, its launcher and its host
+      # `packages/webmcp_everywhere/` is the package. Its manifest, its README, its launcher and its host
       # manifest template are committed; the extension folder and the three bundles are what this builds
       # into it. See milestone 3 of https://github.com/jeromeetienne/webmcp_everywhere/issues/11.
       - name: Build the package npm publishes

@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	NpmPackageTest — that the published package installs itself where npm cannot delete it
+//	WebmcpEverywhereTest — that the published package installs itself where npm cannot delete it
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -10,12 +10,12 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { ExtensionIdentifier } from '../../packages/npm_package/src/extension_identifier.ts';
-import { InstallNativeHost } from '../../packages/npm_package/src/install_native_host.ts';
-import { InstallationStatus } from '../../packages/npm_package/src/installation_status.ts';
+import { ExtensionIdentifier } from '../../packages/webmcp_everywhere/src/extension_identifier.ts';
+import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
+import { InstallationStatus } from '../../packages/webmcp_everywhere/src/installation_status.ts';
 import { PackageRelease } from '../../tools/package_release.ts';
-import { PackagedReleaseInstallation } from '../../packages/npm_package/src/packaged_release_installation.ts';
-import { ReleaseLayout } from '../../packages/npm_package/src/release_layout.ts';
+import { PackagedReleaseInstallation } from '../../packages/webmcp_everywhere/src/packaged_release_installation.ts';
+import { ReleaseLayout } from '../../packages/webmcp_everywhere/src/release_layout.ts';
 import { VersionAgreement } from '../../tools/version_agreement.ts';
 
 const __filename = import.meta.filename;
@@ -33,15 +33,15 @@ const __dirname = import.meta.dirname;
  * `packaged_release.test.ts`, which installs through the same `PackagedReleaseInstallation` and drives
  * a real Chrome against the result.
  */
-class NpmPackageTest {
+class WebmcpEverywhereTest {
 	/** Where everything this runner writes goes, well away from the repository and from the real home. */
-	static readonly WORKING_DIR = Path.join(Os.tmpdir(), 'webmcp_everywhere_npm_package');
+	static readonly WORKING_DIR = Path.join(Os.tmpdir(), 'webmcp_everywhere_published_package');
 
 	/** The home folder the command is run against, standing in for a user's. */
-	static readonly HOME_DIR = Path.join(NpmPackageTest.WORKING_DIR, 'home');
+	static readonly HOME_DIR = Path.join(WebmcpEverywhereTest.WORKING_DIR, 'home');
 
 	/** Where the tarball is installed, standing in for the folder an npx run unpacks into. */
-	static readonly CONSUMER_DIR = Path.join(NpmPackageTest.WORKING_DIR, 'consumer');
+	static readonly CONSUMER_DIR = Path.join(WebmcpEverywhereTest.WORKING_DIR, 'consumer');
 
 	/** The tarball `npm pack` wrote, or null before it has been packed. */
 	static tarball: string | null = null;
@@ -53,7 +53,7 @@ class NpmPackageTest {
 	 */
 	static installationDir(): string {
 		return Path.join(
-			NpmPackageTest.HOME_DIR,
+			WebmcpEverywhereTest.HOME_DIR,
 			'.webmcp_everywhere',
 			PackagedReleaseInstallation.FOLDER_NAME,
 		);
@@ -66,7 +66,7 @@ class NpmPackageTest {
 	 */
 	static manifestPath(): string {
 		return Path.join(
-			InstallNativeHost.everydayChromeDirectory(NpmPackageTest.HOME_DIR),
+			InstallNativeHost.everydayChromeDirectory(WebmcpEverywhereTest.HOME_DIR),
 			`${InstallNativeHost.HOST_NAME}.json`,
 		);
 	}
@@ -77,7 +77,7 @@ class NpmPackageTest {
 	 * @returns The absolute path of that executable.
 	 */
 	static commandPath(): string {
-		return Path.join(NpmPackageTest.CONSUMER_DIR, 'node_modules', '.bin', 'webmcp_everywhere');
+		return Path.join(WebmcpEverywhereTest.CONSUMER_DIR, 'node_modules', '.bin', 'webmcp_everywhere');
 	}
 
 	/**
@@ -89,16 +89,16 @@ class NpmPackageTest {
 	static async packAndInstall(): Promise<void> {
 		const packaged = await PackageRelease.run();
 
-		Fs.mkdirSync(NpmPackageTest.CONSUMER_DIR, {
+		Fs.mkdirSync(WebmcpEverywhereTest.CONSUMER_DIR, {
 			recursive: true,
 		});
-		Fs.mkdirSync(NpmPackageTest.HOME_DIR, {
+		Fs.mkdirSync(WebmcpEverywhereTest.HOME_DIR, {
 			recursive: true,
 		});
 
 		const packed = ChildProcess.spawnSync(
 			'npm',
-			['pack', '--pack-destination', NpmPackageTest.WORKING_DIR, packaged.folder],
+			['pack', '--pack-destination', WebmcpEverywhereTest.WORKING_DIR, packaged.folder],
 			{
 				encoding: 'utf8',
 			},
@@ -106,9 +106,9 @@ class NpmPackageTest {
 		if (packed.status !== 0) {
 			throw new Error(`npm pack failed:\n${packed.stderr}`);
 		}
-		NpmPackageTest.tarball = Path.join(NpmPackageTest.WORKING_DIR, packed.stdout.trim().split('\n').pop() ?? '');
+		WebmcpEverywhereTest.tarball = Path.join(WebmcpEverywhereTest.WORKING_DIR, packed.stdout.trim().split('\n').pop() ?? '');
 
-		NpmPackageTest.installTheTarball();
+		WebmcpEverywhereTest.installTheTarball();
 	}
 
 	/**
@@ -118,7 +118,7 @@ class NpmPackageTest {
 	 * @throws When npm refused to install it.
 	 */
 	static installTheTarball(): void {
-		if (NpmPackageTest.tarball === null) {
+		if (WebmcpEverywhereTest.tarball === null) {
 			throw new Error('nothing has been packed yet');
 		}
 		const installed = ChildProcess.spawnSync(
@@ -126,11 +126,11 @@ class NpmPackageTest {
 			[
 				'install',
 				'--prefix',
-				NpmPackageTest.CONSUMER_DIR,
+				WebmcpEverywhereTest.CONSUMER_DIR,
 				'--no-audit',
 				'--no-fund',
 				'--loglevel=error',
-				NpmPackageTest.tarball,
+				WebmcpEverywhereTest.tarball,
 			],
 			{
 				encoding: 'utf8',
@@ -156,11 +156,11 @@ class NpmPackageTest {
 	} {
 		const environment: NodeJS.ProcessEnv = {
 			...process.env,
-			HOME: NpmPackageTest.HOME_DIR,
+			HOME: WebmcpEverywhereTest.HOME_DIR,
 		};
 		delete environment.WEBMCP_EVERYWHERE_STATE_DIR;
 
-		const ran = ChildProcess.spawnSync(NpmPackageTest.commandPath(), args, {
+		const ran = ChildProcess.spawnSync(WebmcpEverywhereTest.commandPath(), args, {
 			encoding: 'utf8',
 			env: environment,
 		});
@@ -181,7 +181,7 @@ class NpmPackageTest {
 	 * @throws When there is no manifest to read.
 	 */
 	static readManifest(): { path: string; allowed_origins: string[] } {
-		const manifestPath = NpmPackageTest.manifestPath();
+		const manifestPath = WebmcpEverywhereTest.manifestPath();
 		if (Fs.existsSync(manifestPath) === false) {
 			throw new Error(`the command wrote no host manifest at ${manifestPath}`);
 		}
@@ -246,15 +246,15 @@ class NpmPackageTest {
 
 NodeTest.describe('The published package, installed by npm into a home folder of its own', () => {
 	NodeTest.before(async () => {
-		Fs.rmSync(NpmPackageTest.WORKING_DIR, {
+		Fs.rmSync(WebmcpEverywhereTest.WORKING_DIR, {
 			recursive: true,
 			force: true,
 		});
-		await NpmPackageTest.packAndInstall();
+		await WebmcpEverywhereTest.packAndInstall();
 	});
 
 	NodeTest.after(() => {
-		Fs.rmSync(NpmPackageTest.WORKING_DIR, {
+		Fs.rmSync(WebmcpEverywhereTest.WORKING_DIR, {
 			recursive: true,
 			force: true,
 		});
@@ -276,11 +276,11 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('npm links the command the bin field names, and it runs', (t) => {
-		const commandPath = NpmPackageTest.commandPath();
+		const commandPath = WebmcpEverywhereTest.commandPath();
 		if (Fs.existsSync(commandPath) === false) {
 			throw new Error(`npm linked no command at ${commandPath}`);
 		}
-		const version = NpmPackageTest.runTheCommand(['--version']).stdout.trim();
+		const version = WebmcpEverywhereTest.runTheCommand(['--version']).stdout.trim();
 		if (/^\d+\.\d+\.\d+$/.test(version) === false) {
 			throw new Error(`the command answered --version with ${version}`);
 		}
@@ -288,7 +288,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('asked before anything is installed, it says so and exits 1', (t) => {
-		const asked = NpmPackageTest.runTheCommand(['status'], true);
+		const asked = WebmcpEverywhereTest.runTheCommand(['status'], true);
 
 		if (asked.code === 0) {
 			throw new Error('status exited 0 with nothing installed, so no script could act on it');
@@ -300,8 +300,8 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('installing copies the release out of the folder npm owns', (t) => {
-		const output = NpmPackageTest.runTheCommand().stdout;
-		const installationDir = NpmPackageTest.installationDir();
+		const output = WebmcpEverywhereTest.runTheCommand().stdout;
+		const installationDir = WebmcpEverywhereTest.installationDir();
 
 		for (const name of [
 			Path.join(ReleaseLayout.EXTENSION_DIR, ReleaseLayout.EXTENSION_MANIFEST),
@@ -319,7 +319,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			}
 		}
 
-		if (NpmPackageTest.isRunnable(Path.join(installationDir, ReleaseLayout.LAUNCHER)) === false) {
+		if (WebmcpEverywhereTest.isRunnable(Path.join(installationDir, ReleaseLayout.LAUNCHER)) === false) {
 			throw new Error('the copied launcher is not executable, so Chrome could never start it');
 		}
 		if (output.includes(installationDir) === false) {
@@ -336,11 +336,11 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 		// carries over to the package without a second twelve-minute Chrome run.
 		// only the entries the package publishes: that folder is the workspace package, so it also holds
 		// the `src/` that is bundled into the three files rather than shipped, and its `CONTEXT.md`
-		const released = NpmPackageTest.digestEveryFile(
-			Path.join(__dirname, '..', '..', 'packages', 'npm_package'),
+		const released = WebmcpEverywhereTest.digestEveryFile(
+			Path.join(__dirname, '..', '..', 'packages', 'webmcp_everywhere'),
 			ReleaseLayout.PUBLISHED_ENTRIES,
 		);
-		const installed = NpmPackageTest.digestEveryFile(NpmPackageTest.installationDir());
+		const installed = WebmcpEverywhereTest.digestEveryFile(WebmcpEverywhereTest.installationDir());
 
 		const missing = [...released.keys()].filter((name) => installed.has(name) === false);
 		if (missing.length > 0) {
@@ -360,8 +360,8 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('installing ends by saying the one step nobody else can take', (t) => {
-		const output = NpmPackageTest.runTheCommand().stdout;
-		const extensionDir = Path.join(NpmPackageTest.installationDir(), ReleaseLayout.EXTENSION_DIR);
+		const output = WebmcpEverywhereTest.runTheCommand().stdout;
+		const extensionDir = Path.join(WebmcpEverywhereTest.installationDir(), ReleaseLayout.EXTENSION_DIR);
 
 		if (output.includes('No browser is holding the port') === false) {
 			throw new Error(`the install never said whether it is working:\n${output}`);
@@ -373,7 +373,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('the copied command runs on its own, with no npm around it', (t) => {
-		const bundle = Path.join(NpmPackageTest.installationDir(), ReleaseLayout.COMMAND);
+		const bundle = Path.join(WebmcpEverywhereTest.installationDir(), ReleaseLayout.COMMAND);
 		const ran = ChildProcess.spawnSync(process.execPath, [bundle, '--version'], {
 			encoding: 'utf8',
 		});
@@ -391,7 +391,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('an endpoint file naming an address nothing answers on is called out as that', (t) => {
-		const endpointPath = Path.join(NpmPackageTest.HOME_DIR, '.webmcp_everywhere', 'endpoint.json');
+		const endpointPath = Path.join(WebmcpEverywhereTest.HOME_DIR, '.webmcp_everywhere', 'endpoint.json');
 		Fs.writeFileSync(
 			endpointPath,
 			JSON.stringify({
@@ -401,7 +401,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 			}),
 		);
 
-		const asked = NpmPackageTest.runTheCommand(['status'], true);
+		const asked = WebmcpEverywhereTest.runTheCommand(['status'], true);
 		Fs.rmSync(endpointPath);
 
 		if (asked.code === 0) {
@@ -414,8 +414,8 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('the registration names the copy, and the extension identifier is the pinned one', (t) => {
-		const manifest = NpmPackageTest.readManifest();
-		const launcher = Path.join(NpmPackageTest.installationDir(), ReleaseLayout.LAUNCHER);
+		const manifest = WebmcpEverywhereTest.readManifest();
+		const launcher = Path.join(WebmcpEverywhereTest.installationDir(), ReleaseLayout.LAUNCHER);
 
 		if (manifest.path !== launcher) {
 			throw new Error(`the manifest tells Chrome to start ${manifest.path}, not ${launcher}`);
@@ -434,28 +434,28 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('the installation outlives the folder npm unpacked into', (t) => {
-		Fs.rmSync(Path.join(NpmPackageTest.CONSUMER_DIR, 'node_modules'), {
+		Fs.rmSync(Path.join(WebmcpEverywhereTest.CONSUMER_DIR, 'node_modules'), {
 			recursive: true,
 			force: true,
 		});
 
-		const launcher = NpmPackageTest.readManifest().path;
+		const launcher = WebmcpEverywhereTest.readManifest().path;
 		if (Fs.existsSync(launcher) === false) {
 			throw new Error(`npm emptying its folder took the launcher with it: ${launcher}`);
 		}
-		if (NpmPackageTest.isRunnable(launcher) === false) {
+		if (WebmcpEverywhereTest.isRunnable(launcher) === false) {
 			throw new Error(`${launcher} is no longer executable`);
 		}
 		t.diagnostic(`${launcher} is still there with node_modules gone, which is the whole reason for the copy`);
 	});
 
 	NodeTest.test('installing again replaces the folder rather than adding another', (t) => {
-		const installationDir = NpmPackageTest.installationDir();
+		const installationDir = WebmcpEverywhereTest.installationDir();
 		const leftover = Path.join(installationDir, 'left_over_from_the_previous_version.txt');
 		Fs.writeFileSync(leftover, 'this file belongs to no version of the package');
 
-		NpmPackageTest.installTheTarball();
-		NpmPackageTest.runTheCommand();
+		WebmcpEverywhereTest.installTheTarball();
+		WebmcpEverywhereTest.runTheCommand();
 
 		if (Fs.existsSync(leftover) === true) {
 			throw new Error('the second installation was written over the first rather than replacing it');
@@ -494,15 +494,15 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 	});
 
 	NodeTest.test('uninstalling removes both, and leaves the token alone', (t) => {
-		const tokenPath = Path.join(NpmPackageTest.HOME_DIR, '.webmcp_everywhere', 'token');
+		const tokenPath = Path.join(WebmcpEverywhereTest.HOME_DIR, '.webmcp_everywhere', 'token');
 		Fs.writeFileSync(tokenPath, 'a token an agent was configured with');
 
-		const output = NpmPackageTest.runTheCommand(['uninstall']).stdout;
+		const output = WebmcpEverywhereTest.runTheCommand(['uninstall']).stdout;
 
-		if (Fs.existsSync(NpmPackageTest.manifestPath()) === true) {
+		if (Fs.existsSync(WebmcpEverywhereTest.manifestPath()) === true) {
 			throw new Error('the host manifest is still there, so Chrome would still start the host');
 		}
-		if (Fs.existsSync(NpmPackageTest.installationDir()) === true) {
+		if (Fs.existsSync(WebmcpEverywhereTest.installationDir()) === true) {
 			throw new Error('the installation folder is still there');
 		}
 		if (Fs.existsSync(tokenPath) === false) {

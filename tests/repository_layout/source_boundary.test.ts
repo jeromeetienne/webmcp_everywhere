@@ -56,7 +56,7 @@ type Offence = {
  * A workspace package that publishes its own source is the other: a path it reached back along would
  * work here and break for anybody who installed it, because the repository would not be there. A package
  * that publishes only built files is not held to that, because its source never leaves this repository —
- * `packages/npm_package/src/` is bundled by esbuild into the three files the package ships, and its
+ * `packages/webmcp_everywhere/src/` is bundled by esbuild into the three files the package ships, and its
  * `files` list says so. Whether a package publishes its source is read out of that list rather than
  * decided here, so a package that starts publishing its source starts being checked on the same day.
  *

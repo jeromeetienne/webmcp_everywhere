@@ -34,7 +34,7 @@ export class WorkingCopyLayout {
 	static readonly TEMPLATE_DIR = Path.join(
 		repositoryRoot,
 		'packages',
-		'npm_package',
+		'webmcp_everywhere',
 		'native_messaging_template',
 	);
 

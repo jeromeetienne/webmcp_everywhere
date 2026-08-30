@@ -2,7 +2,7 @@ import ChildProcess from 'node:child_process';
 import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { ReleaseLayout } from '../packages/npm_package/src/release_layout.ts';
+import { ReleaseLayout } from '../packages/webmcp_everywhere/src/release_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -15,7 +15,7 @@ const __dirname = import.meta.dirname;
 
 const repositoryRoot = Path.join(__dirname, '..');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
-const packageDir = Path.join(repositoryRoot, 'packages', 'npm_package');
+const packageDir = Path.join(repositoryRoot, 'packages', 'webmcp_everywhere');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ export type PackagedRelease = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Builds the parts of `packages/npm_package/` that cannot be committed, and archives the whole.
+ * Builds the parts of `packages/webmcp_everywhere/` that cannot be committed, and archives the whole.
  *
  * Everything else in this repository assumes a working copy on disk: the launcher walks up from its
  * own location to find the host program, and Node.js runs the TypeScript with no build step. That is
@@ -204,7 +204,7 @@ export class PackageRelease {
 		);
 		if (missing.length > 0) {
 			throw new Error(
-				`packages/npm_package/ is missing ${missing.join(' and ')}, which the package publishes`,
+				`packages/webmcp_everywhere/ is missing ${missing.join(' and ')}, which the package publishes`,
 			);
 		}
 	}

@@ -1,4 +1,4 @@
-# Directory Context: `/packages/npm_package`
+# Directory Context: `/packages/webmcp_everywhere`
 
 ## Purpose
 What npmjs carries and what a user installs: the extension, the bundled native messaging host, the launcher Chrome starts, and the command `npx webmcp_everywhere` runs. This folder is the package, so what npm publishes can be read in a diff rather than assembled by a program.

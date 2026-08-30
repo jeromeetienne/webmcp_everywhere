@@ -2,9 +2,9 @@ import Fs from 'node:fs';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { InstallNativeHost } from '../../packages/npm_package/src/install_native_host.ts';
-import { UninstallNativeHost } from '../../packages/npm_package/src/uninstall_native_host.ts';
-import type { InstallNativeHostOptions } from '../../packages/npm_package/src/install_native_host.ts';
+import { InstallNativeHost } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
+import { UninstallNativeHost } from '../../packages/webmcp_everywhere/src/uninstall_native_host.ts';
+import type { InstallNativeHostOptions } from '../../packages/webmcp_everywhere/src/install_native_host.ts';
 import { WorkingCopyLayout } from '../../tools/working_copy_layout.ts';
 
 ///////////////////////////////////////////////////////////////////////////////

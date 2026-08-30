@@ -20,7 +20,7 @@ const repositoryRoot = Path.join(__dirname, '..');
 
 /** The three version numbers, and whether they say the same thing. */
 export type VersionAgreementReport = {
-	/** What `packages/npm_package/package.json` says, which is the version npm publishes under. */
+	/** What `packages/webmcp_everywhere/package.json` says, which is the version npm publishes under. */
 	packageVersion: string;
 	/** What `contribs/chrome_extension/manifest.json` says, which is the version Chrome shows. */
 	extensionVersion: string;
@@ -51,14 +51,14 @@ export class VersionAgreement {
 	/**
 	 * Where the package version is read from, which is the manifest npm publishes.
 	 *
-	 * It is `packages/npm_package/package.json`, not the root one. The root is private and is never
+	 * It is `packages/webmcp_everywhere/package.json`, not the root one. The root is private and is never
 	 * published, so its version names nothing a user could ever see; the published manifest is what
 	 * npmjs lists and what `npx webmcp_everywhere --version` prints.
 	 */
 	static readonly PACKAGE_MANIFEST = Path.join(
 		repositoryRoot,
 		'packages',
-		'npm_package',
+		'webmcp_everywhere',
 		'package.json',
 	);
 
@@ -82,7 +82,7 @@ export class VersionAgreement {
 		const tagVersion = tag === undefined || tag.length === 0 ? null : tag.replace(/^v/, '');
 
 		const named: [string, string][] = [
-			['packages/npm_package/package.json', packageVersion],
+			['packages/webmcp_everywhere/package.json', packageVersion],
 			['contribs/chrome_extension/manifest.json', extensionVersion],
 		];
 		if (tagVersion !== null) {
