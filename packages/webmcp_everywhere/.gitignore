@@ -1,0 +1,6 @@
+# What `npm run package:release` builds into the published package. Everything else in that folder is
+# committed, which is the whole point of packages/webmcp_everywhere/.
+chrome_extension/
+webmcp_native_host.mjs
+install_the_native_messaging_host.mjs
+webmcp_everywhere.mjs
