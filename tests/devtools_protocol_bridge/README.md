@@ -19,7 +19,7 @@ npm run bridge
 node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts
 ```
 
-Reach for the bridge when `node --test tests/native_messaging_host/native_host.test.ts` fails and you need to tell an adapter fault from a delivery fault. It is the smallest path from an agent to a page in this repository.
+Reach for the bridge when `node --test packages/native_messaging_host/tests/native_host.test.ts` fails and you need to tell an adapter fault from a delivery fault. It is the smallest path from an agent to a page in this repository.
 
 ## Reading further
 

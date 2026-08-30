@@ -8,6 +8,8 @@ Each adapter has its own README.md saying what you can ask an agent to do on tha
 - [The Can I use... adapter](caniuse_com/README.md) — `https://caniuse.com/`
 - [The OpenStreetMap adapter](openstreetmap_org/README.md) — `https://www.openstreetmap.org/`
 
+Beside the adapter folders sits `tools/`, which holds everything that acts on an adapter folder: write a new one, install one, take it back out, and keep the committed adapter list in step with the folders. Each adapter folder holds its own `tests/`, with the verification runner that drives that adapter's live site.
+
 ## What ships here, and what does not
 
 This build ships two or three adapters as examples. An adapter that covers a site well but shows nothing the three above already show belongs in a folder of your own, installed with `npm run load-adapter`, rather than here.
@@ -20,7 +22,7 @@ Long-term success for this project is a shrinking number of adapters, not a grow
 npm run new-adapter -- https://example.com/
 ```
 
-That writes the adapter folder, its verification runner under `tests/site_adapters/`, its `CONTEXT.md`, and its `README.md`, and registers the adapter. It writes no knowledge of the site: you fill that in by probing the live site yourself.
+That writes the adapter folder, its verification runner in that folder's own `tests/`, its `CONTEXT.md`, and its `README.md`, and registers the adapter. It writes no knowledge of the site: you fill that in by probing the live site yourself.
 
 ```bash
 npm run sync:adapters

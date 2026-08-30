@@ -15,4 +15,4 @@ One WebSocket connection to a locally running Chrome, spoken over the Chrome Dev
 - Nothing in `contribs/` imports from here. The debugging port this speaks to is unauthenticated and reachable by every process on the machine, which is why the product reaches the browser through the native messaging host instead.
 
 ## Background
-- This file sat inside the folder holding the product until that folder was cut down to product code only. It is shared by `tools/chrome_extension/launch_chrome.ts`, `tools/chrome_extension/grant_acting.ts`, and several verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.
+- This file sat inside the folder holding the product until that folder was cut down to product code only. It is shared by `contribs/chrome_extension/tools/launch_chrome.ts`, `contribs/chrome_extension/tools/grant_acting.ts`, and several verification runners in `tests/`, which is why it lives in `tools/` rather than in `tests/`.

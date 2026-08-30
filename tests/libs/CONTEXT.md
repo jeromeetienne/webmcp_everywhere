@@ -11,7 +11,7 @@ The files under `tests/` that hold no check and that the runner folders share: t
 ## Rules
 - No file here ends in `.test.ts`, because `node --test` finds runners by that ending and a file here holds no check.
 - Nothing here mocks anything. `LivePageHarness` launches the real Chrome, installs the real extension, loads the real page, and calls a tool through `document.modelContext` exactly as an agent does.
-- `tools/site_adapters/new_adapter.ts` writes the import of `live_page_harness.ts` into every runner it scaffolds, so moving or renaming this file means editing that generator as well. A generated runner that cannot import the harness does not run at all.
+- `contribs/site_adapters/tools/new_adapter.ts` writes the import of `live_page_harness.ts` into every runner it scaffolds, so moving or renaming this file means editing that generator as well. A generated runner that cannot import the harness does not run at all.
 - A file belongs here once a second runner folder needs it. One used by a single folder sits in that folder instead, beside what it serves.
 
 ## Background

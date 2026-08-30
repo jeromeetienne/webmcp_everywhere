@@ -8,7 +8,7 @@
  * The page interactions every adapter has had to work out for itself.
  *
  * **Every helper in this file changes the page.** That is the whole boundary between this file and
- * `page_waiting.ts`, and `tools/site_adapter/permission_audit.ts` depends on it: a handler that
+ * `page_waiting.ts`, and `packages/site_adapter/tools/permission_audit.ts` depends on it: a handler that
  * names `PageDriving` at all is read as acting, whatever its `permissionClass` field says. A helper
  * that changes nothing belongs in `page_waiting.ts`, or the audit starts refusing honest read-only
  * tools.

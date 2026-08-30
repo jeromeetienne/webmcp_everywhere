@@ -11,7 +11,7 @@ Nothing here stands anything in for anything else. The harness launches the real
 
 ## Running it
 
-No command runs this folder: nothing here holds a check. The runners that use it are under `tests/site_adapters/` and `tests/native_messaging_host/`.
+No command runs this folder: nothing here holds a check. The runners that use it are under `contribs/site_adapters/<site>/tests/` and `packages/native_messaging_host/tests/`.
 
 ## Reading further
 

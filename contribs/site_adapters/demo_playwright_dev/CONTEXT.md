@@ -7,7 +7,8 @@ The adapter for the Playwright TodoMVC demonstration at `https://demo.playwright
 - `README.md`: What Codex can do with this site, and the workflows worth asking for.
 - `todomvc_adapter.ts`: `todomvcAdapter`, the adapter itself.
 - `todomvc_page.ts`: `TodomvcPage`, the class holding the page-driving helpers.
-- Command to exercise this folder: `node --test tests/site_adapters/todomvc.test.ts`
+- `tests/todomvc.test.ts`: `TodomvcTest`, and `todomvc_result_types.ts`, the result shapes two other runners read as well.
+- Command to exercise this folder: `node --test contribs/site_adapters/demo_playwright_dev/tests/todomvc.test.ts`
 
 ## Rules
 - Never assign to `input.value`. The page is React and ignores it. Write through the native `HTMLInputElement` value setter, then dispatch an `input` event, then a `keydown` for Enter.

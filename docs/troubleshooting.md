@@ -108,15 +108,15 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Types and imports
 
-**`node --test tests/repository_layout/source_boundary.test.ts` fails.** Something in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has a relative import that leaves the folder it is written in. Imports run one way only: [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) → [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) → [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), and a package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
+**`node --test tests/repository_layout/source_boundary.test.ts` fails.** Product code in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), or in a package under [`packages/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages), has either a relative import that leaves the folder it is written in, or an import reaching into a `tests/` or a `tools/` folder. Imports run one way only: a `tests/` or a `tools/` folder may import product code, and no product file may import from either, wherever that folder sits. A package is reached by its `@webmcp_everywhere/` name rather than by a relative path.
 
-**`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`packages/native_messaging_host/src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host/src) directly and only strips types, so those files stay within erasable syntax.
+**`npm run typecheck` fails on an `enum`, a `namespace`, a parameter property, or a decorator.** Node.js runs the files in every `tools/` and `tests/` folder, and in [`packages/native_messaging_host/src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host/src), directly and only strips types, so those files stay within erasable syntax.
 
 ## Telling an adapter fault from a delivery fault
 
-When `node --test tests/native_messaging_host/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
+When `node --test packages/native_messaging_host/tests/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
 
-1. Run the adapter's own runner — `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
+1. Run the adapter's own runner — `node --test contribs/site_adapters/demo_playwright_dev/tests/todomvc.test.ts` or `node --test contribs/site_adapters/caniuse_com/tests/caniuse.test.ts`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
 2. Run `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts`. The stdio bridge reaches the page over the Chrome DevTools Protocol, still bypassing the extension and the host. If it passes, WebMCP registration on the page is fine.
 3. What is left is the extension or the native messaging host. Read `~/.webmcp_everywhere/host.log`, and read the extension's errors on `chrome://extensions`.
 

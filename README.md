@@ -74,7 +74,7 @@ npm run chrome -- "https://www.openstreetmap.org/#map=15/48.8584/2.2945"
 
 Checks the real delivery path
 ```bash
-node --test tests/native_messaging_host/native_host.test.ts
+node --test packages/native_messaging_host/tests/native_host.test.ts
 ```
 
 Checks an adapter folder and installs it, with no rebuild of the extension
@@ -177,15 +177,15 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`contribs/` holds what the community writes and nothing else. Everything that builds it is in `tools/`, everything that checks it is in `tests/`, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
+`contribs/` holds what the community writes and nothing else. Everything that builds or checks one folder sits in a `tools/` or a `tests/` folder inside that folder, what belongs to no one folder stays in `tools/` and `tests/` at the top, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
 
-- `packages/webmcp_everywhere/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it.
+- `packages/webmcp_everywhere/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it by its own `tools/`, and its `tests/` install one.
 - `packages/site_adapter/` — everything an adapter is written against, imported as `@webmcp_everywhere/site_adapter`. `src/format/` is what an adapter is, how its tools are named, and how page content is framed; `src/toolkit/` is the page helpers every adapter shares, waiting on the page and driving it.
 - `packages/native_messaging_host/` — the native messaging host, its HTTP endpoint, and the folder of loaded adapters it reads. Chrome starts it by path; it is imported as `@webmcp_everywhere/native_messaging_host`.
-- `contribs/site_adapters/` — one folder per target site this build ships.
-- `contribs/chrome_extension/` — the Manifest Version 3 extension.
-- `tools/` — one folder per subject, each named after the folder under `packages/` or `contribs/` it acts on: `chrome_extension/` builds and launches the extension, `site_adapters/` writes a new adapter and loads one, `site_adapter/` holds the checks an adapter must pass, and `webmcp_everywhere/` packages a release and registers the host in this working copy. `chrome_devtools_protocol/` and `environment_reports/` keep their own subject names. Nothing here ships.
-- `tests/` — the verification runners, and the stdio bridge one of them checks. One runner per adapted site in `tests/site_adapters/`.
+- `contribs/site_adapters/` — one folder per target site this build ships, each holding its adapter, its two documents and its own verification runner. `tools/` beside them writes a new adapter, registers them all, and loads or unloads one.
+- `contribs/chrome_extension/` — the Manifest Version 3 extension, with the `tools/` that build and launch it and the `tests/` that attack it.
+- `tools/` — the build and launch code belonging to no one subject: `chrome_devtools_protocol/` is the connection to a running Chrome, and `environment_reports/` says what a machine and each site can do. Everything else sits in a `tools/` folder inside the folder it acts on. Nothing here ships.
+- `tests/` — the verification code belonging to no one subject: the checks on the repository itself, the stdio bridge, and what the other runners share. Every other runner lives in a `tests/` folder inside the folder it checks, one per adapted site included.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.
 - `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
@@ -206,7 +206,7 @@ npm run test:visible    # the same checks, with Chrome on screen
 npm run test:no_browser # only the checks that start no browser
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The six exceptions are the ones `npm run test:no_browser` names: `tests/repository_layout/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `tests/native_messaging_host/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/webmcp_everywhere/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, `tests/webmcp_everywhere/webmcp_everywhere.test.ts`, whose subject is the package npm publishes, `tests/repository_layout/source_boundary.test.ts`, which reads the source folders off disk, and `tests/repository_layout/workspace_packages.test.ts`, whose subject is the package an adapter author installs. Those six are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The six exceptions are the ones `npm run test:no_browser` names: `tests/repository_layout/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `packages/native_messaging_host/tests/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `packages/webmcp_everywhere/tests/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, `packages/webmcp_everywhere/tests/webmcp_everywhere.test.ts`, whose subject is the package npm publishes, `tests/repository_layout/source_boundary.test.ts`, which reads the source folders off disk, and `tests/repository_layout/workspace_packages.test.ts`, whose subject is the package an adapter author installs. Those six are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

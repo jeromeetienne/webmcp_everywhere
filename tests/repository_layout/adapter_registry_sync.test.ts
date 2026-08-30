@@ -7,7 +7,7 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { SyncAdapterRegistry } from '../../tools/site_adapters/sync_adapter_registry.ts';
+import { SyncAdapterRegistry } from '../../contribs/site_adapters/tools/sync_adapter_registry.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -31,13 +31,6 @@ class AdapterRegistrySyncTest {
 	static readonly SITE_ADAPTERS_DIR = Path.join(
 		AdapterRegistrySyncTest.REPOSITORY_ROOT,
 		'contribs',
-		'site_adapters',
-	);
-
-	/** Where the verification runners live, one file per adapter folder. */
-	static readonly SITE_RUNNERS_DIR = Path.join(
-		AdapterRegistrySyncTest.REPOSITORY_ROOT,
-		'tests',
 		'site_adapters',
 	);
 
@@ -127,16 +120,23 @@ NodeTest.test('every adapter folder has a verification runner named after it', a
 	for (const adapter of adapters) {
 		const adapterFile = Path.basename(adapter.importPath).replace(/\.js$/, '');
 		const runnerName = SyncAdapterRegistry.runnerFileNameFor(adapterFile);
-		const runnerPath = Path.join(AdapterRegistrySyncTest.SITE_RUNNERS_DIR, runnerName);
+		const runnerPath = Path.join(
+			AdapterRegistrySyncTest.SITE_ADAPTERS_DIR,
+			adapter.folderName,
+			'tests',
+			runnerName,
+		);
 		if (Fs.existsSync(runnerPath) === false) {
-			missing.push(`${adapter.siteSlug} has no tests/site_adapters/${runnerName}`);
+			missing.push(
+				`${adapter.siteSlug} has no contribs/site_adapters/${adapter.folderName}/tests/${runnerName}`,
+			);
 		}
 	}
 
 	if (missing.length > 0) {
 		throw new Error(missing.join('; '));
 	}
-	t.diagnostic(`${adapters.length} adapters, each with its own runner in tests/site_adapters/`);
+	t.diagnostic(`${adapters.length} adapters, each with its own runner in its own tests/ folder`);
 });
 
 NodeTest.test('every adapter folder carries its own CONTEXT.md and README.md', async (t) => {

@@ -12,6 +12,8 @@ The extension is the only place that decides what a page is allowed to do. An ad
 - `user_interface/` — the popup you open from the toolbar, where you turn each adapter on and grant acting permission.
 - `shared_state/` — the state that more than one execution context reads, including the generated adapter list.
 - `dist/` — the build output. Every entry point bundles to a flat file here.
+- `tools/` — everything that builds this extension and puts a browser into the state a check needs.
+- `tests/` — the runners covering what this extension enforces against code and content this repository did not write.
 
 `manifest.json` names no site, in any field. Which adapter runs where is decided while the browser is running, from the adapter's own match patterns and your own per-adapter switch. That is why adding an adapter asks nothing of anybody who already has the extension.
 

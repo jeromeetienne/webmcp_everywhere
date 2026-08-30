@@ -12,7 +12,7 @@ body:
         Before reporting, run that adapter's own verification runner if you can. It drives the live site in a real Chrome and says which tool disagrees with the page:
 
         ```bash
-        node --test tests/site_adapters/openstreetmap.test.ts
+        node --test contribs/site_adapters/openstreetmap_org/tests/openstreetmap.test.ts
         ```
 
   - type: input

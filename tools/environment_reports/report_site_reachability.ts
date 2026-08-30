@@ -5,8 +5,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import { CdpClient } from '../chrome_devtools_protocol/cdp_client.ts';
-import { LaunchChrome } from '../chrome_extension/launch_chrome.ts';
-import { SyncAdapterRegistry } from '../site_adapters/sync_adapter_registry.ts';
+import { LaunchChrome } from '../../contribs/chrome_extension/tools/launch_chrome.ts';
+import { SyncAdapterRegistry } from '../../contribs/site_adapters/tools/sync_adapter_registry.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

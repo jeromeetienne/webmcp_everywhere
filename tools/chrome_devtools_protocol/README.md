@@ -11,7 +11,7 @@ Nothing in this folder ships to a user, and nothing a user runs reaches a browse
 
 ## Running it
 
-There is no command for this folder on its own. It is a library. The commands that use it are `npm run chrome`, `npm run grant`, and every verification runner under `tests/` that drives a browser.
+There is no command for this folder on its own. It is a library. The commands that use it are `npm run chrome`, `npm run grant`, and every verification runner that drives a browser.
 
 ## Reading further
 

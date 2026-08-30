@@ -18,5 +18,5 @@ A Model Context Protocol server on standard input and output that carries the We
 - The bridge is started as a child process by path, not imported, so `webmcp_bridge.test.ts` names `libs/webmcp_bridge.ts` in a `Path.join` and the `bridge` script in the root `package.json` names it again. Moving the file means editing both.
 
 ## Background
-- This was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault from a delivery fault when `node --test tests/native_messaging_host/native_host.test.ts` fails.
+- This was the first path that worked, written before the extension and the native messaging host existed, and it is kept because it is the smallest way to tell an adapter fault from a delivery fault when `node --test packages/native_messaging_host/tests/native_host.test.ts` fails.
 - Verified with Codex driving the live TodoMVC page — see [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).
