@@ -57,7 +57,7 @@ For a contributed adapter, the scaffold writes five things, all of them already 
 - `contribs/site_adapters/example_com/example_adapter.ts` — the adapter, with one read-only tool that already works, and the page-reading class beside it.
 - `contribs/site_adapters/example_com/CONTEXT.md` — the rules for editing this adapter, waiting to be replaced by yours.
 - `contribs/site_adapters/example_com/README.md` — what an agent can do on this site, waiting to be written.
-- `tests/site_adapters/example.test.ts` — the verification runner, with two checks that already pass against the live site.
+- `contribs/site_adapters/example_com/tests/example.test.ts` — the verification runner, with two checks that already pass against the live site.
 - The registration: the adapter list in `adapter_registry.ts`. The extension manifest names no site at all — which adapter runs where is decided in the browser, when the user switches an adapter on.
 
 The folder is named after the origin in `snake_case`, and that name is also the adapter's `siteSlug`; the two have to agree, because every tool name is namespaced by the slug. The scaffold takes both from the address you gave it.
@@ -123,18 +123,18 @@ The build runs every check over every adapter before it bundles anything, and pr
 
 ## Step five: check it against the live site
 
-The scaffold wrote your runner in [`tests/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests/site_adapters), with two checks in it that already pass. Every tool you add gets a check beside them.
+The scaffold wrote your runner in your adapter folder's own `tests/`, with two checks in it that already pass. Every tool you add gets a check beside them.
 
 ```bash
-node --test tests/site_adapters/example.test.ts
+node --test contribs/site_adapters/example_com/tests/example.test.ts
 ```
 
-The rules for a runner are in [`tests/site_adapters/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/site_adapters/CONTEXT.md). The two that matter most:
+The rules for a runner are in [`contribs/site_adapters/CONTEXT.md`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/site_adapters/CONTEXT.md). The two that matter most:
 
 - **Assert against state read back out of the live page.** Nothing is mocked, and a check that cannot fail is not a check.
 - **Each runner launches its own throwaway Chrome**, so it needs no browser to be up first.
 
-`node --test tests/site_adapters/todomvc.test.ts`, `caniuse.test.ts`, and `openstreetmap.test.ts` are the three worth reading before writing a fourth. Continuous integration never runs any of them, because they drive the real public site; running yours, and saying in the pull request when it last passed, is part of the contribution.
+`node --test contribs/site_adapters/demo_playwright_dev/tests/todomvc.test.ts`, `caniuse.test.ts`, and `openstreetmap.test.ts` are the three worth reading before writing a fourth. Continuous integration never runs any of them, because they drive the real public site; running yours, and saying in the pull request when it last passed, is part of the contribution.
 
 When a check fails, `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts` and the stdio Model Context Protocol bridge are the smallest way to tell an adapter fault apart from a delivery fault — see [testing_and_verification.md](testing_and_verification.md).
 

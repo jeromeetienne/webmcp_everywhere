@@ -8,12 +8,12 @@ import Path from 'node:path';
 import NodeTest from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { GrantActing } from '../../tools/chrome_extension/grant_acting.ts';
-import { LaunchChrome } from '../../tools/chrome_extension/launch_chrome.ts';
+import { GrantActing } from '../../contribs/chrome_extension/tools/grant_acting.ts';
+import { LaunchChrome } from '../../contribs/chrome_extension/tools/launch_chrome.ts';
 import type {
 	CountTodosResult,
 	ListTodosResult,
-} from '../site_adapters/libs/todomvc_result_types.ts';
+} from '../../contribs/site_adapters/demo_playwright_dev/tests/todomvc_result_types.ts';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;

@@ -5,8 +5,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
-import { GrantActing } from '../../tools/chrome_extension/grant_acting.ts';
-import { LaunchChrome } from '../../tools/chrome_extension/launch_chrome.ts';
+import { GrantActing } from '../../contribs/chrome_extension/tools/grant_acting.ts';
+import { LaunchChrome } from '../../contribs/chrome_extension/tools/launch_chrome.ts';
 import type { FramedResultOf } from './host_call_types.ts';
 
 ///////////////////////////////////////////////////////////////////////////////

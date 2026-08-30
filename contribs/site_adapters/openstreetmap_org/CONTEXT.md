@@ -10,7 +10,8 @@ The adapter for `https://www.openstreetmap.org/`, aimed at a mapper: what is in 
 - `openstreetmap_reading_tools.ts` and `openstreetmap_driving_tools.ts`: the two halves of that tool list.
 - `openstreetmap_tool_input.ts`: `OpenStreetMapToolInput` and the schema fragments the tools share.
 - `openstreetmap_types.ts`: the shapes the tools read and return.
-- Command to exercise this folder: `node --test tests/site_adapters/openstreetmap.test.ts`
+- `tests/openstreetmap.test.ts`: `OpenStreetMapTest`, and `openstreetmap_result_types.ts`, the shapes it asserts against.
+- Command to exercise this folder: `node --test contribs/site_adapters/openstreetmap_org/tests/openstreetmap.test.ts`
 
 ## Rules
 - Read the map position from the address fragment through `OSM.parseHash`. No Leaflet map instance is reachable from the page's global scope.

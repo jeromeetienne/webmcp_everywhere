@@ -63,7 +63,7 @@ The pull request template asks for these as checkboxes. A pull request that adds
 **A pull request that adds an adapter**
 
 - The adapter, as one folder under `contribs/site_adapters/`.
-- A verification runner under `tests/site_adapters/` that asserts against state read back out of the live page.
+- A verification runner under the adapter folder's own `tests/` that asserts against state read back out of the live page.
 - That runner passing against the live site, with the date and the Chrome version written into the pull request. Continuous integration cannot run it, so that line is the only record of it.
 - The folder's `CONTEXT.md` and the folder's `README.md`.
 - The registration, which `npm run sync:adapters` writes for you and which is committed alongside your folder.
@@ -107,7 +107,7 @@ npm run test:visible
 One runner alone, which is what you want while writing an adapter.
 
 ```bash
-node --test tests/site_adapters/todomvc.test.ts
+node --test contribs/site_adapters/demo_playwright_dev/tests/todomvc.test.ts
 ```
 
 Which runner covers what, and which one to reach for when a check fails, is in [docs/testing_and_verification.md](docs/testing_and_verification.md).
@@ -124,7 +124,7 @@ Two other workflows run away from pull requests. [live_checks.yml](.github/workf
 
 - **Every folder has a `CONTEXT.md`** holding the rules for editing that folder. Read the one for any folder you touch, before you touch it. It is short, and every rule in it is a failure somebody already had.
 - **The `.test.ts` ending marks a file that holds checks.** A file with no check keeps a plain name.
-- **`contribs/` and every package under `packages/` hold the product and nothing else.** Neither imports from `tools/` or from `tests/`, and `node --test tests/repository_layout/source_boundary.test.ts` refuses a relative import that leaves the folder it is written in.
+- **`contribs/` and every package under `packages/` hold the product and nothing else.** The tooling and the runners for a folder sit in a `tools/` or a `tests/` folder inside it; no product file imports from either, and `node --test tests/repository_layout/source_boundary.test.ts` refuses that as well as a relative import that leaves the folder it is written in.
 - **No adapter may reach the network**, wherever it lives. `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Use `@webmcp_everywhere/site_adapter` rather than writing the same page helper again.** Waiting for a page and writing into an input field are already solved in its `src/toolkit/` half, and a helper any second site would need belongs there rather than in your own folder. An adapter outside this repository installs that one package rather than copying anything out of it.
 - **Match the code that is already there** for indentation, naming, and the way a file is laid out. There is no style document; the existing files are the style, and the adapter nearest to what you are writing is the one to copy.

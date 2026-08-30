@@ -15,7 +15,7 @@ const __dirname = import.meta.dirname;
  * Registers a packaged release's native messaging host with Chrome.
  *
  * This is `npm run install:host` for somebody with no repository. It is bundled by
- * `tools/webmcp_everywhere/package_release.ts` into the release folder, and every path it uses is worked out from its
+ * `packages/webmcp_everywhere/tools/package_release.ts` into the release folder, and every path it uses is worked out from its
  * own location inside that folder rather than from a working copy.
  *
  * It announces what it is about to write before writing it, for the same reason the repository's

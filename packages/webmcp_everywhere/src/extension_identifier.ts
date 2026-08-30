@@ -36,7 +36,7 @@ type KeyedExtensionManifest = {
  * changes the moment the folder moves, silently breaking the native host permission.
  *
  * This half ships inside the release, so it names no path of its own: every caller says which manifest
- * to read. Generating the key pair in the first place is `tools/chrome_extension/generate_extension_key.ts`, which runs
+ * to read. Generating the key pair in the first place is `contribs/chrome_extension/tools/generate_extension_key.ts`, which runs
  * once by hand in a working copy and is never published.
  */
 export class ExtensionIdentifier {
@@ -70,7 +70,7 @@ export class ExtensionIdentifier {
 		const manifest = JSON.parse(Fs.readFileSync(manifestPath, 'utf8')) as KeyedExtensionManifest;
 		if (manifest.key === undefined) {
 			throw new Error(
-				`${manifestPath} has no key; run "node tools/chrome_extension/generate_extension_key_entry.ts" first`,
+				`${manifestPath} has no key; run "node contribs/chrome_extension/tools/generate_extension_key_entry.ts" first`,
 			);
 		}
 		return ExtensionIdentifier.fromPublicKey(Buffer.from(manifest.key, 'base64'));

@@ -7,6 +7,7 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 - `demo_playwright_dev/`: The Playwright TodoMVC demonstration — see its own CONTEXT.md.
 - `caniuse_com/`: The Can I use... browser support tables — see its own CONTEXT.md.
 - `openstreetmap_org/`: The OpenStreetMap map, aimed at a mapper — see its own CONTEXT.md.
+- `tools/`: Everything that acts on the adapter folders — write one, list them, install one, remove it, say which the nightly run checks — see its own CONTEXT.md.
 
 ## Rules
 - One folder per origin, named after the origin in `snake_case`, matching the adapter's `siteSlug`.
@@ -17,8 +18,11 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 - A folder here is the only thing an adapter author adds. `npm run sync:adapters` writes the adapter list in `contribs/chrome_extension/shared_state/adapter_registry.ts` from these folders, and `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the two disagree. Nothing goes into `contribs/chrome_extension/manifest.json`, which names no site.
 - Nothing is still picked up silently, which is what the hand edits used to protect: the command runs when a person asks it to, its output is committed, and the change arrives as a diff a reviewer reads.
 - A folder here is an adapter this build ships, and this build ships two or three as examples. An adapter that covers a site well but shows nothing the others show belongs in a folder of its own, installed with `npm run load-adapter` — see [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
-- Every folder here carries its own `CONTEXT.md` and `README.md`, and has a runner named after it in `tests/site_adapters/`. All three are checked.
+- Every adapter folder carries its own `CONTEXT.md` and `README.md`, and its own `tests/` folder holding one runner named after the adapter file with `_adapter` dropped. All three are checked by `tests/repository_layout/adapter_registry_sync.test.ts`.
+- **A runner is the one file in an adapter folder that may reach outside it**, for `tests/libs/live_page_harness.ts` and for `tools/chrome_devtools_protocol/`. The adapter itself reaches nothing outside `@webmcp_everywhere/site_adapter`.
+- `tools/` is the one folder here that is not an adapter, and `sync_adapter_registry.ts` leaves it out when it discovers adapters.
 
 ## Background
-- A new folder is written by `npm run new-adapter -- <site address>`, which also writes the runner and the two documents, and registers the adapter. Filling it in: [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
+- A new folder is written by `npm run new-adapter -- <site address>`, which also writes the runner into that folder's own `tests/` and the two documents, and registers the adapter. Filling it in: [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
 - Long-term success is a shrinking adapter count, not a growing one, per [issue #1](https://github.com/jeromeetienne/webmcp_everywhere/issues/1).
+- Each runner sat in `tests/site_adapters/` until [issue #28](https://github.com/jeromeetienne/webmcp_everywhere/issues/28) moved it into the adapter folder it checks, so an adapter is now one folder holding everything about itself.
