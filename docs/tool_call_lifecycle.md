@@ -6,7 +6,7 @@ Two things happen before any call: the extension connects to the native messagin
 
 ## Before anything: the connection
 
-The background service worker calls `NativeBridge.connect`, which opens a native messaging connection with `chrome.runtime.connectNative('com.webmcp_everywhere.host')`. Chrome reads the native messaging host manifest file, starts [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh), and connects the two.
+The background service worker calls `NativeBridge.connect`, which opens a native messaging connection with `chrome.runtime.connectNative('com.webmcp_everywhere.host')`. Chrome reads the native messaging host manifest file, starts [`bin/native_messaging_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/native_messaging_host.sh), and connects the two.
 
 The host starts a `NativeMessagingCodec` over standard input and standard output, then takes port 8765. It takes that port and no other: an agent registered with `codex mcp add` records the address it was given and keeps it, so a host that stepped to the next free port left that address pointing at nothing. Once it has the port it writes the address and its own process identifier to `~/.webmcp_everywhere/endpoint.json`. The bearer token it expects is not written there; it is read from `~/.webmcp_everywhere/token`, which is made once and never changes.
 

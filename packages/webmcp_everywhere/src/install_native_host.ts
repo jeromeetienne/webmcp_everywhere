@@ -231,7 +231,7 @@ export class InstallNativeHost {
 	 * Locates the executable Chrome actually launches.
 	 *
 	 * Chrome runs the path in the manifest directly, so it has to be an executable file rather than a
-	 * script it would have to know how to interpret. `bin/webmcp_native_host.sh` is that file, it is
+	 * script it would have to know how to interpret. `bin/native_messaging_host.sh` is that file, it is
 	 * kept in the repository, and it works out the rest of the paths on its own, so this only has to
 	 * check that it is there and that it is executable.
 	 *

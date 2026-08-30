@@ -23,7 +23,7 @@ const repositoryRoot = Path.join(__dirname, '..');
  */
 export class WorkingCopyLayout {
 	/** The launcher Chrome starts in a working copy, which runs `packages/native_messaging_host/src/` directly. */
-	static readonly LAUNCHER = Path.join(repositoryRoot, 'bin', 'webmcp_native_host.sh');
+	static readonly LAUNCHER = Path.join(repositoryRoot, 'bin', 'native_messaging_host.sh');
 
 	/**
 	 * The host manifest template a working copy fills in.

@@ -30,7 +30,7 @@ Native messaging removes all three. The extension calls `chrome.runtime.connectN
 
 Nothing left running afterwards takes two checks, not one. The channel closing is the first: `WebmcpNativeHost` exits the process when standard input reaches its end. That alone is not enough, because standard input does not always reach its end. Killing a Chrome leaves the write end of the pipe open in whichever of its processes also holds it, and a host has been seen holding the port for hours after its browser was gone, while `endpoint.json` named a later host that had already stopped. So the host also watches the process that started it, which is the browser: the operating system reparents an orphan, so the parent process identifier changes the moment the browser exits, whatever the browser was killed with. Either check stops the host, and stopping takes `endpoint.json` with it.
 
-The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
+The cost is that Chrome, not you, decides how the program starts. Chrome gives it a very small environment, so [`bin/native_messaging_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/native_messaging_host.sh) names no absolute path of its own: it works the repository root out from its own location and searches a short list of places for a Node.js new enough to run TypeScript directly.
 
 ## The other cost, and the way back
 

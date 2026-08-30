@@ -61,7 +61,7 @@ findNode() {
 
 # The message goes to standard error, never to standard output, which belongs to Chrome alone.
 nodeBinary="$(findNode)" || {
-	echo "webmcp_native_host.sh: found no Node.js 22.18.0 or later" >&2
+	echo "native_messaging_host.sh: found no Node.js 22.18.0 or later" >&2
 	exit 1
 }
 

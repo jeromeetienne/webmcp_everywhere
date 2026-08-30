@@ -153,7 +153,7 @@ NodeTest.test('uninstalling twice removes nothing the second time, and says so',
 
 NodeTest.test('uninstalling removes a manifest left behind by a working copy that is gone', (t) => {
 	const manifestPath = NativeHostInstallTest.manifestPath();
-	const vanished = '/Users/somebody/a_working_copy_that_was_deleted/bin/webmcp_native_host.sh';
+	const vanished = '/Users/somebody/a_working_copy_that_was_deleted/bin/native_messaging_host.sh';
 	Fs.mkdirSync(Path.dirname(manifestPath), {
 		recursive: true,
 	});

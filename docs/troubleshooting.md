@@ -68,7 +68,7 @@ These fail only for somebody who installed the archive rather than the repositor
 
 **Something wrote to standard output.** Standard output belongs entirely to the native messaging channel. One stray line corrupts the stream and Chrome closes the connection with no useful error. Everything the host says has to go through `WebmcpNativeHost._log`, which writes to standard error and to `~/.webmcp_everywhere/host.log`.
 
-**No Node.js new enough was found.** [`bin/webmcp_native_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/webmcp_native_host.sh) needs Node.js 22.18.0 or later, because it runs TypeScript with no build step; an older Node.js refuses the host program with `ERR_UNKNOWN_FILE_EXTENSION`. The script searches the shell's own `node`, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node`. Chrome gives the host a very small environment, which is why the fixed paths are there at all.
+**No Node.js new enough was found.** [`bin/native_messaging_host.sh`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/bin/native_messaging_host.sh) needs Node.js 22.18.0 or later, because it runs TypeScript with no build step; an older Node.js refuses the host program with `ERR_UNKNOWN_FILE_EXTENSION`. The script searches the shell's own `node`, then `/opt/homebrew/bin/node`, `/usr/local/bin/node`, and `/usr/bin/node`. Chrome gives the host a very small environment, which is why the fixed paths are there at all.
 
 **Every request after the first answers 500.** A single shared stateless Model Context Protocol transport serves exactly one request and then rejects everything after it, which looks to a client like the host crashed. A fresh server and transport are built for every request.
 
