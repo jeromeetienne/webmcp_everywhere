@@ -74,7 +74,7 @@ npm run chrome -- "https://www.openstreetmap.org/#map=15/48.8584/2.2945"
 
 Checks the real delivery path
 ```bash
-node --test tests/delivery_path/native_host.test.ts
+node --test tests/native_messaging_host/native_host.test.ts
 ```
 
 Checks an adapter folder and installs it, with no rebuild of the extension
@@ -206,7 +206,7 @@ npm run test:visible    # the same checks, with Chrome on screen
 npm run test:no_browser # only the checks that start no browser
 ```
 
-Almost every check drives a real Chrome and asserts against state read back out of a live page. The six exceptions are the ones `npm run test:no_browser` names: `tests/repository_layout/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `tests/delivery_path/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/installation/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, `tests/installation/webmcp_everywhere.test.ts`, whose subject is the package npm publishes, `tests/repository_layout/source_boundary.test.ts`, which reads the source folders off disk, and `tests/repository_layout/workspace_packages.test.ts`, whose subject is the package an adapter author installs. Those six are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
+Almost every check drives a real Chrome and asserts against state read back out of a live page. The six exceptions are the ones `npm run test:no_browser` names: `tests/repository_layout/adapter_registry_sync.test.ts`, whose subject is whether the registry still matches the adapter folders, `tests/native_messaging_host/endpoint_file.test.ts`, whose subject is the native messaging host process and the file it writes rather than any page, `tests/webmcp_everywhere/native_host_install.test.ts`, whose subject is the host manifest file that registers this project with Chrome, `tests/webmcp_everywhere/webmcp_everywhere.test.ts`, whose subject is the package npm publishes, `tests/repository_layout/source_boundary.test.ts`, which reads the source folders off disk, and `tests/repository_layout/workspace_packages.test.ts`, whose subject is the package an adapter author installs. Those six are what continuous integration runs on a pull request, because the rest need a Chrome with the WebMCP origin trial and the live public site. The individual runners, and which one to reach for when, are in [testing_and_verification.md](docs/testing_and_verification.md).
 
 ## What this is not
 

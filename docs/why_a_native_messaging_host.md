@@ -42,7 +42,7 @@ What has not been done is measure the alternative live. Turning the connection a
 
 There is a second path to the browser in this repository, and it is not the product. [`tests/devtools_protocol_bridge/libs/webmcp_bridge.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/tests/devtools_protocol_bridge/libs/webmcp_bridge.ts) is a Model Context Protocol server on standard input and output that reaches a page over the Chrome DevTools Protocol. It was the first path that worked, written before the extension and the native messaging host existed.
 
-It is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `node --test tests/delivery_path/native_host.test.ts` fails. It is not the product for three reasons.
+It is kept because it is the smallest way to tell an adapter fault apart from a delivery fault when `node --test tests/native_messaging_host/native_host.test.ts` fails. It is not the product for three reasons.
 
 1. **The debugging port is unauthenticated.** Chrome's remote debugging port is reachable by every process on the machine and asks for nothing. Anything running as you can drive the whole browser through it. That is acceptable for a throwaway profile in a verification run and wrong for a browser you actually use.
 2. **It needs a purpose-launched Chrome.** Your everyday Chrome is not listening on a debugging port, and starting it with one would open the hole above.

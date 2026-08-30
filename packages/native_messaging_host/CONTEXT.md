@@ -10,7 +10,7 @@ The native messaging host: Chrome starts it on demand, it holds the HTTP port th
 - `src/host_state_files.ts`: `HostStateFiles` — the bearer token and `endpoint.json` in the state directory.
 - `src/loaded_adapter_store.ts`: `LoadedAdapterStore` — the folder of adapters `npm run load-adapter` writes, read once per connection.
 - `src/webmcp_native_host_types.ts`: the messages the extension and the host exchange.
-- Commands to check this folder: `node --test tests/delivery_path/native_host.test.ts` and `node --test tests/delivery_path/endpoint_file.test.ts`.
+- Commands to check this folder: `node --test tests/native_messaging_host/native_host.test.ts` and `node --test tests/native_messaging_host/endpoint_file.test.ts`.
 
 ## Rules
 - This package is a program and an entry point at once, and the two are reached differently. `bin/native_messaging_host.sh` and `tools/package_release.ts` name `src/webmcp_native_host.ts` by path, because a program Chrome starts is a path, and the launcher works that path out from its own location rather than holding one. Everything imported goes through `src/index.ts` under the single `"."` key. Moving `src/webmcp_native_host.ts` means editing the launcher; moving the repository means running `npm run install:host` again.

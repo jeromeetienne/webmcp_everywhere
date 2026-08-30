@@ -57,7 +57,7 @@ jobs:
       # where the everyday browser already owns that port.
       - name: Copy the release out of the repository and drive it
         timeout-minutes: 12
-        run: node --test tests/installation/packaged_release.test.ts
+        run: node --test tests/webmcp_everywhere/packaged_release.test.ts
 
       - name: Keep the archive
         uses: actions/upload-artifact@v7

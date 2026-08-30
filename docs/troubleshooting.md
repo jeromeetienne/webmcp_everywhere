@@ -114,7 +114,7 @@ A read-only handler that only *reads* `location` fails this too. The audit canno
 
 ## Telling an adapter fault from a delivery fault
 
-When `node --test tests/delivery_path/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
+When `node --test tests/native_messaging_host/native_host.test.ts` fails and you cannot tell where the fault is, narrow it.
 
 1. Run the adapter's own runner — `node --test tests/site_adapters/todomvc.test.ts` or `node --test tests/site_adapters/caniuse.test.ts`. It reaches the page directly, with neither the extension nor the native messaging host in the way. If it passes, the adapter is fine.
 2. Run `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts`. The stdio bridge reaches the page over the Chrome DevTools Protocol, still bypassing the extension and the host. If it passes, WebMCP registration on the page is fine.
