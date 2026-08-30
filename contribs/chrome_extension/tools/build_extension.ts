@@ -15,7 +15,7 @@ const __dirname = import.meta.dirname;
 const repositoryRoot = Path.join(__dirname, '..', '..', '..');
 const sourceDir = Path.join(__dirname, '..');
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
-const outDir = Path.join(repositoryRoot, 'build', 'chrome_extension');
+const outDir = Path.join(repositoryRoot, 'dist', 'chrome_extension');
 const bundleDir = Path.join(outDir, 'dist');
 const validateAllAdaptersPath = Path.join(
 	repositoryRoot,

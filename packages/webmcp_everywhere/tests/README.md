@@ -10,7 +10,7 @@ Nothing here writes into the Chrome you use every day, and nothing here writes i
 - `webmcp_everywhere.test.ts` — 13 checks that the published package names one version, is byte for byte what Chrome is driven against, installs into a home directory of its own, and comes back out. Starts no browser.
 - `packaged_release.test.ts` — 3 checks that a release copied out of the repository installs its host and serves an agent. Drives a real Chrome.
 
-`packaged_release.test.ts` copies the release out of the repository first, because a release still inside `build/` has a repository above it and a path reaching for one would resolve while the thing being checked was broken. It needs port 8765 and skips, saying so, when another Chrome owns it.
+`packaged_release.test.ts` copies the release out of the repository first, because a release still inside `dist/` has a repository above it and a path reaching for one would resolve while the thing being checked was broken. It needs port 8765 and skips, saying so, when another Chrome owns it.
 
 ## Running it
 

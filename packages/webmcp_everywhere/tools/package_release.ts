@@ -74,7 +74,7 @@ export class PackageRelease {
 	 *   package publishes is not there afterwards.
 	 */
 	static async run(): Promise<PackagedRelease> {
-		const extensionSource = Path.join(repositoryRoot, 'build', ReleaseLayout.EXTENSION_DIR);
+		const extensionSource = Path.join(repositoryRoot, 'dist', ReleaseLayout.EXTENSION_DIR);
 		if (Fs.existsSync(Path.join(extensionSource, ReleaseLayout.EXTENSION_MANIFEST)) === false) {
 			throw new Error('the extension is not built; run "npm run build" first');
 		}
@@ -154,7 +154,7 @@ export class PackageRelease {
 
 		PackageRelease._refuseAnythingMissing();
 
-		const archive = Path.join(repositoryRoot, 'build', 'webmcp_everywhere_release.zip');
+		const archive = Path.join(repositoryRoot, 'dist', 'webmcp_everywhere_release.zip');
 		Fs.mkdirSync(Path.dirname(archive), {
 			recursive: true,
 		});

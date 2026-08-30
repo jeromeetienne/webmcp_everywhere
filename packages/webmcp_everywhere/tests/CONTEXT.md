@@ -11,7 +11,7 @@ The runners covering what [the package this folder sits in](../CONTEXT.md) insta
 
 ## Rules
 - Nothing here writes into the browser the user installed, which [issue #4](https://github.com/jeromeetienne/webmcp_everywhere/issues/4) refuses: every call passes `isEverydayChromeCovered: false`, and `webmcp_everywhere.test.ts` sets `HOME` elsewhere.
-- `packaged_release.test.ts` copies the release out of the repository first: one still inside `build/` has a repository above it, so a path reaching for one would resolve while the thing it checks was broken. It needs port 8765 and skips, saying why, when another Chrome owns it.
+- `packaged_release.test.ts` copies the release out of the repository first: one still inside `dist/` has a repository above it, so a path reaching for one would resolve while the thing it checks was broken. It needs port 8765 and skips, saying why, when another Chrome owns it.
 - `webmcp_everywhere.test.ts` and `packaged_release.test.ts` install through the same `PackagedReleaseInstallation`, so what npm delivers and what Chrome is driven against are checked to be the same bytes rather than assumed to be.
 - `native_host_install.test.ts` and `webmcp_everywhere.test.ts` start no browser and are named by `npm run test:no_browser`; `packaged_release.test.ts` drives a real Chrome.
 

@@ -110,6 +110,6 @@ The full account is in [permissions_and_trust.md](permissions_and_trust.md).
 | [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) | The build and launch code belonging to no one subject: the connection to a running Chrome, and the environment reports. Everything else that builds, installs, launches or loads sits in a `tools/` folder inside the folder it acts on |
 | [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) | The verification code belonging to no one subject: the checks on the repository itself, the stdio Model Context Protocol bridge, and what every other runner shares. Each other runner sits in a `tests/` folder inside the folder it checks |
 | [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere) | What npmjs carries and what a user installs: the committed manifest, notes, licence, launcher and host manifest template, plus the `src/` bundled into the three files it ships, the `tools/` that package a release, and the `tests/` that install one |
-| `build/chrome_extension/` | What the build writes, and what Chrome loads. Git-ignored, so it is not in the repository |
+| `dist/chrome_extension/` | What the build writes, and what Chrome loads. Git-ignored, so it is not in the repository |
 
 Every one of those folders carries its own `CONTEXT.md` with the rules for editing it.

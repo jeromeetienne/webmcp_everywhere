@@ -42,7 +42,7 @@ These fail only for somebody who installed the archive rather than the repositor
 
 **The throwaway profile was kept.** Chrome does not re-read an unpacked extension it has already installed. `LaunchChrome` deletes the profile before every launch for exactly this reason; keeping it silently runs the previous build.
 
-**The extension was not rebuilt.** Chrome loads `build/chrome_extension/`, not [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs). Run `npm run build`.
+**The extension was not rebuilt.** Chrome loads `dist/chrome_extension/`, not [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs). Run `npm run build`.
 
 ## An agent cannot reach the endpoint
 

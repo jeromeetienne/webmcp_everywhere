@@ -1,5 +1,5 @@
 node_modules/
-build/
+dist/
 *.log
 extension_private_key.pem
 

@@ -50,7 +50,7 @@ jobs:
         id: package_it
         run: |
           node packages/webmcp_everywhere/tools/package_release.ts
-          echo "archive=build/webmcp_everywhere_release.zip" >> "$GITHUB_OUTPUT"
+          echo "archive=dist/webmcp_everywhere_release.zip" >> "$GITHUB_OUTPUT"
 
       # This is the whole point of the job. A runner has no other Chrome on it, so the packaged host
       # can take port 8765, which is what makes this check able to run here and awkward on a laptop
@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: webmcp_everywhere_release
-          path: build/webmcp_everywhere_release.zip
+          path: dist/webmcp_everywhere_release.zip
 
   publish_the_release:
     name: Attach the archive to the release

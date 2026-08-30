@@ -160,7 +160,7 @@ export class LoadAdapter {
 		tools: LoadedAdapter['tools'];
 		problems: string[];
 	} {
-		const reviewerPath = Path.join(repositoryRoot, 'build', '.review_loaded_adapter.mjs');
+		const reviewerPath = Path.join(repositoryRoot, 'dist', '.review_loaded_adapter.mjs');
 		const entryPath = `${reviewerPath}.entry.mjs`;
 		Fs.mkdirSync(Path.dirname(reviewerPath), {
 			recursive: true,

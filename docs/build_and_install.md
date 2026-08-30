@@ -32,7 +32,7 @@ Only one of these may be registered with Chrome at a time. The host manifest nam
 
 **One: it checks every adapter.** [`packages/site_adapter_lib/tools/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/site_adapter_lib/tools/validate_all_adapters.ts) is bundled for Node.js and run as a child process. It prints one line per adapter naming how many tools it carries in each permission class, and it exits non-zero if any adapter fails. The build then stops with "adapter review checks failed, refusing to build". An adapter that reaches the network, mislabels an acting tool as read-only, or collides with another adapter's tool name never reaches a browser. What each check is, and why it runs here rather than in the page, is in [adapter_format.md](adapter_format.md).
 
-**Two: it empties `build/chrome_extension/`.** Nothing is ever written into [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
+**Two: it empties `dist/chrome_extension/`.** Nothing is ever written into [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
 
 **Three: it copies the two static files.** [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json) and [`user_interface/popup.html`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/user_interface/popup.html), each keeping its path. Chrome loads an unpacked extension from the folder that holds [`manifest.json`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/contribs/chrome_extension/manifest.json), so both have to sit beside the bundles rather than stay behind in [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs).
 
@@ -53,7 +53,7 @@ Each entry point keeps its folder in the source path and only its base name in t
 The result, which is what Chrome loads:
 
 ```
-build/chrome_extension/
+dist/chrome_extension/
 	manifest.json
 	user_interface/popup.html
 	dist/content_main.js
@@ -116,7 +116,7 @@ Two more things it does. It installs the native messaging host manifest **into t
 
 **Do not reach for `--load-extension`.** Chrome 151 ignores it, leaving zero extensions installed and nothing in the log.
 
-The launch refuses to start at all if `build/chrome_extension/dist/content_main.js` is missing, with "the extension is not built; run npm run build first".
+The launch refuses to start at all if `dist/chrome_extension/dist/content_main.js` is missing, with "the extension is not built; run npm run build first".
 
 ## `npm run load-adapter` and `npm run unload-adapter`
 
@@ -161,7 +161,7 @@ Everything above assumes a working copy on disk: the launcher walks up from its 
 npm run package:release
 ```
 
-[`packages/webmcp_everywhere/tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/webmcp_everywhere/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `build/`. The package holds:
+[`packages/webmcp_everywhere/tools/package_release.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/webmcp_everywhere/tools/package_release.ts) builds the extension folder and the three bundles into [`packages/webmcp_everywhere/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/webmcp_everywhere), where the manifest, the notes, the licence, the launcher and the host manifest template are already committed, and writes an archive of the whole into `dist/`. The package holds:
 
 | What | Why it is there |
 | --- | --- |

@@ -177,7 +177,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 
 ## Layout
 
-`contribs/` holds what the community writes and nothing else. Everything that builds or checks one folder sits in a `tools/` or a `tests/` folder inside that folder, what belongs to no one folder stays in `tools/` and `tests/` at the top, and everything the build writes is in `build/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
+`contribs/` holds what the community writes and nothing else. Everything that builds or checks one folder sits in a `tools/` or a `tests/` folder inside that folder, what belongs to no one folder stays in `tools/` and `tests/` at the top, and everything the build writes is in `dist/`. `packages/` is the npm workspace: product code with a `package.json` of its own — the two an adapter is written against, the native messaging host, and the one npmjs carries.
 
 - `packages/webmcp_everywhere/` — what npmjs carries and what a user installs. Its manifest, notes, licence, launcher and host manifest template are committed; the extension folder and the three bundles are built into it by its own `tools/`, and its `tests/` install one.
 - `packages/site_adapter_lib/` — everything an adapter is written against, imported as `@webmcp_everywhere/site_adapter_lib`. `src/format/` is what an adapter is, how its tools are named, and how page content is framed; `src/toolkit/` is the page helpers every adapter shares, waiting on the page and driving it.
@@ -188,7 +188,7 @@ Everything else is explained in **[the documentation in `docs/`](docs/README.md)
 - `tests/` — the verification code belonging to no one subject: the checks on the repository itself, the stdio bridge, and what the other runners share. Every other runner lives in a `tests/` folder inside the folder it checks, one per adapted site included.
 - `docs/` — how all of it works.
 - `.github/` — the checks GitHub runs on a pull request, and the issue and pull request templates.
-- `build/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
+- `dist/chrome_extension/` — what `npm run build` writes, and what Chrome loads. Git-ignored.
 
 Each folder has its own `CONTEXT.md`.
 

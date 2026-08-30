@@ -22,7 +22,7 @@ const registryPath = Path.join(
 	'adapter_registry.ts',
 );
 const tsconfigPath = Path.join(repositoryRoot, 'tsconfig.json');
-const probePath = Path.join(repositoryRoot, 'build', '.probe_adapters.mjs');
+const probePath = Path.join(repositoryRoot, 'dist', '.probe_adapters.mjs');
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

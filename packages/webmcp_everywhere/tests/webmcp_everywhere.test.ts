@@ -427,7 +427,7 @@ NodeTest.describe('The published package, installed by npm into a home folder of
 				'..',
 				'..',
 				'..',
-				'build',
+				'dist',
 				ReleaseLayout.EXTENSION_DIR,
 				ReleaseLayout.EXTENSION_MANIFEST,
 			),

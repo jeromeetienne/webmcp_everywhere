@@ -29,7 +29,7 @@
 	"scripts": {
 		"build": "node contribs/chrome_extension/tools/build_extension.ts",
 		"package:release": "node packages/webmcp_everywhere/tools/package_release.ts",
-		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination build --workspace webmcp_everywhere",
+		"pack:npm": "npm run build && npm run package:release && npm pack --pack-destination dist --workspace webmcp_everywhere",
 		"sync:adapters": "node contribs/site_adapters/tools/sync_adapter_registry.ts",
 		"new-adapter": "node contribs/site_adapters/tools/new_adapter.ts",
 		"load-adapter": "node contribs/site_adapters/tools/load_adapter.ts",

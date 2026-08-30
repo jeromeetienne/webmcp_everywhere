@@ -107,7 +107,7 @@ class PackagedReleaseTest {
 	/**
 	 * Builds the release and copies it out of the repository, through the command's own installation.
 	 *
-	 * The copy is what makes this a real check. A release folder still sitting inside `build/` has a
+	 * The copy is what makes this a real check. A release folder still sitting inside `dist/` has a
 	 * repository above it, so a path that accidentally reaches for one would still resolve and the
 	 * check would pass while the thing it checks was broken.
 	 *
