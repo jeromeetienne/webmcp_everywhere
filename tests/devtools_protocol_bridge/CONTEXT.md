@@ -9,7 +9,7 @@ A Model Context Protocol server on standard input and output that carries the We
 - Command to check this folder: `node --test tests/devtools_protocol_bridge/webmcp_bridge.test.ts`
 
 ## Rules
-- This is not the product path. The Chrome DevTools Protocol debugging port it depends on is unauthenticated and reachable by every process on the machine, it needs a purpose-launched Chrome, and it bypasses the extension, which is the only place that knows which tabs have adapters and what the user has allowed. Agents reach the product through `src/native_messaging_host/`.
+- This is not the product path. The Chrome DevTools Protocol debugging port it depends on is unauthenticated and reachable by every process on the machine, it needs a purpose-launched Chrome, and it bypasses the extension, which is the only place that knows which tabs have adapters and what the user has allowed. Agents reach the product through `packages/native_messaging_host/`.
 - Pass tool input to `executeTool` as a JSON string. Chrome 151 rejects a plain object with `UnknownError: Failed to parse input arguments`, whatever the specification's WebIDL says.
 - Look tools up by name inside the page, never outside it. A `RegisteredTool` carries a live `window` reference, so it cannot be serialised across the Chrome DevTools Protocol boundary.
 - Parse `inputSchema` before handing it on. WebMCP returns it as a JSON string, and a Model Context Protocol client rejects a tool whose schema is a string.

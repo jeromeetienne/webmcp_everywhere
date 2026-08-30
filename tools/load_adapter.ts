@@ -4,7 +4,7 @@ import Path from 'node:path';
 import ChildProcess from 'node:child_process';
 import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/adapter_format';
 import type { LoadedAdapter } from '@webmcp_everywhere/adapter_format';
-import { LoadedAdapterStore } from '../src/native_messaging_host/loaded_adapter_store.ts';
+import { LoadedAdapterStore } from '@webmcp_everywhere/native_messaging_host';
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

@@ -9,8 +9,8 @@
 		"allowImportingTsExtensions": true,
 		"rewriteRelativeImportExtensions": true,
 		"verbatimModuleSyntax": true,
-		// Node.js runs the files under `tests/`, `tools/` and `src/native_messaging_host/` directly,
-		// so it strips the types instead of compiling them.
+		// Node.js runs the files under `tests/`, `tools/` and `packages/native_messaging_host/src/`
+		// directly, so it strips the types instead of compiling them.
 		"erasableSyntaxOnly": true,
 		// esbuild reads this file. Without this line it would define the static class fields instead
 		// of assigning them, because the target is above ES2022, and every bundle would change.

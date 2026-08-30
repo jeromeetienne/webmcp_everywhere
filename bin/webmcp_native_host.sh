@@ -14,7 +14,7 @@ set -euo pipefail
 # `BASH_SOURCE` is used rather than `$0`, so the paths stay right when the file is sourced.
 scriptDir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repoRoot="$(cd -- "${scriptDir}/.." && pwd)"
-hostScript="${repoRoot}/src/native_messaging_host/webmcp_native_host.ts"
+hostScript="${repoRoot}/packages/native_messaging_host/src/webmcp_native_host.ts"
 
 # Answers whether a Node.js runs the host program, which is TypeScript.
 #

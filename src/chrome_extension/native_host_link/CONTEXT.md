@@ -17,4 +17,4 @@ The background script and everything that answers the native messaging host: it 
 - The host is told nothing about what may run. It reports the adapters it read from a folder, and the decision stays here, where the user's switches are.
 
 ## Background
-- The wire format and the host on the other end live in [`/src/native_messaging_host`](../../native_messaging_host/CONTEXT.md).
+- The wire format and the host on the other end live in [`/packages/native_messaging_host`](../../../packages/native_messaging_host/CONTEXT.md).

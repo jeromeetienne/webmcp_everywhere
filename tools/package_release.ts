@@ -51,12 +51,12 @@ export type PackagedRelease = {
  * Builds the parts of `packages/npm_package/` that cannot be committed, and archives the whole.
  *
  * Everything else in this repository assumes a working copy on disk: the launcher walks up from its
- * own location to find `src/`, and Node.js runs the TypeScript with no build step. That is right for
- * somebody developing an adapter and wrong for everybody else, because it means a user has to clone a
- * repository to use a browser extension. So the host is bundled into one file with its dependencies
- * inlined, and the launcher beside it points at that file rather than at `src/`. Node.js is still
- * needed, and the launcher still searches for one, because bundling removes the repository rather
- * than the runtime.
+ * own location to find the host program, and Node.js runs the TypeScript with no build step. That is
+ * right for somebody developing an adapter and wrong for everybody else, because it means a user has
+ * to clone a repository to use a browser extension. So the host is bundled into one file with its
+ * dependencies inlined, and the launcher beside it points at that file rather than at the package.
+ * Node.js is still needed, and the launcher still searches for one, because bundling removes the
+ * repository rather than the runtime.
  *
  * Four things are built here: the extension folder, the bundled host, the installer, and the command.
  * Everything else the package publishes — the manifest, the notes, the licence, the launcher, and the
@@ -110,7 +110,7 @@ export class PackageRelease {
 		written.push(`${ReleaseLayout.EXTENSION_DIR}/`);
 
 		await Esbuild.build({
-			entryPoints: [Path.join(repositoryRoot, 'src', 'native_messaging_host', 'webmcp_native_host.ts')],
+			entryPoints: [Path.join(repositoryRoot, 'packages', 'native_messaging_host', 'src', 'webmcp_native_host.ts')],
 			outfile: Path.join(packageDir, ReleaseLayout.HOST_BUNDLE),
 			bundle: true,
 			format: 'esm',

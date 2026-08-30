@@ -21,7 +21,8 @@ const __dirname = import.meta.dirname;
  * Drives what a person who never cloned this repository actually does.
  *
  * Everything else in this repository runs the host straight out of a working copy: the launcher
- * walks up from its own location to find `src/`, and Node.js runs the TypeScript with no build step.
+ * walks up from its own location to find the host program, and Node.js runs the TypeScript with no
+ * build step.
  * That hides the question this runner asks. A release is a folder with no repository under it, no
  * `node_modules`, and no TypeScript — and the only honest way to know it works is to copy it
  * somewhere else entirely and start Chrome against it.

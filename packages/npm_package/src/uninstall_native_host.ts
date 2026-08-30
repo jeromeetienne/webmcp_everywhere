@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 import Fs from 'node:fs';
-import { HostStateFiles } from '../../../src/native_messaging_host/host_state_files.ts';
+import { HostStateFiles } from '@webmcp_everywhere/native_messaging_host';
 import { InstallNativeHost } from './install_native_host.ts';
 import type { ManifestDirectoryOptions } from './install_native_host.ts';
 

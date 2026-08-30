@@ -14,7 +14,7 @@ import { CdpClient } from '../../tools/chrome_devtools_protocol/cdp_client.ts';
 import { GrantActing } from '../../tools/grant_acting.ts';
 import { LaunchChrome } from '../../tools/launch_chrome.ts';
 import { LoadAdapter } from '../../tools/load_adapter.ts';
-import { LoadedAdapterStore } from '../../src/native_messaging_host/loaded_adapter_store.ts';
+import { LoadedAdapterStore } from '@webmcp_everywhere/native_messaging_host';
 import { UnloadAdapter } from '../../tools/unload_adapter.ts';
 
 const __filename = import.meta.filename;

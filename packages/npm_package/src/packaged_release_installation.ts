@@ -1,6 +1,6 @@
 import Fs from 'node:fs';
 import Path from 'node:path';
-import { HostStateFiles } from '../../../src/native_messaging_host/host_state_files.ts';
+import { HostStateFiles } from '@webmcp_everywhere/native_messaging_host';
 import { ExtensionIdentifier } from './extension_identifier.ts';
 import { InstallNativeHost } from './install_native_host.ts';
 import { ReleaseLayout } from './release_layout.ts';

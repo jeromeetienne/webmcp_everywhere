@@ -14,5 +14,5 @@ The runners covering the path an agent's request takes: in at the HTTP endpoint,
 - The one rule `endpoint_file.test.ts` holds to: whenever `endpoint.json` is there, the address in it answers, and the process named in it is the process answering.
 
 ## Background
-- The host program these two check is [`/src/native_messaging_host`](../../src/native_messaging_host/CONTEXT.md), and why it exists at all is [why_a_native_messaging_host.md](../../docs/why_a_native_messaging_host.md).
+- The host program these two check is [`/packages/native_messaging_host`](../../packages/native_messaging_host/CONTEXT.md), and why it exists at all is [why_a_native_messaging_host.md](../../docs/why_a_native_messaging_host.md).
 - The fault that hid longest was a host whose standard input never reached its end, which is why the host watches its parent process as well — [issue #2](https://github.com/jeromeetienne/webmcp_everywhere/issues/2).

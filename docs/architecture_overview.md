@@ -7,7 +7,7 @@ WebMCP Everywhere gives an agent real tools on sites that never shipped their ow
 ```mermaid
 flowchart LR
 	agent["any agent<br/>speaks Model Context Protocol"]
-	host["native messaging host<br/>src/native_messaging_host/"]
+	host["native messaging host<br/>packages/native_messaging_host/"]
 	extension["Chrome extension<br/>src/chrome_extension/"]
 	adapter["site adapter<br/>src/site_adapters/"]
 	page["the web page<br/>document.modelContext"]
@@ -20,7 +20,7 @@ flowchart LR
 
 - **The site adapter** knows one site. It reads that site's pages and drives them, and it exposes what it can do as a list of tools. It is ordinary TypeScript, it runs inside the page, and it reaches nothing but that page. The adapters this build ships have one folder each under [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters), and an adapter written by anybody else lives in a folder of its own outside this repository — see [write_a_site_adapter.md](write_a_site_adapter.md).
 - **The Chrome extension** is a Manifest Version 3 extension. It carries every adapter this build was made with, it decides which adapter's scripts are registered for which sites, it holds the user's decision about what an agent may do on each origin, and it is the only part that knows which tabs currently have adapters running. It lives in [`src/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension).
-- **The native messaging host** is an ordinary Node.js program on your machine. Chrome starts it as a child process when the extension asks for it. It holds the HTTP port that the extension itself cannot hold, it serves the extension's tools over Model Context Protocol, and it reads the folder of adapters loaded from outside this repository and reports them to the extension. It lives in [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host).
+- **The native messaging host** is an ordinary Node.js program on your machine. Chrome starts it as a child process when the extension asks for it. It holds the HTTP port that the extension itself cannot hold, it serves the extension's tools over Model Context Protocol, and it reads the folder of adapters loaded from outside this repository and reports them to the extension. It lives in [`packages/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host).
 - **The agent** is whatever you point at the endpoint. Codex and the Model Context Protocol Inspector are the two used while building this.
 
 ## Why each part exists
@@ -105,9 +105,9 @@ The full account is in [permissions_and_trust.md](permissions_and_trust.md).
 | --- | --- |
 | [`packages/adapter_format/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/adapter_format) | What an adapter is, how its tools are named, and how page content is framed before an agent reads it, imported as `@webmcp_everywhere/adapter_format` |
 | [`packages/adapter_toolkit/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/adapter_toolkit) | The page helpers every adapter shares, waiting and driving, imported as `@webmcp_everywhere/adapter_toolkit` |
+| [`packages/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host) | The native messaging host, Chrome's message framing, and the folder of loaded adapters it reads |
 | [`src/site_adapters/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/site_adapters) | One folder per target site this build ships |
 | [`src/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/chrome_extension) | The Manifest Version 3 extension: the page injection scripts, the background service worker, the popup, and the shared state |
-| [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) | The native messaging host, Chrome's message framing, and the folder of loaded adapters it reads |
 | [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) | Everything that builds, installs, launches, or loads an adapter, plus the adapter checks |
 | [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests) | The verification runners, and the stdio Model Context Protocol bridge one of them checks |
 | [`packages/npm_package/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/npm_package) | What npmjs carries and what a user installs: the committed manifest, notes, licence, launcher and host manifest template, plus the `src/` bundled into the three files it ships |

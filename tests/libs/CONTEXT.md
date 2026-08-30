@@ -16,4 +16,4 @@ The files under `tests/` that hold no check and that the runner folders share: t
 
 ## Background
 - Every site runner used to carry its own copy of launching Chrome, writing the opt-in, reloading the page, listing the tools and calling one, differing only in the site slug and the address. `LivePageHarness` is those five things written once — see [testing_and_verification.md](../../docs/testing_and_verification.md).
-- The address and the token are two fields from two files because the native messaging host keeps them apart on purpose — see [`/src/native_messaging_host`](../../src/native_messaging_host/CONTEXT.md).
+- The address and the token are two fields from two files because the native messaging host keeps them apart on purpose — see [`/packages/native_messaging_host`](../../packages/native_messaging_host/CONTEXT.md).

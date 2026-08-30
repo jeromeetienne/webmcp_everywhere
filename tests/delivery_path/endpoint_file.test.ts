@@ -10,8 +10,8 @@ import Http from 'node:http';
 import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
-import { WebmcpNativeHost } from '../../src/native_messaging_host/webmcp_native_host.ts';
-import type { HostEndpointRecord, HostHealth } from '../../src/native_messaging_host/webmcp_native_host_types.ts';
+import { WebmcpNativeHost } from '@webmcp_everywhere/native_messaging_host';
+import type { HostEndpointRecord, HostHealth } from '@webmcp_everywhere/native_messaging_host';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -37,8 +37,9 @@ class EndpointFileTest {
 		__dirname,
 		'..',
 		'..',
-		'src',
+		'packages',
 		'native_messaging_host',
+		'src',
 		'webmcp_native_host.ts',
 	);
 

@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-//	WorkspacePackagesTest — that the packages an adapter author installs hold together
+//	WorkspacePackagesTest — that every workspace package holds together, installed and not
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -46,7 +46,7 @@ type PackageManifest = {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks the two packages an adapter author installs, as manifests and as tarballs.
+ * Checks every workspace package as a manifest, and the two an adapter author installs as tarballs too.
  *
  * Inside this repository npm links a workspace package with a symbolic link, and Node.js resolves that
  * link to a real path outside `node_modules` before it decides whether to strip types. An adapter
@@ -66,18 +66,26 @@ class WorkspacePackagesTest {
 	/**
 	 * Every package this workspace has, which is a decision rather than a list that grew.
 	 *
-	 * Milestone 4 of [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) stopped
-	 * the split here. `src/chrome_extension/`, `src/native_messaging_host/` and `src/site_adapters/`
-	 * stayed folders because nothing installs any of them, one build reads all of them, and one version
-	 * covers all of them — and each move spends every document that names a path again.
+	 * A folder is a package when it has a `package.json` of its own, whether or not npmjs ever carries
+	 * it — the rule [issue #19](https://github.com/jeromeetienne/webmcp_everywhere/issues/19) wrote in
+	 * place of the one milestone 4 of
+	 * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) left. The reason each of
+	 * these four is one:
 	 *
-	 * A fourth package is not forbidden. It is asked about: this list is what a new one has to be added
+	 * - `@webmcp_everywhere/adapter_format` and `@webmcp_everywhere/adapter_toolkit` are what an adapter
+	 *   is written against, and an author outside this repository installs both.
+	 * - `@webmcp_everywhere/native_messaging_host` is a self-contained Node.js program with its own
+	 *   dependencies, and `packages/npm_package/src/` and `tools/` import it by name.
+	 * - `webmcp_everywhere` is what npmjs carries and what `npx webmcp_everywhere` fetches.
+	 *
+	 * A fifth package is not forbidden. It is asked about: this list is what a new one has to be added
 	 * to, beside the reason, so that growing the workspace is something somebody decided rather than
-	 * something that happened. What would reopen the decision is written in `packages/CONTEXT.md`.
+	 * something that happened. What makes a folder a package is written in `packages/CONTEXT.md`.
 	 */
 	static readonly DECIDED_PACKAGES = [
 		'@webmcp_everywhere/adapter_format',
 		'@webmcp_everywhere/adapter_toolkit',
+		'@webmcp_everywhere/native_messaging_host',
 		'webmcp_everywhere',
 	];
 
@@ -224,8 +232,8 @@ class WorkspacePackagesTest {
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-NodeTest.describe('The packages an adapter author installs', () => {
-	NodeTest.test('the workspace holds the packages milestone 4 decided on, and no others', (t) => {
+NodeTest.describe('Every workspace package', () => {
+	NodeTest.test('the workspace holds the packages that were decided on, and no others', (t) => {
 		const found = WorkspacePackagesTest.packages()
 			.map(({ manifest }) => manifest.name)
 			.sort();
@@ -237,16 +245,16 @@ NodeTest.describe('The packages an adapter author installs', () => {
 				[
 					added.length > 0 ? `${added.join(' and ')} is a package nobody decided on` : '',
 					gone.length > 0 ? `${gone.join(' and ')} is decided on but not there` : '',
-					'The split stopped at three in milestone 4 of',
-					'https://github.com/jeromeetienne/webmcp_everywhere/issues/11, and packages/CONTEXT.md says',
-					'what would reopen it. Add the package to WorkspacePackagesTest.DECIDED_PACKAGES with the',
-					'reason, or take it back out.',
+					'A folder is a package when it has a package.json of its own, which',
+					'https://github.com/jeromeetienne/webmcp_everywhere/issues/19 decided and',
+					'packages/CONTEXT.md holds. Add the package to WorkspacePackagesTest.DECIDED_PACKAGES with',
+					'the reason, or take it back out.',
 				]
 					.filter((line) => line.length > 0)
 					.join(' '),
 			);
 		}
-		t.diagnostic(`${found.length} packages, the three decided on: ${found.join(', ')}`);
+		t.diagnostic(`${found.length} packages, every one decided on: ${found.join(', ')}`);
 	});
 
 	NodeTest.test('a package is imported by one entry point, or run by a bin, and never both', (t) => {

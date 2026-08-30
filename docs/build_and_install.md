@@ -22,7 +22,7 @@ Three ways, and only the third is what this document is about.
 
 - **`npx webmcp_everywhere`** installs the published package. It copies the extension and the bundled native messaging host into `~/.webmcp_everywhere/installation`, registers the host with Chrome, and ends by saying whether tools are reaching an agent. Nothing is built and nothing is cloned, and Node.js 20 or later is enough. Ask again at any time with `npx webmcp_everywhere status`, and take it all back out with `npx webmcp_everywhere uninstall`. This is what somebody who only wants to use it should run.
 - **The archive on [the latest release](https://github.com/jeromeetienne/webmcp_everywhere/releases/latest)** holds the same folder, for anybody who would rather not use npm. Unzip it and run `node webmcp_everywhere.mjs` inside it, which is the same command doing the same thing.
-- **This repository** is for writing an adapter, or changing anything here. Node.js runs the TypeScript with no build step, the launcher walks up from its own location to find `src/`, and `npm run install:host` registers this working copy rather than an installation. The nine commands above are all of it.
+- **This repository** is for writing an adapter, or changing anything here. Node.js runs the TypeScript with no build step, the launcher walks up from its own location to find the host program, and `npm run install:host` registers this working copy rather than an installation. The nine commands above are all of it.
 
 Only one of these may be registered with Chrome at a time. The host manifest names one launcher, and installing either way overwrites what the other wrote.
 
@@ -155,7 +155,7 @@ Writing the adapter in the first place is [write_a_site_adapter.md](write_a_site
 
 ## `npm run package:release`
 
-Everything above assumes a working copy on disk: the launcher walks up from its own location to find [`src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src), and Node.js runs the TypeScript with no build step. That is right for somebody writing an adapter and wrong for everybody else, because it means cloning a repository to use a browser extension.
+Everything above assumes a working copy on disk: the launcher walks up from its own location to find [the host program](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host/src), and Node.js runs the TypeScript with no build step. That is right for somebody writing an adapter and wrong for everybody else, because it means cloning a repository to use a browser extension.
 
 ```bash
 npm run package:release
@@ -226,4 +226,4 @@ Any other value for `WEBMCP_EVERYWHERE_CHROME_VISIBILITY` is refused by name rat
 
 ## Erasable syntax
 
-Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`src/native_messaging_host/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/src/native_messaging_host) directly, stripping types without a build step. So those files stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks it.
+Node.js runs the files in [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools), [`tests/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tests), and [`packages/native_messaging_host/src/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/native_messaging_host/src) directly, stripping types without a build step. So those files stay within erasable syntax: no `enum`, no runtime `namespace`, no parameter properties, no decorators. `npm run typecheck` checks it.
