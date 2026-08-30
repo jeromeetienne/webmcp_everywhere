@@ -1,6 +1,6 @@
 {
 	"name": "webmcp_everywhere",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"license": "MIT",
 	"description": "A community-maintained library of WebMCP adapters that register tools into sites that have not shipped their own.",
 	"keywords": [
