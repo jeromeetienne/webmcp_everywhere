@@ -1,4 +1,4 @@
-import { PageWaiting } from '@webmcp_everywhere/site_adapter';
+import { PageWaiting } from '@webmcp_everywhere/site_adapter_lib';
 import type {
 	CaniuseAgent,
 	CaniuseFeatureData,

@@ -4,7 +4,7 @@
 The npm workspace: one folder per package, each with its own `package.json`, each named below.
 
 ## Key Exports & Entry Points
-- `site_adapter/`: everything an adapter is written against — the format it conforms to, and the page helpers it shares — see its own CONTEXT.md.
+- `site_adapter_lib/`: everything an adapter is written against — the format it conforms to, and the page helpers it shares — see its own CONTEXT.md.
 - `native_messaging_host/`: the program that holds the HTTP port the extension cannot — see its own CONTEXT.md.
 - `webmcp_everywhere/`: what npmjs carries and what a user installs — see its own CONTEXT.md.
 - `<package>/tools/` and `<package>/tests/`: the tooling and the runners whose subject is that package.
@@ -27,5 +27,5 @@ The npm workspace: one folder per package, each with its own `package.json`, eac
 - Each `tools/` and `tests/` folder moved in from the top of the repository in [issue #28](https://github.com/jeromeetienne/webmcp_everywhere/issues/28).
 - The workspace, what it buys and what it costs, is [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11), milestone by milestone. The commits on `make_the_repository_a_workspace` say what each one landed.
 - **What makes a folder a package was rewritten in [issue #19](https://github.com/jeromeetienne/webmcp_everywhere/issues/19)**, which replaced the earlier rule — a folder becomes a package when somebody outside this repository has to install it — with the one above.
-- **Two packages for one subject is what [issue #23](https://github.com/jeromeetienne/webmcp_everywhere/issues/23) undid.** `adapter_format` and `adapter_toolkit` are now the two halves of `site_adapter`, `src/format/` and `src/toolkit/`. That issue says why keeping them apart was bookkeeping.
+- **Two packages for one subject is what [issue #23](https://github.com/jeromeetienne/webmcp_everywhere/issues/23) undid.** `adapter_format` and `adapter_toolkit` are now the two halves of `site_adapter_lib`, `src/format/` and `src/toolkit/`. That issue says why keeping them apart was bookkeeping.
 - **One package per adapter is the open question, and is not justified yet.** What would justify it is somebody publishing an adapter of their own on npmjs. Until then a folder per adapter is the same boundary with none of the cost, and an adapter written elsewhere already needs no folder here.

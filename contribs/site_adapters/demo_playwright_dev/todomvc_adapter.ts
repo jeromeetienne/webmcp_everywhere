@@ -1,5 +1,5 @@
-import { PageDriving } from '@webmcp_everywhere/site_adapter';
-import type { Adapter } from '@webmcp_everywhere/site_adapter';
+import { PageDriving } from '@webmcp_everywhere/site_adapter_lib';
+import type { Adapter } from '@webmcp_everywhere/site_adapter_lib';
 import type { TodoFilter } from './todomvc_page.js';
 import { TodomvcPage } from './todomvc_page.js';
 

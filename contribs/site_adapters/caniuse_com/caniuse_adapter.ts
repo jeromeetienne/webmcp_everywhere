@@ -1,5 +1,5 @@
-import { PageDriving } from '@webmcp_everywhere/site_adapter';
-import type { Adapter } from '@webmcp_everywhere/site_adapter';
+import { PageDriving } from '@webmcp_everywhere/site_adapter_lib';
+import type { Adapter } from '@webmcp_everywhere/site_adapter_lib';
 import type { CaniuseFeatureData, CaniuseFeatureIndexEntry, ToolRefusal } from './caniuse_types.js';
 import { CaniusePage } from './caniuse_page.js';
 

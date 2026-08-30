@@ -1,7 +1,7 @@
-# Directory Context: `/packages/site_adapter/src/format`
+# Directory Context: `/packages/site_adapter_lib/src/format`
 
 ## Purpose
-The contract half of `@webmcp_everywhere/site_adapter`: what an adapter is, the version it declares, how its tools are named, and how everything a page returns is framed before an agent sees it. Everything here is meant to stop changing, because taking anything out of it breaks every adapter that exists.
+The contract half of `@webmcp_everywhere/site_adapter_lib`: what an adapter is, the version it declares, how its tools are named, and how everything a page returns is framed before an agent sees it. Everything here is meant to stop changing, because taking anything out of it breaks every adapter that exists.
 
 ## Key Exports & Entry Points
 - `adapter_types.ts`: `Adapter`, `AdapterToolDefinition`, `PermissionClass`, `OriginGrant`. The shape everything else agrees on.
@@ -15,10 +15,10 @@ The contract half of `@webmcp_everywhere/site_adapter`: what an adapter is, the 
 ## Rules
 - **Nothing here imports `../toolkit/`.** The format is checked in Node.js with no browser, and a page helper reaching into it would end that. The dependency runs one way or not at all.
 - `ADAPTER_FORMAT_VERSION` and the `version` field of `package.json` say the same thing, which `tests/repository_layout/workspace_packages.test.ts` checks. An author reading one and a check reading the other would otherwise disagree about which format an adapter must carry.
-- A tool's `permissionClass` is checked against its handler's source by `packages/site_adapter/tools/permission_audit.ts`, never trusted. A handler that clicks, submits, navigates, or assigns to `value` is acting, whatever the field says.
+- A tool's `permissionClass` is checked against its handler's source by `packages/site_adapter_lib/tools/permission_audit.ts`, never trusted. A handler that clicks, submits, navigates, or assigns to `value` is acting, whatever the field says.
 - Every tool result passes through `UntrustedContent.frame` before an agent sees it. This happens in the runtime, not in each adapter, so no author can forget it and no hostile adapter can skip it.
 - Invisible characters are removed; visible instruction-shaped text is flagged and kept. Removing the visible text would be defeated by rephrasing and would hide the attack from the user.
-- No adapter may reach the network. `PermissionAudit.findNetworkEgress`, in `packages/site_adapter/tools/`, refuses `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, or a dynamic import, in `npm run build` and in `npm run load-adapter` alike.
+- No adapter may reach the network. `PermissionAudit.findNetworkEgress`, in `packages/site_adapter_lib/tools/`, refuses `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, or a dynamic import, in `npm run build` and in `npm run load-adapter` alike.
 - `webmcp_globals.d.ts` describes Chrome's real behaviour, not the specification's WebIDL, where the two disagree.
 
 ## Background

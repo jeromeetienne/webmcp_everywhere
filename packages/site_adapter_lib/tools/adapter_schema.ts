@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { ADAPTER_FORMAT_VERSION, ToolNaming } from '@webmcp_everywhere/site_adapter';
-import type { Adapter } from '@webmcp_everywhere/site_adapter';
+import { ADAPTER_FORMAT_VERSION, ToolNaming } from '@webmcp_everywhere/site_adapter_lib';
+import type { Adapter } from '@webmcp_everywhere/site_adapter_lib';
 import { PermissionAudit } from './permission_audit.js';
 
 ///////////////////////////////////////////////////////////////////////////////

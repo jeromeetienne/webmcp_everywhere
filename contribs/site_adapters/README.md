@@ -35,4 +35,4 @@ That writes the adapter list in `contribs/chrome_extension/shared_state/adapter_
 - The rules for editing this folder are in [CONTEXT.md](CONTEXT.md), and each adapter folder has its own.
 - The task-shaped guide to covering a site: [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
 - What an adapter must look like and the checks it must pass: [adapter_format.md](../../docs/adapter_format.md).
-- Everything an adapter is written against: [`@webmcp_everywhere/site_adapter`](../../packages/site_adapter/README.md).
+- Everything an adapter is written against: [`@webmcp_everywhere/site_adapter_lib`](../../packages/site_adapter_lib/README.md).

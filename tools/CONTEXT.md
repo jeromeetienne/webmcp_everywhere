@@ -8,7 +8,7 @@ The build and launch code with no one subject under `packages/` or `contribs/` t
 - `environment_reports/`: What a machine and each site can do, so a failing live check names the right cause — see its own CONTEXT.md.
 
 ## Rules
-- **A tool lives inside the folder it acts on.** `contribs/chrome_extension/tools/`, `contribs/site_adapters/tools/`, `packages/site_adapter/tools/`, and `packages/webmcp_everywhere/tools/`. Only a tool whose subject is neither a package nor a `contribs/` folder stays here.
+- **A tool lives inside the folder it acts on.** `contribs/chrome_extension/tools/`, `contribs/site_adapters/tools/`, `packages/site_adapter_lib/tools/`, and `packages/webmcp_everywhere/tools/`. Only a tool whose subject is neither a package nor a `contribs/` folder stays here.
 - A file stays here when more than one subject reads it. `chrome_devtools_protocol/` is read by `contribs/chrome_extension/tools/` and by the runners of four subjects.
 - No `.ts` file sits loose at the top of `tools/`. Every file lives in the folder for its subject.
 - Nothing here ships. A file a user runs belongs in `packages/webmcp_everywhere/src/`, where it is bundled; a file name inside a packaged release is spelled once, in that package's `release_layout.ts`.

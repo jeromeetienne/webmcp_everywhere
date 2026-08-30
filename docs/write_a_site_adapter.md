@@ -22,7 +22,7 @@ Open the site, open the developer tools, and find out three things.
 
 1. **Where the site keeps its real state.** TodoMVC keeps every todo in `localStorage` under `react-todos`, so the adapter reads the list from there and reads the Document Object Model only for what is on screen. Can I use... publishes its whole feature index on `window.Caniuse.rawData` before it renders anything.
 2. **What the visible page will not tell you.** The Can I use... support table sits behind three nested shadow roots and is drawn lazily, so it is empty exactly when it is needed; the adapter reads `model.fullData` off the feature's `ciu-feature` element instead. TodoMVC's filter links hide items rather than re-order them, so a position in the list means something different under each filter.
-3. **What the site ignores.** TodoMVC is React, so assigning to `input.value` does nothing at all. Text has to be written through the native `HTMLInputElement` value setter, then an `input` event, then a `keydown` for Enter. That one is already solved for you: it is `PageDriving.writeIntoInputField` in [`packages/site_adapter/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter).
+3. **What the site ignores.** TodoMVC is React, so assigning to `input.value` does nothing at all. Text has to be written through the native `HTMLInputElement` value setter, then an `input` event, then a `keydown` for Enter. That one is already solved for you: it is `PageDriving.writeIntoInputField` in [`packages/site_adapter_lib/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter_lib).
 
 Write down what you found. It goes into the folder's `CONTEXT.md` as a rule, and the date goes into the adapter's `metadata.targetSiteVerifiedOn`.
 
@@ -39,18 +39,18 @@ Writing an adapter of your own outside this repository needs no scaffold. Copy o
 What it does need is the two packages that adapter imports, installed into your own folder:
 
 ```bash
-npm install ../webmcp_everywhere/packages/site_adapter ../webmcp_everywhere/packages/site_adapter
+npm install ../webmcp_everywhere/packages/site_adapter_lib ../webmcp_everywhere/packages/site_adapter_lib
 ```
 
 Then you import them by name, exactly as an adapter in this repository does:
 
 ```ts
-import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter';
-import { PageDriving, PageWaiting } from '@webmcp_everywhere/site_adapter';
-import type { Adapter } from '@webmcp_everywhere/site_adapter';
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter_lib';
+import { PageDriving, PageWaiting } from '@webmcp_everywhere/site_adapter_lib';
+import type { Adapter } from '@webmcp_everywhere/site_adapter_lib';
 ```
 
-**Neither package is on npmjs yet, so those two paths mean you do need a clone of this repository** — one clone, once, to install from. Putting them on npmjs is the decision left open in milestone 2 of [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11); when it is taken, the command above becomes `npm install @webmcp_everywhere/site_adapter @webmcp_everywhere/site_adapter` and the clone goes away. What has already gone is copying `PageWaiting` and `PageDriving` into your folder by hand, which is what this guide used to tell you to do.
+**Neither package is on npmjs yet, so those two paths mean you do need a clone of this repository** — one clone, once, to install from. Putting them on npmjs is the decision left open in milestone 2 of [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11); when it is taken, the command above becomes `npm install @webmcp_everywhere/site_adapter_lib @webmcp_everywhere/site_adapter_lib` and the clone goes away. What has already gone is copying `PageWaiting` and `PageDriving` into your folder by hand, which is what this guide used to tell you to do.
 
 For a contributed adapter, the scaffold writes five things, all of them already passing `npm run build`:
 
@@ -74,15 +74,15 @@ One file, holding two exports: the adapter object itself, and a class holding th
 
 The rules that apply while writing it:
 
-- **Use [`@webmcp_everywhere/site_adapter`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter) rather than writing the same helper again.** `PageWaiting.waitUntil` and `PageWaiting.waitUntilChanged` are the waiting every adapter needs; `PageDriving.writeIntoInputField` and `PageDriving.pressEnter` are the two interactions a framework only notices when they are done a particular way. What stays in your own folder is this site's own figures, such as how long it takes to settle.
-- **Every adapter imports [`@webmcp_everywhere/site_adapter`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter) and [`@webmcp_everywhere/site_adapter`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter), and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/chrome_extension). An adapter in a folder of your own imports those two packages and nothing else outside that folder. A contributed adapter, which sits in this repository's workspace, imports exactly the same two names — so an adapter written outside and an adapter written here are the same file.
+- **Use [`@webmcp_everywhere/site_adapter_lib`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter_lib) rather than writing the same helper again.** `PageWaiting.waitUntil` and `PageWaiting.waitUntilChanged` are the waiting every adapter needs; `PageDriving.writeIntoInputField` and `PageDriving.pressEnter` are the two interactions a framework only notices when they are done a particular way. What stays in your own folder is this site's own figures, such as how long it takes to settle.
+- **Every adapter imports [`@webmcp_everywhere/site_adapter_lib`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter_lib) and [`@webmcp_everywhere/site_adapter_lib`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter_lib), and nothing else.** Never another adapter, never anything under [`chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/chrome_extension). An adapter in a folder of your own imports those two packages and nothing else outside that folder. A contributed adapter, which sits in this repository's workspace, imports exactly the same two names — so an adapter written outside and an adapter written here are the same file.
 - **Never reach the network.** `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`, and a dynamic import are each refused, by `npm run build` and by `npm run load-adapter` alike.
 - **Set a `yieldCondition`.** An adapter that cannot stand down when the site ships its own tools is not finished.
 - **Declare the permission class honestly.** The build reads your handler's source and disagrees with a wrong one. A handler that names `PageDriving` at all is acting, because every helper in that file changes the page.
 - **A read-only handler must not name `location`.** The audit cannot tell reading it from assigning to it. Read the address through a helper outside the handler, which is what the scaffolded `_address` is for.
 - **Return a refusal, never throw.** Chrome 151 replaces a thrown handler error with a fixed `UnknownError` text, so a thrown message reaches no agent. A tool that cannot serve a reasonable request returns a refusal object naming the tool to call next.
 - **Put an acting tool back the way it found it.** A TodoMVC tool that needs a hidden todo shows every todo, acts, and restores the filter, so the page never looks different from how the user left it.
-- **Leave `metadata.adapterFormatVersion` alone.** It names the version of the format the build accepts, which is `ADAPTER_FORMAT_VERSION` in [`@webmcp_everywhere/site_adapter`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter) and always equals that package's own version, and the scaffold already wrote the right one. `version` beside it is the adapter's own, and that one is yours.
+- **Leave `metadata.adapterFormatVersion` alone.** It names the version of the format the build accepts, which is `ADAPTER_FORMAT_VERSION` in [`@webmcp_everywhere/site_adapter_lib`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/packages/site_adapter_lib) and always equals that package's own version, and the scaffold already wrote the right one. `version` beside it is the adapter's own, and that one is yours.
 
 ## Step three: keep the registration in step
 

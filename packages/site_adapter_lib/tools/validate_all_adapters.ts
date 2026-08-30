@@ -1,4 +1,4 @@
-import { ToolNaming } from '@webmcp_everywhere/site_adapter';
+import { ToolNaming } from '@webmcp_everywhere/site_adapter_lib';
 import { AdapterRegistry } from '../../../contribs/chrome_extension/shared_state/adapter_registry.js';
 import { AdapterSchema } from './adapter_schema.js';
 import { PermissionAudit } from './permission_audit.js';

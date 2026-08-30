@@ -48,7 +48,7 @@
 		"mcp:inspector:stop": "pkill -f \"mcp-inspector|@modelcontextprotocol/inspector\" && echo \"mcp:inspector was stopped\" || echo \"mcp:inspector was not running, nothing to stop\""
 	},
 	"devDependencies": {
-		"@webmcp_everywhere/site_adapter": "0.1.0",
+		"@webmcp_everywhere/site_adapter_lib": "0.1.0",
 		"@webmcp_everywhere/native_messaging_host": "0.1.0",
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@types/chrome": "0.2.6",

@@ -2,11 +2,11 @@
 
 An adapter has to pass the checks in this folder before `npm run build` will bundle it, and before `npm run load-adapter` will install it into a browser. The checks are the same either way, whoever wrote the adapter.
 
-The folder sits inside [`/packages/site_adapter`](../README.md), because what is checked here is the adapter format that package defines.
+The folder sits inside [`/packages/site_adapter_lib`](../README.md), because what is checked here is the adapter format that package defines.
 
 ## What is in here
 
-- `adapter_schema.ts` — the shape an adapter must match, checked against the adapter format version that `@webmcp_everywhere/site_adapter` declares.
+- `adapter_schema.ts` — the shape an adapter must match, checked against the adapter format version that `@webmcp_everywhere/site_adapter_lib` declares.
 - `permission_audit.ts` — reads the source of every tool handler and disagrees with an adapter that declares a handler read-only when the handler changes the page.
 - `validate_all_adapters.ts` — the runner that applies both to every registered adapter.
 

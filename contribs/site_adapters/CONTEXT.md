@@ -11,15 +11,15 @@ Holds one folder per target site, each exporting a single adapter that gives tha
 
 ## Rules
 - One folder per origin, named after the origin in `snake_case`, matching the adapter's `siteSlug`.
-- An adapter imports its types and its helpers from `@webmcp_everywhere/site_adapter`, and nothing else. That is a package, so an adapter here and an adapter in a folder of somebody's own are written the same way. It never imports another adapter, and it never imports from `chrome_extension/`.
-- A helper that any second site would also need belongs in `packages/site_adapter/`, not here, and it reaches every adapter author at once when it goes there. What stays here is this site's own figures and its own selectors: how long it takes to settle, where it keeps its state, which element means what.
+- An adapter imports its types and its helpers from `@webmcp_everywhere/site_adapter_lib`, and nothing else. That is a package, so an adapter here and an adapter in a folder of somebody's own are written the same way. It never imports another adapter, and it never imports from `chrome_extension/`.
+- A helper that any second site would also need belongs in `packages/site_adapter_lib/`, not here, and it reaches every adapter author at once when it goes there. What stays here is this site's own figures and its own selectors: how long it takes to settle, where it keeps its state, which element means what.
 - Every adapter sets a `yieldCondition`. An adapter that cannot stand down when the site ships its own tools is not finished.
 - A tool that cannot serve a reasonable request returns a refusal object naming the tool to call next, rather than throwing. Chrome 151 replaces a thrown handler error with a fixed `UnknownError` text, so a thrown message reaches no agent.
 - A folder here is the only thing an adapter author adds. `npm run sync:adapters` writes the adapter list in `contribs/chrome_extension/shared_state/adapter_registry.ts` from these folders, and `node --test tests/repository_layout/adapter_registry_sync.test.ts` refuses a working copy where the two disagree. Nothing goes into `contribs/chrome_extension/manifest.json`, which names no site.
 - Nothing is still picked up silently, which is what the hand edits used to protect: the command runs when a person asks it to, its output is committed, and the change arrives as a diff a reviewer reads.
 - A folder here is an adapter this build ships, and this build ships two or three as examples. An adapter that covers a site well but shows nothing the others show belongs in a folder of its own, installed with `npm run load-adapter` — see [write_a_site_adapter.md](../../docs/write_a_site_adapter.md).
 - Every adapter folder carries its own `CONTEXT.md` and `README.md`, and its own `tests/` folder holding one runner named after the adapter file with `_adapter` dropped. All three are checked by `tests/repository_layout/adapter_registry_sync.test.ts`.
-- **A runner is the one file in an adapter folder that may reach outside it**, for `tests/libs/live_page_harness.ts` and for `tools/chrome_devtools_protocol/`. The adapter itself reaches nothing outside `@webmcp_everywhere/site_adapter`.
+- **A runner is the one file in an adapter folder that may reach outside it**, for `tests/libs/live_page_harness.ts` and for `tools/chrome_devtools_protocol/`. The adapter itself reaches nothing outside `@webmcp_everywhere/site_adapter_lib`.
 - `tools/` is the one folder here that is not an adapter, and `sync_adapter_registry.ts` leaves it out when it discovers adapters.
 
 ## Background

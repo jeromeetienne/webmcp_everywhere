@@ -20,7 +20,7 @@ const bundleDir = Path.join(outDir, 'dist');
 const validateAllAdaptersPath = Path.join(
 	repositoryRoot,
 	'packages',
-	'site_adapter',
+	'site_adapter_lib',
 	'tools',
 	'validate_all_adapters.ts',
 );

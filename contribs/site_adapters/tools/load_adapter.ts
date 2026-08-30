@@ -2,8 +2,8 @@ import Esbuild from 'esbuild';
 import Fs from 'node:fs';
 import Path from 'node:path';
 import ChildProcess from 'node:child_process';
-import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/site_adapter';
-import type { LoadedAdapter } from '@webmcp_everywhere/site_adapter';
+import { LOADED_ADAPTER_GLOBAL } from '@webmcp_everywhere/site_adapter_lib';
+import type { LoadedAdapter } from '@webmcp_everywhere/site_adapter_lib';
 import { LoadedAdapterStore } from '@webmcp_everywhere/native_messaging_host';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,7 +145,7 @@ export class LoadAdapter {
 	/**
 	 * Runs the review checks over the adapter, in a Node.js process of its own.
 	 *
-	 * The checks live in `packages/site_adapter/tools/` and read types that assume a browser, so they are
+	 * The checks live in `packages/site_adapter_lib/tools/` and read types that assume a browser, so they are
 	 * bundled before they run, exactly as `npm run build` bundles them. Running them in a child process
 	 * rather than importing them keeps an adapter's own top-level code out of this process.
 	 *
@@ -214,7 +214,7 @@ export class LoadAdapter {
 	 * @returns The program's source.
 	 */
 	static _reviewerSource(adapterFile: string): string {
-		const checksDir = Path.join(repositoryRoot, 'packages', 'site_adapter', 'tools');
+		const checksDir = Path.join(repositoryRoot, 'packages', 'site_adapter_lib', 'tools');
 		const schemaPath = Path.join(checksDir, 'adapter_schema.ts');
 		const auditPath = Path.join(checksDir, 'permission_audit.ts');
 		return [

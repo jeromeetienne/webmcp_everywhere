@@ -114,7 +114,7 @@ tests/  →  tools/  →  contribs/
 
 That rule is what keeps build tooling and verification code from drifting back into the product. [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs) holds what ships and nothing else.
 
-One import crosses in the other direction on purpose: [`packages/site_adapter/tools/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/site_adapter/tools/validate_all_adapters.ts) imports the adapter registry from [`contribs/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/chrome_extension). That is [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) reading [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), which the boundary allows, and it is the only file in that folder reaching into the extension.
+One import crosses in the other direction on purpose: [`packages/site_adapter_lib/tools/validate_all_adapters.ts`](https://github.com/jeromeetienne/webmcp_everywhere/blob/main/packages/site_adapter_lib/tools/validate_all_adapters.ts) imports the adapter registry from [`contribs/chrome_extension/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs/chrome_extension). That is [`tools/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/tools) reading [`contribs/`](https://github.com/jeromeetienne/webmcp_everywhere/tree/main/contribs), which the boundary allows, and it is the only file in that folder reaching into the extension.
 
 ## The shape every runner follows
 

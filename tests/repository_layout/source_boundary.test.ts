@@ -67,7 +67,7 @@ type Offence = {
  * always allowed. The refusal they used to get from the outward check is stated here instead: no
  * product file may import from a `tests/` or a `tools/` folder, wherever that folder sits.
  *
- * A bare specifier such as `@webmcp_everywhere/site_adapter` is not checked here. That is a dependency
+ * A bare specifier such as `@webmcp_everywhere/site_adapter_lib` is not checked here. That is a dependency
  * npm resolves, and the manifests are what `tests/repository_layout/workspace_packages.test.ts` reads.
  */
 class SourceBoundaryTest {

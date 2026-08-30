@@ -1,4 +1,4 @@
-# `@webmcp_everywhere/site_adapter`
+# `@webmcp_everywhere/site_adapter_lib`
 
 Everything a [WebMCP Everywhere](https://github.com/jeromeetienne/webmcp_everywhere) site adapter is written against, in one package. It has two halves, and they are not the same kind of thing:
 
@@ -26,12 +26,12 @@ The package is not on npmjs yet, so it is installed out of a clone of the reposi
 
 ```bash
 git clone https://github.com/jeromeetienne/webmcp_everywhere.git
-npm install ../webmcp_everywhere/packages/site_adapter
+npm install ../webmcp_everywhere/packages/site_adapter_lib
 ```
 
 ```ts
-import { ADAPTER_FORMAT_VERSION, PageDriving, PageWaiting } from '@webmcp_everywhere/site_adapter';
-import type { Adapter } from '@webmcp_everywhere/site_adapter';
+import { ADAPTER_FORMAT_VERSION, PageDriving, PageWaiting } from '@webmcp_everywhere/site_adapter_lib';
+import type { Adapter } from '@webmcp_everywhere/site_adapter_lib';
 ```
 
 **This package ships as TypeScript and is read by esbuild, never by Node.js.** `npm run load-adapter` bundles your adapter before anything runs it, which is what makes that work. Node.js refuses to strip types for a file inside `node_modules`, so importing this package straight into a Node.js program fails with `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`.

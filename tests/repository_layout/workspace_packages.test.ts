@@ -10,7 +10,7 @@ import Os from 'node:os';
 import Path from 'node:path';
 import NodeTest from 'node:test';
 import Esbuild from 'esbuild';
-import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter';
+import { ADAPTER_FORMAT_VERSION } from '@webmcp_everywhere/site_adapter_lib';
 
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -72,7 +72,7 @@ class WorkspacePackagesTest {
 	 * [issue #11](https://github.com/jeromeetienne/webmcp_everywhere/issues/11) left. The reason each of
 	 * these three is one:
 	 *
-	 * - `@webmcp_everywhere/site_adapter` is what an adapter is written against, both the format it
+	 * - `@webmcp_everywhere/site_adapter_lib` is what an adapter is written against, both the format it
 	 *   conforms to and the page helpers it shares, and an author outside this repository installs it.
 	 * - `@webmcp_everywhere/native_messaging_host` is a self-contained Node.js program with its own
 	 *   dependencies, and `packages/webmcp_everywhere/src/` and `tools/` import it by name.
@@ -83,7 +83,7 @@ class WorkspacePackagesTest {
 	 * something that happened. What makes a folder a package is written in `packages/CONTEXT.md`.
 	 */
 	static readonly DECIDED_PACKAGES = [
-		'@webmcp_everywhere/site_adapter',
+		'@webmcp_everywhere/site_adapter_lib',
 		'@webmcp_everywhere/native_messaging_host',
 		'webmcp_everywhere',
 	];
@@ -211,7 +211,7 @@ class WorkspacePackagesTest {
 		Fs.writeFileSync(
 			filePath,
 			[
-				"import { ADAPTER_FORMAT_VERSION, PageWaiting, ToolNaming } from '@webmcp_everywhere/site_adapter';",
+				"import { ADAPTER_FORMAT_VERSION, PageWaiting, ToolNaming } from '@webmcp_everywhere/site_adapter_lib';",
 				'',
 				'export const probe = {',
 				'\tformatVersion: ADAPTER_FORMAT_VERSION,',
@@ -317,10 +317,10 @@ NodeTest.describe('Every workspace package', () => {
 
 	NodeTest.test('the site adapter package and ADAPTER_FORMAT_VERSION name one version', (t) => {
 		const found = WorkspacePackagesTest.packages().find(
-			({ manifest }) => manifest.name === '@webmcp_everywhere/site_adapter',
+			({ manifest }) => manifest.name === '@webmcp_everywhere/site_adapter_lib',
 		);
 		if (found === undefined) {
-			throw new Error('@webmcp_everywhere/site_adapter is not a package under packages/');
+			throw new Error('@webmcp_everywhere/site_adapter_lib is not a package under packages/');
 		}
 		if (found.manifest.version !== ADAPTER_FORMAT_VERSION) {
 			throw new Error(

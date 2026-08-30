@@ -51,7 +51,7 @@ class LoadedAdapterTest {
 	 * source is what checks that the instruction was really replaced rather than only rewritten.
 	 */
 	static readonly SOURCE = `
-import { ADAPTER_FORMAT_VERSION, PageWaiting } from '@webmcp_everywhere/site_adapter';
+import { ADAPTER_FORMAT_VERSION, PageWaiting } from '@webmcp_everywhere/site_adapter_lib';
 
 export class ExamplePage {
 	static _address(): string {
@@ -158,7 +158,7 @@ export const exampleAdapter = {
 	///////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Makes the folder and installs `site_adapter` into it, out of this clone.
+	 * Makes the folder and installs `site_adapter_lib` into it, out of this clone.
 	 *
 	 * npm installs a folder as a symbolic link, so nothing is copied and nothing is fetched. The
 	 * package is not on npmjs yet, which is the decision still open in milestone 2 of
@@ -194,7 +194,7 @@ export const exampleAdapter = {
 			'npm',
 			[
 				'install',
-				Path.join(packagesDir, 'site_adapter'),
+				Path.join(packagesDir, 'site_adapter_lib'),
 			],
 			{
 				cwd: LoadedAdapterTest.FOLDER,

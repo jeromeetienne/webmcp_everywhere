@@ -1,5 +1,5 @@
 {
-	"name": "@webmcp_everywhere/site_adapter",
+	"name": "@webmcp_everywhere/site_adapter_lib",
 	"version": "0.1.0",
 	"private": true,
 	"license": "MIT",
