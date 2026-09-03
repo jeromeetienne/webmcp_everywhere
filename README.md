@@ -23,7 +23,7 @@ A site changes and an adapter breaks. [A run every night](.github/workflows/live
 | `demo_playwright_dev` | Playwright TodoMVC demonstration | 3 | 7 | 0 | 2026-08-20 | passing |
 | `openstreetmap_org` | OpenStreetMap | 6 | 7 | 0 | 2026-08-21 | passing |
 
-Last nightly run: 2026-09-02.
+Last nightly run: 2026-09-03.
 <!-- adapter_freshness end -->
 
 On a fresh install only the read-only tools are offered; the acting ones stay withheld until you opt in for that origin. An adapter loaded from a folder is switched off until you switch it on, because nobody here reviewed it. Tools from every open tab are aggregated behind one endpoint, and two tabs on the same site are told apart. Codex drives the sites through them, with no screenshots and no Document Object Model guesswork.
